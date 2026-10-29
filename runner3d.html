@@ -130,7 +130,7 @@ for(let i=0;i<65;i++){
   roadsideTrees.push(tree(20+Math.random()*17,z-2.6,.95+Math.random()*.9,172.25));
  }
 }
-function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);box(.42,3.2,.55,stoneMat,-3.5,1.55,0,g);box(.42,3.2,.55,stoneMat,3.5,1.55,0,g);box(7.4,.55,.8,stoneMat,0,3.15,0,g);box(6.5,.18,.9,edgeMat,0,2.83,0,g);return g}
+function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);const pillarX=4.56;box(.42,3.2,.55,stoneMat,-pillarX,1.53,0,g);box(.42,3.2,.55,stoneMat,pillarX,1.53,0,g);box(9.54,.55,.8,stoneMat,0,3.15,0,g);box(8.85,.18,.9,edgeMat,0,2.83,0,g);return g}
 for(let z=-26;z>-115;z-=30)fixedDecor.push(arch(z));
 const runner=new THREE.Group();scene.add(runner);
 // Stylized, more detailed witch character: pale face, silver hair and a tailored black dress.
