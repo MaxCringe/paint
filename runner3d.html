@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Jungle Rush 3D</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07150f;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}canvas{display:block;width:100%;height:100%}#hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 10px #00160b}#top{display:flex;justify-content:space-between;align-items:flex-start;padding:18px;gap:10px}.pill{background:#07150fc9;border:1px solid #ffffff30;border-radius:16px;padding:10px 14px;backdrop-filter:blur(8px);font-weight:800;letter-spacing:.04em}.small{font-size:11px;opacity:.72;display:block;letter-spacing:.16em;margin-bottom:3px}.big{font-size:23px;font-variant-numeric:tabular-nums}#center{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(90vw,470px);text-align:center;pointer-events:auto;background:linear-gradient(180deg,#071b13eF,#07120fea);border:1px solid #b8ff9a55;border-radius:26px;padding:26px 24px;box-shadow:0 20px 90px #0009}h1{font-size:clamp(28px,7vw,48px);line-height:.95;margin:0 0 12px;letter-spacing:-.05em}h1 em{color:#a8ff74;font-style:normal}.desc{color:#c5d8ca;line-height:1.55;font-size:14px;margin:0 auto 20px;max-width:350px}button{border:0;border-radius:14px;padding:14px 20px;font-weight:900;font-size:15px;cursor:pointer;color:#10210e;background:linear-gradient(135deg,#c5ff7e,#66df7c);box-shadow:0 7px 0 #34763d;min-width:180px}button:active{transform:translateY(3px);box-shadow:0 4px 0 #34763d}#hint{font-size:11px;color:#a9c2b0;margin-top:17px;letter-spacing:.08em}#bottom{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;pointer-events:auto}.ctrl{min-width:0;width:58px;height:54px;padding:0;border-radius:17px;background:#06160fba;border:1px solid #ffffff3a;color:white;box-shadow:none;font-size:22px;backdrop-filter:blur(8px);touch-action:manipulation}#toast{position:absolute;top:100px;left:50%;transform:translateX(-50%);font-weight:900;color:#caff98;opacity:0;transition:opacity .2s;font-size:14px;letter-spacing:.12em}#toast.show{opacity:1}@media(min-width:800px){#bottom{opacity:.8}.desc{font-size:15px}}.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="hud">
+ <div id="top">
+  <div class="pill"><span class="small">DISTANCE</span><span class="big" id="distance">0 m</span></div>
+  <div class="pill" style="text-align:right"><span class="small">COINS</span><span class="big" id="coins">0</span></div>
+  <div class="pill" style="text-align:right"><span class="small">BEST</span><span class="big" id="best">0 m</span></div>
+ </div>
+ <div id="toast">+ COIN</div>
+ <section id="center">
+  <h1>JUNGLE<br><em>RUSH 3D</em></h1>
+  <p class="desc" id="message">Мчись по древнему храмовому пути. Уклоняйся от препятствий, собирай монеты и побей свой рекорд.</p>
+  <button id="start">НАЧАТЬ ЗАБЕГ</button>
+  <div id="hint">← → СМЕНА ПОЛОСЫ &nbsp; • &nbsp; ↑ ПРЫЖОК &nbsp; • &nbsp; ↓ ПОДКАТ</div>
+ </section>
+ <div id="bottom">
+  <button class="ctrl" id="left" aria-label="Влево">←</button><button class="ctrl" id="jump" aria-label="Прыжок">↑</button><button class="ctrl" id="slide" aria-label="Подкат">↓</button><button class="ctrl" id="right" aria-label="Вправо">→</button>
+ </div>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8ec8b2);
+scene.fog = new THREE.Fog(0x8ec8b2, 25, 105);
+const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 180);
+camera.position.set(0,5.3,10.5);
+const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.7)); renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
+document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd9fff0,0x35452a,2.1));
+const sun=new THREE.DirectionalLight(0xffefcf,3.0); sun.position.set(-8,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const grassMat=mat(0x3d8b4d), roadMat=mat(0x77644a), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x236b3d),mat(0x31834b),mat(0x4a9a50),mat(0x174d32)], goldMat=mat(0xffc928,.3,.35), trunkMat=mat(0x68472d);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
+const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
+for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
+// Decorative temple arches in the distance and along the trail
+const fixedDecor=[];
+function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function tree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);box(.38,2.5,.38,trunkMat,0,1.15,0,g);for(let i=0;i<3;i++){const cone=new THREE.Mesh(new THREE.ConeGeometry(1.15-i*.17,1.8,6),leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=true;g.add(cone)}return g}
+for(let i=0;i<35;i++){const z=-i*6-4;tree(-6.4-Math.random()*3,z,.8+Math.random()*.7);tree(6.4+Math.random()*3,z,.8+Math.random()*.7)}
+function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);box(.42,3.2,.55,stoneMat,-3.5,1.55,0,g);box(.42,3.2,.55,stoneMat,3.5,1.55,0,g);box(7.4,.55,.8,stoneMat,0,3.15,0,g);box(6.5,.18,.9,edgeMat,0,2.83,0,g);return g}
+for(let z=-26;z>-115;z-=30)fixedDecor.push(arch(z));
+const runner=new THREE.Group();scene.add(runner);
+const bodyMat=mat(0x2478b7), pantsMat=mat(0x25334a), skinMat=mat(0xd99c72), shoeMat=mat(0x20252a), packMat=mat(0x9a4f2c);
+const torso=box(.72,.9,.4,bodyMat,0,1.35,0,runner);const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),skinMat);head.position.set(0,2.03,0);head.castShadow=true;runner.add(head);
+box(.52,.17,.44,mat(0x3a251a),0,2.24,0,runner);box(.42,.58,.25,packMat,0,1.37,.31,runner);
+const armL=box(.2,.68,.22,skinMat,-.49,1.39,0,runner),armR=box(.2,.68,.22,skinMat,.49,1.39,0,runner);
+const legL=box(.25,.62,.27,pantsMat,-.22,.52,0,runner),legR=box(.25,.62,.27,pantsMat,.22,.52,0,runner);
+box(.3,.16,.42,shoeMat,-.22,.18,-.05,runner);box(.3,.16,.42,shoeMat,.22,.18,-.05,runner);
+runner.position.set(0,0,2.3);
+const obstacles=[], coins=[], segments=[];
+function makeObstacle(lane,z,type){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);if(type==='rock'){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(.72,0),darkStone);m.position.y=.68;m.scale.set(1,1.1,.8);m.castShadow=true;g.add(m)}else if(type==='log'){box(1.9,.36,.48,trunkMat,0,1.18,0,g);for(let x of [-.72,.72])box(.12,.4,.5,edgeMat,x,1.18,0,g)}else{box(1.6,.14,.14,stoneMat,0,1.2,0,g);box(.15,1.25,.18,stoneMat,-.72,.58,0,g);box(.15,1.25,.18,stoneMat,.72,.58,0,g);box(1.6,.12,.18,edgeMat,0,1.9,0,g)}obstacles.push({g,lane,type,z,passed:false})}
+function makeCoin(lane,z,y=1.2){const g=new THREE.Group();g.position.set((lane-1)*2.55,y,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(.28,.085,8,16),goldMat);ring.rotation.y=Math.PI/2;ring.castShadow=true;g.add(ring);const core=new THREE.Mesh(new THREE.CircleGeometry(.2,12),mat(0xffe57a,.35,.2));core.position.x=.02;core.rotation.y=Math.PI/2;g.add(core);coins.push({g,lane,z,got:false,baseY:y})}
+function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;const r=Math.random();makeObstacle(lane,z,r<.48?'rock':r<.76?'log':'gate');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
+let lane=1, state='ready', distance=0, coinCount=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
+const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('jungleRushBest')||0);$('best').textContent=best+' m';
+function updateHud(){$('distance').textContent=Math.floor(distance)+' m';$('coins').textContent=coinCount}
+function popToast(t){$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.65}
+function start(){for(const o of obstacles)scene.remove(o.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;invuln=0;runner.position.set(0,0,2.3);state='playing';$('center').classList.add('hidden');updateHud()}
+function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('jungleRushBest',best);$('best').textContent=best+' m';$('message').innerHTML='Забег окончен! Ты пробежал <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' монет</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
+function move(d){if(state!=='playing')return;lane=Math.max(0,Math.min(2,lane+d))}
+function jump(){if(state==='playing'&&jumpT<=0&&slideT<=0)jumpT=.72}
+function slide(){if(state==='playing'&&slideT<=0&&jumpT<=0)slideT=.68}
+function actionKey(e){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state!=='playing'){if(e.code==='Enter'||e.code==='Space')start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
+window.addEventListener('keydown',actionKey);
+$('start').addEventListener('click',start);$('left').addEventListener('click',()=>move(-1));$('right').addEventListener('click',()=>move(1));$('jump').addEventListener('click',jump);$('slide').addEventListener('click',slide);
+let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
+function resetDecor(){for(const d of fixedDecor){if(d.position.z>16)d.position.z-=120}}
+function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||0,.04);last=t;
+ if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
+ if(state==='playing'){
+  distance+=speed*dt*.72;speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
+  if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
+  if(spawnZ<-150)spawnZ= -50;
+  jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);invuln=Math.max(0,invuln-dt);
+  const jumping=jumpT>0, sliding=slideT>0;const jumpY=jumping?Math.sin((1-jumpT/.72)*Math.PI)*1.75:0;
+  runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
+  runner.scale.y=sliding?.58:1;runner.position.z=2.3;
+  const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
+  torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
+  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){const safe=o.type==='rock'?jumping:o.type==='log'?jumping:sliding;if(!safe){end();break}else{invuln=.22}}} }
+  for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
+  for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 МОНЕТА')}} 
+  for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
+  for(const d of fixedDecor){d.position.z+=speed*dt*.72;if(d.position.z>16)d.position.z-=120}
+  updateHud();
+ }
+ // Camera follows gently; maintain forward view
+ camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);camera.lookAt(runner.position.x*.2,1.05,-5);
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(frame);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7))});
+</script>
+</body>
+</html>
