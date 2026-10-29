@@ -1,11 +1,56 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="ru">
 <head>
-    <title>Paint</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Paint</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,Arial,sans-serif;background:#f1f3f5;color:#202124}
+header{padding:16px 22px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:20px;margin:0 12px 0 0}.tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button{border:1px solid #ccc;background:white;border-radius:8px;padding:9px 13px;cursor:pointer;font:inherit}
+button:hover{background:#f0f0f0}.swatch{width:36px;height:36px;padding:0;border:3px solid white;box-shadow:0 0 0 1px #aaa;border-radius:50%}.swatch.active{box-shadow:0 0 0 3px #555}
+#red{background:#e53935}#black{background:#171717}.spacer{flex:1}label{display:flex;align-items:center;gap:8px}
+main{padding:18px;height:calc(100vh - 80px);min-height:300px}#board{width:100%;height:100%;display:block;background:#fff;border:1px solid #d1d5db;border-radius:10px;box-shadow:0 2px 8px #0000000b;touch-action:none;cursor:crosshair}
+@media(max-width:600px){header{padding:12px}main{padding:10px;height:calc(100vh - 135px)}h1{width:100%}}
+</style>
 </head>
 <body>
-    <h1>Добро пожаловать в Paint</h1>
-    1
-    <!-- Здесь будет канвас для рисования -->
+<header>
+<h1>🎨 Mini Paint</h1>
+<div class="tools">
+<button class="swatch active" id="black" aria-label="Чёрный цвет" title="Чёрный"></button>
+<button class="swatch" id="red" aria-label="Красный цвет" title="Красный"></button>
+<label>Размер <input id="size" type="range" min="1" max="40" value="5"><span id="sizeValue">5</span></label>
+<button id="eraser">Ластик</button>
+<button id="clear">Очистить</button>
+<button id="save">Скачать PNG</button>
+</div>
+</header>
+<main><canvas id="board" aria-label="Холст для рисования"></canvas></main>
+<script>
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const size=document.getElementById('size'),sizeValue=document.getElementById('sizeValue');
+let color='#171717',drawing=false,lastX=0,lastY=0,eraser=false;
+function resize(){
+ const rect=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+ const old=document.createElement('canvas');old.width=canvas.width;old.height=canvas.height;old.getContext('2d').drawImage(canvas,0,0);
+ canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.lineCap='round';ctx.lineJoin='round';
+ if(old.width&&old.height)ctx.drawImage(old,0,0,old.width,old.height,0,0,rect.width,rect.height);
+}
+function choose(c){color=c;eraser=false;document.getElementById('eraser').style.background='white';document.querySelectorAll('.swatch').forEach(b=>b.classList.toggle('active',b.id===c.slice(1)));}
+document.getElementById('black').onclick=()=>choose('#171717');
+document.getElementById('red').onclick=()=>choose('#e53935');
+document.getElementById('eraser').onclick=()=>{eraser=true;document.querySelectorAll('.swatch').forEach(b=>b.classList.remove('active'));document.getElementById('eraser').style.background='#ddd';};
+size.oninput=()=>sizeValue.textContent=size.value;
+function pos(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+canvas.addEventListener('pointerdown',e=>{drawing=true;canvas.setPointerCapture(e.pointerId);const p=pos(e);lastX=p.x;lastY=p.y;ctx.beginPath();ctx.arc(lastX,lastY,Number(size.value)/2,0,Math.PI*2);ctx.fillStyle=eraser?'#fff':color;ctx.fill();});
+canvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.strokeStyle=eraser?'#fff':color;ctx.lineWidth=Number(size.value);ctx.stroke();lastX=p.x;lastY=p.y;});
+function stop(){drawing=false}canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('lostpointercapture',stop);
+document.getElementById('clear').onclick=()=>{if(confirm('Очистить весь рисунок?'))ctx.clearRect(0,0,canvas.width,canvas.height)};
+document.getElementById('save').onclick=()=>{const a=document.createElement('a');a.download='my-drawing.png';a.href=canvas.toDataURL('image/png');a.click()};
+new ResizeObserver(resize).observe(canvas);
+</script>
 </body>
 </html>
