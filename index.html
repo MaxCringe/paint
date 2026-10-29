@@ -895,9 +895,27 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){
+   const previousZ=o.g.position.z;
    o.g.position.z+=speed*dt;
-   // During the flight, pass through obstacles and clear a small landing buffer as Fiona descends.
+   // During ultimate flight Fiona can pass over lava rivers and all ground hazards.
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
+   if(o.type==='lava'){
+    if(!ultActive&&!o.passed){
+     const half=o.g.userData.halfDepth||.88;
+     const crossedFrontEdge=previousZ+half<runner.position.z&&o.g.position.z+half>=runner.position.z;
+     if(crossedFrontEdge){
+      o.passed=true;
+      if(!(jumping&&jumpY>.62)){end();break}
+      invuln=Math.max(invuln,.22);
+     }
+    }
+    for(const bubble of (o.g.userData.bubbles||[])){
+     const pulse=1+.28*Math.sin(t*.016+bubble.phase);
+     bubble.mesh.scale.y=bubble.sy*pulse;
+     bubble.mesh.position.y=-.002+Math.max(0,Math.sin(t*.021+bubble.phase))*.018;
+    }
+    continue;
+   }
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
