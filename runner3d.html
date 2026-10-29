@@ -35,7 +35,7 @@ scene.fog = new THREE.Fog(0x3b101b, 18, 82);
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 180);
 camera.position.set(0,5.3,10.5);
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7)); renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.35)); renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
 document.body.prepend(renderer.domElement);
@@ -98,11 +98,19 @@ for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,
 // Decorative temple arches in the distance and along the trail
 const fixedDecor=[];
 function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function tree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);box(.38,2.5,.38,trunkMat,0,1.15,0,g);for(let i=0;i<3;i++){const cone=new THREE.Mesh(new THREE.ConeGeometry(1.15-i*.17,1.8,6),leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=true;g.add(cone)}return g}
+// Reuse tree geometry across the whole forest and keep foliage out of the expensive shadow pass.
+const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
+const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
+function tree(x,z,scale=1){
+ const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);
+ const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);trunk.position.set(0,1.15,0);trunk.castShadow=false;g.add(trunk);
+ for(let i=0;i<3;i++){const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=false;g.add(cone)}
+ return g
+}
 const roadsideTrees=[];
 // Dense infernal forest: trees are staggered in depth and width for a layered roadside canopy.
 // Continuous forest walls: two overlapping rows on each side, including trees close to the road and farther out.
-for(let i=0;i<120;i++){
+for(let i=0;i<75;i++){
  const z=-i*2.4-4;
  roadsideTrees.push(tree(-4.35-Math.random()*2.7,z,.72+Math.random()*.78));
  roadsideTrees.push(tree(4.35+Math.random()*2.7,z,.72+Math.random()*.78));
@@ -111,7 +119,7 @@ for(let i=0;i<120;i++){
 }
 
 // Farther, taller tree belts bridge the gap between the roadside forest and the mountain skyline.
-for(let i=0;i<105;i++){
+for(let i=0;i<65;i++){
  const z=-i*2.65-8;
  const scale=1.15+Math.random()*1.05;
  roadsideTrees.push(tree(-12-Math.random()*13,z,scale));
