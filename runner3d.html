@@ -54,14 +54,48 @@ for(let i=0;i<35;i++){const z=-i*6-4;tree(-6.4-Math.random()*3,z,.8+Math.random(
 function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);box(.42,3.2,.55,stoneMat,-3.5,1.55,0,g);box(.42,3.2,.55,stoneMat,3.5,1.55,0,g);box(7.4,.55,.8,stoneMat,0,3.15,0,g);box(6.5,.18,.9,edgeMat,0,2.83,0,g);return g}
 for(let z=-26;z>-115;z-=30)fixedDecor.push(arch(z));
 const runner=new THREE.Group();scene.add(runner);
+// Stylized, more detailed witch character: pale face, silver hair and a tailored black dress.
 const bodyMat=mat(0x100b12), pantsMat=mat(0x171019), skinMat=mat(0xe8c0a3), shoeMat=mat(0x09070a), packMat=mat(0x25111d);
-const torso=box(.72,.9,.4,bodyMat,0,1.35,0,runner);const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),skinMat);head.position.set(0,2.03,0);head.castShadow=true;runner.add(head);
-box(.56,.2,.48,mat(0xb8b2b7),0,2.24,0,runner);box(.42,.58,.25,packMat,0,1.37,.31,runner);
-const skirt=new THREE.Mesh(new THREE.ConeGeometry(.57,.72,7),bodyMat);skirt.position.set(0,.78,0);skirt.castShadow=true;runner.add(skirt);
-box(.13,.32,.2,mat(0xb8b2b7),-.22,1.98,.02,runner);box(.13,.32,.2,mat(0xb8b2b7),.22,1.98,.02,runner);
-const armL=box(.2,.68,.22,skinMat,-.49,1.39,0,runner),armR=box(.2,.68,.22,skinMat,.49,1.39,0,runner);
-const legL=box(.25,.62,.27,pantsMat,-.22,.52,0,runner),legR=box(.25,.62,.27,pantsMat,.22,.52,0,runner);
-box(.3,.16,.42,shoeMat,-.22,.18,-.05,runner);box(.3,.16,.42,shoeMat,.22,.18,-.05,runner);
+const silverMat=mat(0xb8b2bd,.62), silverLight=mat(0xd8d2d8,.48), dressTrim=mat(0x6e2638,.55), eyeMat=mat(0x24131c,.4), lipMat=mat(0x783a48,.55), jewelryMat=mat(0xd3a85d,.28,.65);
+function sphere(radius, material, x,y,z, sx=1,sy=1,sz=1,parent=runner){const m=new THREE.Mesh(new THREE.SphereGeometry(radius,14,10),material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;parent.add(m);return m}
+function limb(radiusTop,radiusBottom,height,material,x,y,z,rotZ=0){const m=new THREE.Mesh(new THREE.CylinderGeometry(radiusTop,radiusBottom,height,8),material);m.position.set(x,y,z);m.rotation.z=rotZ;m.castShadow=true;runner.add(m);return m}
+const torso=box(.72,.9,.4,bodyMat,0,1.35,0,runner);
+box(.76,.1,.43,dressTrim,0,1.72,0,runner); // waist seam
+box(.42,.58,.25,packMat,0,1.37,.31,runner);
+// Long, slightly flared black skirt with red panel details.
+const skirt=new THREE.Mesh(new THREE.ConeGeometry(.61,.78,10),bodyMat);skirt.position.set(0,.78,0);skirt.castShadow=true;runner.add(skirt);
+for(const x of [-.22,0,.22]){const panel=box(.045,.59,.018,dressTrim,x,.76,.31,runner);panel.rotation.z=x*.16}
+const collar=new THREE.Mesh(new THREE.ConeGeometry(.31,.32,5),silverMat);collar.position.set(0,1.86,.01);collar.rotation.x=Math.PI;collar.castShadow=true;runner.add(collar);
+// Neck and sculpted face.
+limb(.105,.105,.18,skinMat,0,1.91,.015);
+const head=sphere(.285,skinMat,0,2.12,.015,1,.98,.88);
+sphere(.045,skinMat,-.274,2.08,.025,.65,1,1);sphere(.045,skinMat,.274,2.08,.025,.65,1,1);
+// Face points toward the camera (+Z).
+sphere(.034,eyeMat,-.105,2.145,.255,.8,.72,.5);sphere(.034,eyeMat,.105,2.145,.255,.8,.72,.5);
+box(.105,.025,.025,silverMat,-.105,2.205,.25,runner).rotation.z=.12;
+box(.105,.025,.025,silverMat,.105,2.205,.25,runner).rotation.z=-.12;
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.13,5),skinMat);nose.position.set(0,2.09,.28);nose.rotation.x=Math.PI/2;nose.castShadow=true;runner.add(nose);
+box(.105,.025,.018,lipMat,0,2.015,.258,runner);
+// Distinctive silver bob: cap, side locks and layered locks down the back.
+sphere(.285,silverMat,0,2.31,-.015,1.08,.55,1.02);
+for(const side of [-1,1]){
+  const lock=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.63,7),silverMat);lock.position.set(side*.245,2.02,-.015);lock.rotation.z=side*-.13;lock.castShadow=true;runner.add(lock);
+  sphere(.105,silverLight,side*.25,1.78,.025,.78,1.5,.85);
+  for(let j=0;j<3;j++){const strand=new THREE.Mesh(new THREE.CylinderGeometry(.018,.027,.54,5),j===1?silverLight:silverMat);strand.position.set(side*(.17+j*.045),2.03,-.13-j*.025);strand.rotation.z=side*(.05+j*.1);strand.castShadow=true;runner.add(strand)}
+}
+for(let j=0;j<5;j++){const lock=new THREE.Mesh(new THREE.CylinderGeometry(.045,.065,.65+(j%2)*.12,6),j%2?silverLight:silverMat);lock.position.set(-.18+j*.09,1.89,-.22);lock.rotation.z=(j-2)*.06;lock.castShadow=true;runner.add(lock)}
+// Sleeves, articulated-looking arms, hands and rings.
+const armL=box(.23,.61,.24,bodyMat,-.49,1.39,0,runner),armR=box(.23,.61,.24,bodyMat,.49,1.39,0,runner);
+armL.rotation.z=-.12;armR.rotation.z=.12;
+limb(.09,.075,.25,skinMat,-.53,1.03,.02,.12);limb(.09,.075,.25,skinMat,.53,1.03,.02,-.12);
+sphere(.105,skinMat,-.55,.89,.035,.9,1,.85);sphere(.105,skinMat,.55,.89,.035,.9,1,.85);
+// Pendant and fine gold necklace.
+const chain=new THREE.Mesh(new THREE.TorusGeometry(.16,.012,6,18),jewelryMat);chain.position.set(0,1.57,.215);chain.rotation.x=.2;runner.add(chain);
+const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(.065,0),jewelryMat);pendant.position.set(0,1.42,.245);pendant.rotation.z=Math.PI/4;pendant.castShadow=true;runner.add(pendant);
+// Legs and pointed black boots.
+const legL=box(.25,.58,.27,pantsMat,-.22,.51,0,runner),legR=box(.25,.58,.27,pantsMat,.22,.51,0,runner);
+const bootL=box(.31,.17,.45,shoeMat,-.22,.17,.015,runner),bootR=box(.31,.17,.45,shoeMat,.22,.17,.015,runner);
+bootL.rotation.x=-.04;bootR.rotation.x=-.04;
 runner.position.set(0,0,2.3);
 const obstacles=[], coins=[], segments=[];
 function makeObstacle(lane,z,type){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);if(type==='knot'){const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}}else if(type==='branch'){box(2,.38,.48,trunkMat,0,1.18,0,g);for(let x of [-.72,.72]){box(.14,.7,.18,darkStone,x,1.36,0,g)}}else{box(1.6,.14,.14,stoneMat,0,1.2,0,g);box(.15,1.25,.18,stoneMat,-.72,.58,0,g);box(.15,1.25,.18,stoneMat,.72,.58,0,g);box(1.6,.12,.18,edgeMat,0,1.9,0,g)}obstacles.push({g,lane,type,z,passed:false})}
