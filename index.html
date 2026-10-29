@@ -134,8 +134,7 @@ for(let i=0;i<65;i++){
   roadsideTrees.push(tree(20+Math.random()*17,z-2.6,.95+Math.random()*.9,172.25));
  }
 }
-function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);const pillarX=4.56;box(.42,4.3,.55,stoneMat,-pillarX,2.08,0,g);box(.42,4.3,.55,stoneMat,pillarX,2.08,0,g);box(9.54,.55,.8,stoneMat,0,4.25,0,g);box(8.85,.18,.9,edgeMat,0,3.93,0,g);return g}
-// Арки временно отключены; функцию arch(z) оставили для возможного возврата.
+
 const runner=new THREE.Group();scene.add(runner);
 // Stylized, more detailed witch character: pale face, silver hair and a tailored black dress.
 const bodyMat=mat(0x100b12), pantsMat=mat(0x171019), skinMat=mat(0xe8c0a3), shoeMat=mat(0x09070a), packMat=mat(0x25111d);
