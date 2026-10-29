@@ -1,3 +1,2 @@
-// Vite entry point. Keep page styles and game logic in separate modules.
-import './styles/game.css';
+// Vite entry point. index.html loads the stylesheet; game logic lives in its own module.
 import './game.js';
