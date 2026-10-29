@@ -184,7 +184,7 @@ for(let z=ROAD_NEAR_Z;z>ROAD_NEAR_Z-ROAD_LOOP_LENGTH;z-=ROAD_SEGMENT_LENGTH)road
 function moveRoadSegments(delta){
  for(const segment of roadSegments){
   segment.position.z+=delta;
-  if(segment.position.z>ROAD_NEAR_Z)segment.position.z-=ROAD_LOOP_LENGTH;
+  if(segment.position.z>ROAD_NEAR_Z+ROAD_SEGMENT_LENGTH)segment.position.z-=ROAD_LOOP_LENGTH;
   for(const strip of segment.userData.strips){
    const position=strip.mesh.geometry.attributes.position;
    for(let i=0;i<=ROAD_SEGMENT_STEPS;i++){
