@@ -260,7 +260,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   runner.scale.y=sliding?.58:1;runner.position.z=2.3;runner.rotation.z=slipT>0?Math.sin(t*.045)*.2:0;
   const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
-  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){if(o.type==='pee'){if(!jumping){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else{invuln=.22}}else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}}} }
+  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}}} }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
   for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
