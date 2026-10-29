@@ -96,7 +96,7 @@ const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), ston
 const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
 pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
 pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
-pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.offset.set(0,0); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
 roadMat.map=pineFloorTexture; roadMat.needsUpdate=true;
 // Layered jagged mountain ranges across the horizon, with a lava volcano far to the right.
 const mountainFarMat=new THREE.MeshBasicMaterial({color:0x241019,side:THREE.DoubleSide,fog:false});
@@ -148,56 +148,24 @@ addLavaStream(22.8,23.6,5,.51);
 
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 function curveX(z){return Math.sin((z+18)/25)*2.05+Math.sin((z-8)/48)*1.05}
-const ROAD_SEGMENT_LENGTH=20, ROAD_SEGMENT_STEPS=20, ROAD_LOOP_LENGTH=220, ROAD_NEAR_Z=20;
-const roadSegments=[];
-function makeRoadStrip(width,y,material,edgeOffset,startZ){
- const positions=[],uvs=[],indices=[];
- for(let i=0;i<=ROAD_SEGMENT_STEPS;i++){
-  const localZ=-(i/ROAD_SEGMENT_STEPS)*ROAD_SEGMENT_LENGTH;
-  const worldZ=startZ+localZ,center=curveX(worldZ)+edgeOffset;
-  positions.push(center-width/2,y,localZ,center+width/2,y,localZ);
-  const v=(ROAD_NEAR_Z-worldZ)/ROAD_LOOP_LENGTH;
+function makeCurvedStrip(width,y,material,edgeOffset=0){
+ const positions=[],uvs=[],indices=[],steps=220;
+ for(let i=0;i<=steps;i++){
+  const z=45-i,center=curveX(z)+edgeOffset;
+  positions.push(center-width/2,y,z,center+width/2,y,z);
+  const v=(45-z)/220;
   uvs.push(0,v,1,v);
-  if(i<ROAD_SEGMENT_STEPS){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}
+  if(i<steps){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}
  }
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
  geo.setIndex(indices);geo.computeVertexNormals();
- const mesh=new THREE.Mesh(geo,material);mesh.receiveShadow=true;mesh.frustumCulled=false;
- return mesh;
+ const mesh=new THREE.Mesh(geo,material);mesh.receiveShadow=true;mesh.frustumCulled=false;scene.add(mesh);return mesh;
 }
-function makeRoadSegment(startZ){
- const g=new THREE.Group();g.position.z=startZ;g.userData.strips=[];
- const specs=[
-  {width:8.7,y:-.07,material:roadMat,edgeOffset:0},
-  {width:.22,y:.015,material:edgeMat,edgeOffset:-4.34},
-  {width:.22,y:.015,material:edgeMat,edgeOffset:4.34}
- ];
- for(const spec of specs){
-  const mesh=makeRoadStrip(spec.width,spec.y,spec.material,spec.edgeOffset,startZ);
-  g.add(mesh);g.userData.strips.push({mesh,width:spec.width,edgeOffset:spec.edgeOffset});
- }
- scene.add(g);return g;
-}
-for(let z=ROAD_NEAR_Z;z>ROAD_NEAR_Z-ROAD_LOOP_LENGTH;z-=ROAD_SEGMENT_LENGTH)roadSegments.push(makeRoadSegment(z));
-function moveRoadSegments(delta){
- for(const segment of roadSegments){
-  segment.position.z+=delta;
-  if(segment.position.z>ROAD_NEAR_Z+ROAD_SEGMENT_LENGTH)segment.position.z-=ROAD_LOOP_LENGTH;
-  for(const strip of segment.userData.strips){
-   const position=strip.mesh.geometry.attributes.position;
-   for(let i=0;i<=ROAD_SEGMENT_STEPS;i++){
-    const localZ=-(i/ROAD_SEGMENT_STEPS)*ROAD_SEGMENT_LENGTH;
-    const center=curveX(segment.position.z+localZ)+strip.edgeOffset;
-    position.setX(i*2,center-strip.width/2);
-    position.setX(i*2+1,center+strip.width/2);
-   }
-   position.needsUpdate=true;
-   strip.mesh.geometry.computeVertexNormals();
-  }
- }
-}
+const road=makeCurvedStrip(8.7,-.07,roadMat);
+makeCurvedStrip(.22,.015,edgeMat,-4.34);
+makeCurvedStrip(.22,.015,edgeMat,4.34);
 // Decorative temple arches in the distance and along the trail
 const fixedDecor=[];
 function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
@@ -611,8 +579,6 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
-  // Move physical road segments at the same speed as the world; texture UVs stay attached to each segment.
-  moveRoadSegments(speed*dt);
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
   for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength;treeGroup.position.x=curveX(treeGroup.position.z)+treeGroup.userData.trackBaseX}
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
