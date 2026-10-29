@@ -147,8 +147,9 @@ addLavaStream(33.2,34.1,7,.23);
 addLavaStream(22.8,23.6,5,.51);
 
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
-const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
-for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
+function curveX(z){return Math.sin((z+18)/25)*2.05+Math.sin((z-8)/48)*1.05}
+function makeCurvedStrip(width,y,material,edgeOffset=0){const positions=[],uvs=[],indices=[],steps=220;for(let i=0;i<=steps;i++){const z=45-i,center=curveX(z)+edgeOffset;positions.push(center-width/2,y,z,center+width/2,y,z);uvs.push(0,i/steps*15,1,i/steps*15);if(i<steps){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3)}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();const mesh=new THREE.Mesh(geo,material);mesh.receiveShadow=true;scene.add(mesh);return mesh}
+const road=makeCurvedStrip(8.7,-.07,roadMat);makeCurvedStrip(.22,.015,edgeMat,-4.34);makeCurvedStrip(.22,.015,edgeMat,4.34);
 // Decorative temple arches in the distance and along the trail
 const fixedDecor=[];
 function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
@@ -156,7 +157,7 @@ function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE
 const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
 const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
 function tree(x,z,scale=1,recycleLength=180){
- const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);g.userData.recycleLength=recycleLength;scene.add(g);
+ const g=new THREE.Group();g.position.set(x+curveX(z),0,z);g.userData.trackBaseX=x;g.scale.setScalar(scale);g.userData.recycleLength=recycleLength;scene.add(g);
  const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);trunk.position.set(0,1.15,0);trunk.castShadow=false;g.add(trunk);
  for(let i=0;i<3;i++){const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=false;g.add(cone)}
  return g
@@ -260,11 +261,11 @@ for(let i=0;i<9;i++){
 }
 
 const obstacles=[], coins=[], segments=[];
-function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
+function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55+curveX(z),0,z);g.userData.trackBaseX=(lane-1)*2.55;scene.add(g);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
 let puddleVariantCounter=0;
 function makePuddle(lane,z){
  const g=new THREE.Group();
- g.position.set((lane-1)*2.55,0,z);
+ g.position.set((lane-1)*2.55+curveX(z),0,z);g.userData.trackBaseX=(lane-1)*2.55;
  scene.add(g);
 
  // Three asymmetrical splash silhouettes; the variant changes the shape, proportions and lobes.
@@ -331,7 +332,7 @@ function makePuddle(lane,z){
 
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
-function makeFish(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);g.rotation.y=0;scene.add(g);const fishMat=new THREE.MeshStandardMaterial({color:0x777f89,roughness:.42,metalness:.22});const bellyMat=new THREE.MeshStandardMaterial({color:0xd0cec4,roughness:.58});const finMat=new THREE.MeshStandardMaterial({color:0x626b76,roughness:.55});const body=new THREE.Mesh(new THREE.SphereGeometry(.52,16,10),fishMat);body.scale.set(.78,.48,1.75);body.position.y=.19;body.rotation.x=-.04;g.add(body);const belly=new THREE.Mesh(new THREE.SphereGeometry(.39,14,8),bellyMat);belly.scale.set(.78,.24,1.48);belly.position.set(0,.075,-.04);g.add(belly);const tail=new THREE.Mesh(new THREE.ConeGeometry(.34,.66,5),fishMat);tail.rotation.x=Math.PI/2;tail.position.set(0,.19,1.02);g.add(tail);for(const side of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(.19,.43,4),finMat);fin.rotation.z=side*.8;fin.position.set(side*.34,.19,.13);g.add(fin);const eye=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6),new THREE.MeshBasicMaterial({color:0x090b0e}));eye.position.set(side*.28,.32,-.55);g.add(eye)}obstacles.push({g,lane,type:'fish',z,passed:false})}
+function makeFish(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55+curveX(z),0,z);g.userData.trackBaseX=(lane-1)*2.55;g.rotation.y=0;scene.add(g);const fishMat=new THREE.MeshStandardMaterial({color:0x777f89,roughness:.42,metalness:.22});const bellyMat=new THREE.MeshStandardMaterial({color:0xd0cec4,roughness:.58});const finMat=new THREE.MeshStandardMaterial({color:0x626b76,roughness:.55});const body=new THREE.Mesh(new THREE.SphereGeometry(.52,16,10),fishMat);body.scale.set(.78,.48,1.75);body.position.y=.19;body.rotation.x=-.04;g.add(body);const belly=new THREE.Mesh(new THREE.SphereGeometry(.39,14,8),bellyMat);belly.scale.set(.78,.24,1.48);belly.position.set(0,.075,-.04);g.add(belly);const tail=new THREE.Mesh(new THREE.ConeGeometry(.34,.66,5),fishMat);tail.rotation.x=Math.PI/2;tail.position.set(0,.19,1.02);g.add(tail);for(const side of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(.19,.43,4),finMat);fin.rotation.z=side*.8;fin.position.set(side*.34,.19,.13);g.add(fin);const eye=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6),new THREE.MeshBasicMaterial({color:0x090b0e}));eye.position.set(side*.28,.32,-.55);g.add(eye)}obstacles.push({g,lane,type:'fish',z,passed:false})}
 // Procedural 3D soul-flame geometry. No face, eyes, or coin-like ring.
 function makeSoulFlameGeometry(seed=0, inner=false){
  const positions=[], colors=[], indices=[];
@@ -423,7 +424,7 @@ function animateSoulFlame(mesh,t,phase,strength=1){
 
 function makeSoul(lane,z,y=1.2){
  const g=new THREE.Group();
- g.position.set((lane-1)*2.55,y,z);
+ g.position.set((lane-1)*2.55+curveX(z),y,z);g.userData.trackBaseX=(lane-1)*2.55;
  scene.add(g);
  const phase=Math.random()*Math.PI*2;
 
@@ -503,7 +504,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);
   const jumping=!ultActive&&jumpT>0, sliding=!ultActive&&slideT>0;
   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(jumping?Math.sin((1-jumpT/.72)*Math.PI)*1.75:0);
-  runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
+  runner.position.x+=(curveX(runner.position.z)+(lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
   runner.rotation.x=ultActive?-.12:0;
@@ -527,12 +528,12 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){
-   o.g.position.z+=speed*dt;
+   o.g.position.z+=speed*dt;o.g.position.x=curveX(o.g.position.z)+o.g.userData.trackBaseX;
    // During the flight, pass through obstacles and clear a small landing buffer as Fiona descends.
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
-    if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
+    if(o.lane===lane&&Math.abs(runner.position.x-(curveX(2.3)+(o.lane-1)*2.55))<1.05){
      if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
      else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}
     }
@@ -540,7 +541,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
   for(const c of coins){
-   c.g.position.z+=speed*dt;
+   c.g.position.z+=speed*dt;c.g.position.x=curveX(c.g.position.z)+c.g.userData.trackBaseX;
    const phase=c.phase||c.z*.2;
    c.g.rotation.y=Math.sin(t*.0018+phase)*.62;
    c.g.rotation.z=Math.sin(t*.003+phase)*.07;
@@ -559,13 +560,13 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
     spark.mesh.rotation.x+=dt*2.3;
     spark.mesh.rotation.y+=dt*1.7;
    });
-   if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){
+   if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(curveX(2.3)+(c.lane-1)*2.55))<1.1){
     c.g.userData.got=true;coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
-  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength}
+  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength;treeGroup.position.x=curveX(treeGroup.position.z)+treeGroup.userData.trackBaseX}
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   updateHud();
  }
