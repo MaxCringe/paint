@@ -112,6 +112,18 @@ for(let i=0;i<120;i++){
  roadsideTrees.push(tree(4.35+Math.random()*2.7,z,.72+Math.random()*.78));
  roadsideTrees.push(tree(-7.1-Math.random()*5.5,z-1.15,.65+Math.random()*.82));
  roadsideTrees.push(tree(7.1+Math.random()*5.5,z-1.15,.65+Math.random()*.82));
+
+// Farther, taller tree belts bridge the gap between the roadside forest and the mountain skyline.
+for(let i=0;i<105;i++){
+ const z=-i*2.65-8;
+ const scale=1.15+Math.random()*1.05;
+ roadsideTrees.push(tree(-12-Math.random()*13,z,scale));
+ roadsideTrees.push(tree(12+Math.random()*13,z-1.1,1.15+Math.random()*1.05));
+ // A second staggered distant belt breaks up the visible ground between trees and mountains.
+ if(i%2===0){
+  roadsideTrees.push(tree(-20-Math.random()*17,z-1.8,.95+Math.random()*.9));
+  roadsideTrees.push(tree(20+Math.random()*17,z-2.6,.95+Math.random()*.9));
+ }
 }
 function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);box(.42,3.2,.55,stoneMat,-3.5,1.55,0,g);box(.42,3.2,.55,stoneMat,3.5,1.55,0,g);box(7.4,.55,.8,stoneMat,0,3.15,0,g);box(6.5,.18,.9,edgeMat,0,2.83,0,g);return g}
 for(let z=-26;z>-115;z-=30)fixedDecor.push(arch(z));
@@ -199,7 +211,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
-  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=288}
+  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=300}
   for(const d of fixedDecor){d.position.z+=speed*dt*.72;if(d.position.z>16)d.position.z-=120}
   updateHud();
  }
