@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Runner — prototype</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#101820;color:#f4f7fb;display:grid;min-height:100svh;place-items:center}
+main{width:min(100%,760px);padding:16px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+h1{font-size:20px;margin:0}.stats{display:flex;gap:14px;color:#c7d2df;font-size:14px}
+.stage{position:relative;border:1px solid #314456;border-radius:14px;overflow:hidden;background:#172b31}
+canvas{display:block;width:100%;height:auto;touch-action:pan-y}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#071016b8;text-align:center;padding:24px}
+.overlay[hidden]{display:none}.panel{max-width:300px}.panel h2{margin:0 0 8px}.panel p{color:#c7d2df;font-size:14px;line-height:1.5}
+button{border:0;border-radius:9px;background:#a7f36b;color:#13200c;font-weight:800;padding:12px 20px;font-size:15px;cursor:pointer}
+.controls{display:flex;justify-content:center;gap:12px;margin-top:12px}.controls button{min-width:90px;background:#263b49;color:#fff;border:1px solid #496173}
+.hint{text-align:center;color:#9aabba;font-size:12px;margin:12px 0 0}
+</style>
+</head>
+<body>
+<main>
+<header><h1>RUNNER</h1><div class="stats"><span>Счёт: <b id="score">0</b></span><span>Рекорд: <b id="best">0</b></span></div></header>
+<section class="stage">
+<canvas id="game" width="720" height="480" aria-label="Игра-раннер"></canvas>
+<div class="overlay" id="overlay"><div class="panel"><h2 id="title">Побег начинается</h2><p id="message">Беги по трём дорожкам и уворачивайся от препятствий. Управление: ← → или A / D.</p><button id="start">Играть</button></div></div>
+</section>
+<div class="controls"><button id="left" aria-label="Влево">← Влево</button><button id="right" aria-label="Вправо">Вправо →</button></div>
+<p class="hint">Пробел — старт / заново · На телефоне можно нажимать кнопки</p>
+</main>
+<script>
+(() => {
+  const canvas = document.querySelector('#game'), ctx = canvas.getContext('2d');
+  const overlay = document.querySelector('#overlay'), startBtn = document.querySelector('#start');
+  const scoreEl = document.querySelector('#score'), bestEl = document.querySelector('#best');
+  const titleEl = document.querySelector('#title'), messageEl = document.querySelector('#message');
+  const W = canvas.width, H = canvas.height, lanes = [W/2-130,W/2,W/2+130];
+  let lane = 1, obstacles = [], score = 0, speed = 230, spawn = 0, running = false, last = 0, raf = 0;
+  let best = 0; try { best = Number(localStorage.getItem('runner-best') || 0); } catch {}
+  bestEl.textContent = best;
+  const player = { y: H-88, w: 42, h: 54 };
+  function drawRoad(){
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#24434a');g.addColorStop(1,'#162b31');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#101e24';ctx.fillRect(70,0,W-140,H);
+    ctx.strokeStyle='#6c8986';ctx.lineWidth=3;ctx.setLineDash([22,18]);
+    for(const x of [W/2-86,W/2+86]){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}ctx.setLineDash([]);
+    ctx.fillStyle='#d4c7a0';ctx.fillRect(66,0,4,H);ctx.fillRect(W-70,0,4,H);
+    // Subtle moving road marks create a sense of speed.
+    ctx.fillStyle='#35555a';
+    for(let i=0;i<8;i++){const y=(i*76+(score*3)%76);ctx.fillRect(W/2-3,y,6,24)}
+  }
+  function drawPlayer(){
+    const x=lanes[lane];ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x,player.y+player.h+5,26,8,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#a7f36b';ctx.fillRect(x-player.w/2,player.y,player.w,player.h);
+    ctx.fillStyle='#203323';ctx.fillRect(x-12,player.y+10,7,7);ctx.fillRect(x+5,player.y+10,7,7);
+    ctx.fillStyle='#e5ffd1';ctx.fillRect(x-12,player.y+34,24,5);
+  }
+  function drawObstacle(o){
+    const x=lanes[o.lane], y=o.y;
+    ctx.fillStyle='#0005';ctx.fillRect(x-27,y+6,54,40);
+    ctx.fillStyle='#f07850';ctx.fillRect(x-27,y,54,40);
+    ctx.fillStyle='#ffb18e';ctx.fillRect(x-20,y+7,40,5);
+    ctx.fillStyle='#7b3027';ctx.fillRect(x-18,y+20,36,6);
+  }
+  function render(){
+    drawRoad(); obstacles.forEach(drawObstacle); drawPlayer();
+    if(!running && !overlay.hidden){ctx.fillStyle='#ffffff16';ctx.fillRect(0,0,W,H)}
+  }
+  function reset(){
+    lane=1;obstacles=[];score=0;speed=230;spawn=.7;last=0;scoreEl.textContent='0';
+    running=true;overlay.hidden=true;cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+  }
+  function end(){
+    running=false;overlay.hidden=false;titleEl.textContent='Забег окончен';
+    messageEl.textContent='Счёт: '+Math.floor(score)+'. Попробуй продержаться дольше!';
+    startBtn.textContent='Ещё раз';render();
+  }
+  function move(dir){if(!running)return;lane=Math.max(0,Math.min(2,lane+dir));render()}
+  function loop(t){
+    if(!running)return;
+    const dt=Math.min((t-last)/1000||0,.04);last=t;
+    score+=dt*10;speed=Math.min(430,230+score*1.2);spawn-=dt;
+    if(spawn<=0){obstacles.push({lane:Math.floor(Math.random()*3),y:-48});spawn=Math.max(.48,1.05-score/500)+(Math.random()*.3)}
+    for(const o of obstacles)o.y+=speed*dt;
+    obstacles=obstacles.filter(o=>o.y<H+60);
+    for(const o of obstacles){if(o.lane===lane&&o.y+40>player.y+8&&o.y<player.y+player.h-6){end();return}}
+    scoreEl.textContent=Math.floor(score);
+    if(Math.floor(score)>best){best=Math.floor(score);bestEl.textContent=best;try{localStorage.setItem('runner-best',best)}catch{}}
+    render();raf=requestAnimationFrame(loop);
+  }
+  startBtn.addEventListener('click',reset);
+  document.querySelector('#left').addEventListener('click',()=>move(-1));
+  document.querySelector('#right').addEventListener('click',()=>move(1));
+  window.addEventListener('keydown',e=>{
+    if(['ArrowLeft','ArrowRight',' ','a','A','d','D'].includes(e.key))e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')move(-1);
+    if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')move(1);
+    if(e.key===' '&&!running)reset();
+  });
+  let touchX=null;
+  canvas.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX},{passive:true});
+  canvas.addEventListener('touchend',e=>{if(touchX===null)return;const dx=e.changedTouches[0].clientX-touchX;if(Math.abs(dx)>25)move(dx<0?-1:1);touchX=null},{passive:true});
+  render();
+})();
+</script>
+</body>
+</html>
