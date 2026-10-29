@@ -96,7 +96,7 @@ const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), ston
 const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
 pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
 pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
-pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.offset.set(0,0); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
 roadMat.map=pineFloorTexture; roadMat.needsUpdate=true;
 // Layered jagged mountain ranges across the horizon, with a lava volcano far to the right.
 const mountainFarMat=new THREE.MeshBasicMaterial({color:0x241019,side:THREE.DoubleSide,fog:false});
@@ -492,6 +492,8 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
 
  if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
  if(state==='playing'){
+  // Scroll the road texture toward the camera so the boards stay fixed to the world as Fiona runs.
+  pineFloorTexture.offset.y=(pineFloorTexture.offset.y+speed*dt*15/220)%1;
   distance+=speed*dt*.72;updateHud();speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
   if(spawnZ<-150)spawnZ= -50;
@@ -501,7 +503,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);
   const jumping=!ultActive&&jumpT>0, sliding=!ultActive&&slideT>0;
   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(jumping?Math.sin((1-jumpT/.72)*Math.PI)*1.75:0);
-  runner.position.x+=((lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
+  runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
   runner.rotation.x=ultActive?-.12:0;
@@ -530,7 +532,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
-    if(o.lane===lane&&Math.abs(runner.position.x-((o.lane-1)*2.55))<1.05){
+    if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
      if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
      else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}
     }
@@ -557,7 +559,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
     spark.mesh.rotation.x+=dt*2.3;
     spark.mesh.rotation.y+=dt*1.7;
    });
-   if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-((c.lane-1)*2.55))<1.1){
+   if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){
     c.g.userData.got=true;coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
    }
   }
