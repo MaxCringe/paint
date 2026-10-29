@@ -275,7 +275,7 @@ function grassTuft(x,z,scale=1,recycleLength=174){
  blades.castShadow=false;blades.receiveShadow=true;g.add(blades);scene.add(g);return g;
 }
 // Pines are staggered with natural gaps instead of forming a continuous wall.
-const roadsideSpacing=4.9, roadsideCount=32;
+const roadsideSpacing=4.0, roadsideCount=39;
 const roadsideLoop=(roadsideCount-1)*roadsideSpacing+16;
 for(let i=0;i<roadsideCount;i++){
  const z=-i*roadsideSpacing-4+(Math.random()-.5)*1.35;
@@ -291,20 +291,20 @@ for(let i=0;i<roadsideCount;i++){
  }
 }
 // More distant tree rows have their own spacing and longer recycling loop.
-const farSpacing=4.25,farCount=39,farForestLoop=(farCount-1)*farSpacing+21;
+const farSpacing=3.8,farCount=44,farForestLoop=(farCount-1)*farSpacing+21;
 for(let i=0;i<farCount;i++){
  const z=-i*farSpacing-9+(Math.random()-.5)*1.5;
  const scale=.72+Math.random()*.96;
  roadsideVegetation.push(tree(-13-Math.random()*9,z,scale,farForestLoop));
  roadsideVegetation.push(tree(13+Math.random()*9,z+(Math.random()-.5)*1.4,.96+Math.random()*.5,farForestLoop));
- if(i%4===0){
+ if(i%3===0){
   const outerZ=z-1.7+(Math.random()-.5)*1.5;
   roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.62+Math.random()*.82,farForestLoop));
   roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.62+Math.random()*.82,farForestLoop));
  }
 }
 // Ferns grow in loose clumps along both verges, filling the spaces below and between the pines.
-const fernSpacing=3.55,fernCount=44,fernLoop=(fernCount-1)*fernSpacing+15.5;
+const fernSpacing=2.95,fernCount=52,fernLoop=(fernCount-1)*fernSpacing+15.5;
 for(let i=0;i<fernCount;i++){
  const z=-i*fernSpacing-3.5+(Math.random()-.5)*1.55;
  if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,randomFernScale(),fernLoop));
@@ -316,15 +316,16 @@ for(let i=0;i<fernCount;i++){
 }
 
 // Scatter tufts of fine grass in irregular pockets on both sides of the path.
-const grassSpacing=2.8,grassCount=59,grassLoop=(grassCount-1)*grassSpacing+19;
+const grassSpacing=2.4,grassCount=69,grassLoop=(grassCount-1)*grassSpacing+19;
 for(let i=0;i<grassCount;i++){
  const z=-i*grassSpacing-2.5+(Math.random()-.5)*1.8;
- if(Math.random()<.94){
-  roadsideVegetation.push(grassTuft((Math.random()<.5?-1:1)*(4.55+Math.random()*2.8),z,.48+Math.random()*.64,grassLoop));
- }
- if(i%3===1&&Math.random()<.72){
+ // Patchy little grass on both verges rather than randomly leaving one side bare.
+ if(Math.random()<.84)roadsideVegetation.push(grassTuft(-(4.55+Math.random()*2.8),z,.42+Math.random()*.7,grassLoop));
+ if(Math.random()<.84)roadsideVegetation.push(grassTuft(4.55+Math.random()*2.8,z+(Math.random()-.5)*.95,.42+Math.random()*.7,grassLoop));
+ if(i%2===1&&Math.random()<.82){
   const side=Math.random()<.5?-1:1;
-  roadsideVegetation.push(grassTuft(side*(6.5+Math.random()*3.2),z-1.05+(Math.random()-.5)*1.0,.34+Math.random()*.45,grassLoop));
+  roadsideVegetation.push(grassTuft(side*(6.0+Math.random()*3.5),z-1.05+(Math.random()-.5)*1.0,.34+Math.random()*.48,grassLoop));
+  if(Math.random()<.48)roadsideVegetation.push(grassTuft(-side*(5.8+Math.random()*2.8),z-1.65+(Math.random()-.5)*1.0,.28+Math.random()*.36,grassLoop));
  }
 }
 
