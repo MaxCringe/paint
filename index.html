@@ -148,7 +148,39 @@ addLavaStream(22.8,23.6,5,.51);
 
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
-for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
+for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
+// Glowing fire runs continuously along both edges of the pine boardwalk.
+const roadFireGlowMat=new THREE.MeshBasicMaterial({color:0xff2600,transparent:true,opacity:.46,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+const roadFireCoreMat=new THREE.MeshBasicMaterial({color:0xff9a19,transparent:true,opacity:.86,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+const roadFireMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.92,depthWrite:false,toneMapped:false});
+const roadFireMeshes=[];
+for(const side of [-1,1]){
+ const glow=new THREE.Mesh(new THREE.PlaneGeometry(.48,220),roadFireGlowMat);
+ glow.rotation.x=-Math.PI/2;glow.position.set(side*4.12,-.043,-65);scene.add(glow);
+ const core=new THREE.Mesh(new THREE.PlaneGeometry(.12,220),roadFireCoreMat);
+ core.rotation.x=-Math.PI/2;core.position.set(side*4.12,-.032,-65);scene.add(core);
+ roadFireMeshes.push({glow,core,phase:side*1.7});
+}
+function buildRoadFireGeometry(){
+ const positions=[],colors=[];
+ const red=new THREE.Color(0xff2b08),orange=new THREE.Color(0xff710b),gold=new THREE.Color(0xffb21c),yellow=new THREE.Color(0xffff78);
+ function v(p,col){positions.push(p[0],p[1],p[2]);colors.push(col.r,col.g,col.b)}
+ function tri(a,b,d,ca,cb,cd){v(a,ca);v(b,cb);v(d,cd)}
+ for(const side of [-1,1]){
+  for(let i=0;i<190;i++){
+   const z=-174+Math.random()*216,x=side*(4.04+Math.random()*.045);
+   const w=.075+Math.random()*.115,h=.20+Math.random()*.43,y=-.033;
+   const lean=side*(Math.random()*.10-Math.random()*.025);
+   const bl=[x-w*.5,y,z],ls=[x-w*.22,y+h*.38,z],tip=[x+lean,y+h,z];
+   const rs=[x+w*.16,y+h*.52,z],br=[x+w*.5,y,z];
+   tri(bl,ls,tip,red,orange,gold);tri(bl,tip,rs,red,gold,orange);tri(bl,rs,br,red,orange,red);
+   const cb=[x-w*.16,y+.018,z+.012],cr=[x+w*.12,y+.018,z+.012],ct=[x+lean*.48,y+h*.63,z+.012];
+   tri(cb,cr,ct,orange,yellow,gold);
+  }
+ }
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.computeVertexNormals();return geo;
+}
+const roadFireTongues=new THREE.Mesh(buildRoadFireGeometry(),roadFireMat);scene.add(roadFireTongues);
 // Decorative temple arches in the distance and along the trail
 const fixedDecor=[];
 function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
@@ -780,15 +812,15 @@ const lavaRockMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.Doub
 const lavaBubbleGeo=new THREE.SphereGeometry(1,8,6);
 const lavaBubbleMats=[new THREE.MeshBasicMaterial({color:0xffd76a,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xff8610,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xffffad,toneMapped:false})];
 function makeLavaRiver(z){
- const g=new THREE.Group();g.position.z=z;g.userData.halfDepth=2.65;g.userData.bubbles=[];scene.add(g);
- const phase=Math.random()*6.28,steps=88;
+ const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;g.userData.bubbles=[];scene.add(g);
+ const phase=Math.random()*6.28,steps=320;
  const center=x=>.28*Math.sin(x*.58+phase)+.16*Math.sin(x*1.37-phase*.7)+.07*Math.sin(x*2.65+phase*1.8);
- const half=x=>2.08+.22*Math.sin(x*.72+phase)+.12*Math.sin(x*2.05-phase);
+ const half=x=>2.32+.24*Math.sin(x*.72+phase)+.13*Math.sin(x*2.05-phase);
  const noise=x=>.045*Math.sin(x*4.1+phase*2)+.022*Math.sin(x*7.2-phase);
  function ribbon(rows,y,palette,material,factor=1){
   const p=[],col=[],idx=[],n=rows.length;
   for(let i=0;i<=steps;i++){
-   const x=-12.5+25*i/steps,mid=center(x)+noise(x),w=half(x)*factor;
+   const x=-99+198*i/steps,mid=center(x)+noise(x),w=half(x)*factor;
    for(let j=0;j<n;j++){
     const q=rows[j];p.push(x,y,mid+q*w+(Math.abs(q)>.7?noise(x)*(q>0?1:-1):0));
     if(palette){const v=new THREE.Color(palette[j]);col.push(v.r,v.g,v.b)}
@@ -807,14 +839,14 @@ function makeLavaRiver(z){
  const rp=[],rc=[],ri=[];
  function tri(a,b,c,color){const base=rp.length/3,v=new THREE.Color(color);for(const p of [a,b,c]){rp.push(p[0],p[1],p[2]);rc.push(v.r,v.g,v.b)}ri.push(base,base+1,base+2)}
  const rocks=[0x211613,0x34201a,0x4a291d,0x612b1b,0x2a211c,0x754022];
- for(let i=2;i<steps-2;i+=2){const x=-12.5+25*i/steps,mid=center(x)+noise(x),w=half(x);
+ for(let i=2;i<steps-2;i+=2){const x=-99+198*i/steps,mid=center(x)+noise(x),w=half(x);
   for(const side of [-1,1]){if(Math.random()<.12)continue;const rx=.05+Math.random()*.1,rz=.03+Math.random()*.08,cx=x+(Math.random()-.5)*.1,cz=mid+side*(w+.02);
    const a=[cx-rx,.01,cz-side*rz*.45],b=[cx-rx*.2,.028,cz+side*rz],d=[cx+rx,.012,cz+side*rz*.7],e=[cx+rx*.6,.009,cz-side*rz*.4],m=[cx,.019,cz+side*rz*.1];
    tri(m,a,b,rocks[i%rocks.length]);tri(m,b,d,rocks[(i+2)%rocks.length]);tri(m,d,e,rocks[(i+3)%rocks.length]);tri(m,e,a,rocks[(i+1)%rocks.length]);
   }
  }
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));rg.setAttribute('color',new THREE.Float32BufferAttribute(rc,3));rg.setIndex(ri);rg.computeVertexNormals();g.add(new THREE.Mesh(rg,lavaRockMat));
- for(let i=0;i<8;i++){const x=-11.8+Math.random()*23.6,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
+ for(let i=0;i<8;i++){const x=-96+Math.random()*192,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
  obstacles.push({g,lane:-1,type:'lava',z,passed:false});
 }
 
@@ -855,6 +887,9 @@ $('start').addEventListener('click',start);$('left').addEventListener('click',()
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 function resetDecor(){for(const d of fixedDecor){if(d.position.z>16)d.position.z-=120}}
 function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||0,.04);last=t;
+ const firePulse=.5+.5*Math.sin(t*.018);
+ roadFireGlowMat.opacity=.34+firePulse*.20;roadFireCoreMat.opacity=.70+firePulse*.26;roadFireMat.opacity=.82+firePulse*.16;
+ for(const f of roadFireMeshes){f.glow.material=roadFireGlowMat;f.core.material=roadFireCoreMat;f.glow.scale.y=1+Math.sin(t*.016+f.phase)*.003;}
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
 
