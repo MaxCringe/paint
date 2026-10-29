@@ -42,7 +42,12 @@ document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xff8b76,0x120308,1.45));
 const sun=new THREE.DirectionalLight(0xff3927,2.8); sun.position.set(-8,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
 const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-const grassMat=mat(0x3d8b4d), roadMat=mat(0x77644a), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x236b3d),mat(0x31834b),mat(0x4a9a50),mat(0x174d32)], goldMat=mat(0xff4b36,.3,.2), trunkMat=mat(0x68472d);
+const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x236b3d),mat(0x31834b),mat(0x4a9a50),mat(0x174d32)], goldMat=mat(0xff4b36,.3,.2), trunkMat=mat(0x68472d);
+const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
+pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
+pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
+pineFloorTexture.repeat.set(2,24); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
+roadMat.map=pineFloorTexture; roadMat.needsUpdate=true;
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
 for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
