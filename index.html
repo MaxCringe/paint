@@ -161,31 +161,100 @@ function tree(x,z,scale=1,recycleLength=180){
  for(let i=0;i<3;i++){const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=false;g.add(cone)}
  return g
 }
-const roadsideTrees=[];
-// Forest walls remain continuous, but give each pine more breathing room and reduce overlapping crowns.
-const roadsideLoop=54*2.7;
-for(let i=0;i<54;i++){
- const z=-i*2.7-4;
- const nearScale=.92+Math.random()*.32;
- roadsideTrees.push(tree(-4.85-Math.random()*.8,z,nearScale,roadsideLoop));
- roadsideTrees.push(tree(4.85+Math.random()*.8,z,nearScale,roadsideLoop));
- // A staggered inner-back row fills sightlines without crowding the road edge.
- const backScale=.98+Math.random()*.34;
- roadsideTrees.push(tree(-7.4-Math.random()*1.25,z-1.35,backScale,roadsideLoop));
- roadsideTrees.push(tree(7.4+Math.random()*1.25,z-1.35,backScale,roadsideLoop));
+const roadsideVegetation=[];
+// Build an entire fern clump as one lightweight mesh with separate pointed leaflets.
+function buildFernGeometry(){
+ const positions=[],colors=[];
+ const palette=[0x286b32,0x39853b,0x4b9747,0x347a34,0x619d4d];
+ function triangle(a,b,c,color){
+  const col=new THREE.Color(color);
+  for(const p of [a,b,c]){positions.push(p.x,p.y,p.z);colors.push(col.r,col.g,col.b)}
+ }
+ function quad(a,b,c,d,color){triangle(a,b,c,color);triangle(a,c,d,color)}
+ const frondCount=9, leafletPairs=7;
+ for(let f=0;f<frondCount;f++){
+  const angle=f/frondCount*Math.PI*2+Math.sin(f*2.1)*.13;
+  const radial=new THREE.Vector3(Math.cos(angle),0,Math.sin(angle));
+  const tangent=new THREE.Vector3(-Math.sin(angle),0,Math.cos(angle));
+  const stemPoint=t=>{
+   const r=.07+.88*t;
+   return new THREE.Vector3(radial.x*r,.025+Math.sin(t*Math.PI*.78)*.62-.11*t,radial.z*r);
+  };
+  // Thin, gently arched central rib for each frond.
+  for(let k=0;k<9;k++){
+   const p0=stemPoint(k/9),p1=stemPoint((k+1)/9);
+   const w=.0085,side=new THREE.Vector3(tangent.x*w,.003,tangent.z*w);
+   quad(p0.clone().sub(side),p0.clone().add(side),p1.clone().add(side),p1.clone().sub(side),0x729849);
+  }
+  for(let j=0;j<leafletPairs;j++){
+   const t=.14+j*.105,base=stemPoint(t);
+   const len=.255*(1-t*.48);
+   for(const sign of [-1,1]){
+    const mid=base.clone().addScaledVector(tangent,sign*len*.57).addScaledVector(radial,.025).add(new THREE.Vector3(0,-len*.16,0));
+    const tip=base.clone().addScaledVector(tangent,sign*len).addScaledVector(radial,.045).add(new THREE.Vector3(0,-len*.38,0));
+    const wing=radial.clone().multiplyScalar(len*.19).add(new THREE.Vector3(0,len*.13,0));
+    const shade=palette[(j+f+(sign>0?1:0))%palette.length];
+    triangle(base,mid.clone().add(wing),tip,shade);
+    triangle(base,tip,mid.clone().sub(wing),shade);
+   }
+  }
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ geometry.computeVertexNormals();
+ return geometry;
 }
-
-// The farther trees are spaced more widely and use a lower maximum scale to reduce the solid mass of foliage.
-const farForestLoop=48*3.1;
-for(let i=0;i<48;i++){
- const z=-i*3.1-8;
- const scale=1.12+Math.random()*.55;
- roadsideTrees.push(tree(-12.5-Math.random()*10,z,scale,farForestLoop));
- roadsideTrees.push(tree(12.5+Math.random()*10,z-1.25,1.12+Math.random()*.55,farForestLoop));
- // A sparse outer row adds depth but no longer forms a third crowded wall.
- if(i%3===0){
-  roadsideTrees.push(tree(-23-Math.random()*10,z-1.75,1.0+Math.random()*.42,farForestLoop));
-  roadsideTrees.push(tree(23+Math.random()*10,z-2.4,1.0+Math.random()*.42,farForestLoop));
+const fernGeometry=buildFernGeometry();
+const fernMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.92});
+function fern(x,z,scale=1,recycleLength=174){
+ const g=new THREE.Group();
+ g.position.set(x,-.095,z);
+ g.rotation.y=Math.random()*Math.PI*2;
+ g.scale.set(scale*(.88+Math.random()*.22),scale,scale*(.88+Math.random()*.22));
+ g.userData.recycleLength=recycleLength;
+ const leaves=new THREE.Mesh(fernGeometry,fernMaterial);
+ leaves.castShadow=false;leaves.receiveShadow=true;g.add(leaves);scene.add(g);
+ return g;
+}
+// Pines are staggered with natural gaps instead of forming a continuous wall.
+const roadsideSpacing=4.9, roadsideCount=32;
+const roadsideLoop=roadsideCount*roadsideSpacing+16;
+for(let i=0;i<roadsideCount;i++){
+ const z=-i*roadsideSpacing-4+(Math.random()-.5)*1.35;
+ const nearScale=.84+Math.random()*.4;
+ roadsideVegetation.push(tree(-4.95-Math.random()*1.35,z,nearScale,roadsideLoop));
+ roadsideVegetation.push(tree(4.95+Math.random()*1.35,z+(Math.random()-.5)*.9,.84+Math.random()*.4,roadsideLoop));
+ // A more distant, staggered pine appears only every other position.
+ if(i%2===0){
+  const backZ=z-2.25+(Math.random()-.5)*1.7;
+  const backScale=.92+Math.random()*.42;
+  roadsideVegetation.push(tree(-8.0-Math.random()*2.1,backZ,backScale,roadsideLoop));
+  roadsideVegetation.push(tree(8.0+Math.random()*2.1,backZ+(Math.random()-.5)*1.1,.92+Math.random()*.42,roadsideLoop));
+ }
+}
+// More distant tree rows have their own spacing and longer recycling loop.
+const farSpacing=4.25,farCount=39,farForestLoop=farCount*farSpacing+18;
+for(let i=0;i<farCount;i++){
+ const z=-i*farSpacing-9+(Math.random()-.5)*1.5;
+ const scale=.96+Math.random()*.5;
+ roadsideVegetation.push(tree(-13-Math.random()*9,z,scale,farForestLoop));
+ roadsideVegetation.push(tree(13+Math.random()*9,z+(Math.random()-.5)*1.4,.96+Math.random()*.5,farForestLoop));
+ if(i%4===0){
+  const outerZ=z-1.7+(Math.random()-.5)*1.5;
+  roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.88+Math.random()*.4,farForestLoop));
+  roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.88+Math.random()*.4,farForestLoop));
+ }
+}
+// Ferns grow in loose clumps along both verges, filling the spaces below and between the pines.
+const fernSpacing=3.55,fernCount=44,fernLoop=fernCount*fernSpacing+18;
+for(let i=0;i<fernCount;i++){
+ const z=-i*fernSpacing-3.5+(Math.random()-.5)*1.55;
+ if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,.78+Math.random()*.48,fernLoop));
+ if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,.78+Math.random()*.48,fernLoop));
+ if(i%4===1&&Math.random()<.68){
+  const side=Math.random()<.5?-1:1;
+  roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,.7+Math.random()*.4,fernLoop));
  }
 }
 
@@ -565,7 +634,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
-  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength}
+  for(const plant of roadsideVegetation){plant.position.z+=speed*dt;if(plant.position.z>12)plant.position.z-=plant.userData.recycleLength}
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   updateHud();
  }
