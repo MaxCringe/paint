@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paint — редактор</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#151922;color:#f4f6fb;font:15px system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:#202633;border-bottom:1px solid #343d4d}
+a,button{color:inherit}a{color:#a7f36b;text-decoration:none;font-weight:700}h1{font-size:18px;margin:0 12px 0 0}.tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button{background:#303a4a;border:1px solid #4a566a;border-radius:8px;padding:8px 12px;cursor:pointer}button:hover{background:#41506a}button.active{background:#a7f36b;color:#14200d;border-color:#a7f36b}
+input[type=color]{width:38px;height:36px;padding:2px;border:1px solid #4a566a;border-radius:8px;background:#303a4a}input[type=range]{width:100px}
+main{padding:14px;flex:1;display:flex;min-height:0}.canvas-wrap{background:#fff;border-radius:10px;overflow:hidden;flex:1;min-height:60vh;box-shadow:0 8px 30px #0004}canvas{display:block;width:100%;height:100%;min-height:60vh;touch-action:none;cursor:crosshair}
+@media(max-width:600px){main{padding:8px}.canvas-wrap,canvas{min-height:68vh}header{padding:10px}}
+</style></head>
+<body>
+<header><a href="./index.html">← Главная</a><h1>Paint</h1><div class="tools">
+<label>Цвет <input id="color" type="color" value="#111111" aria-label="Цвет кисти"></label>
+<label>Размер <input id="size" type="range" min="1" max="60" value="6"><span id="sizeVal">6</span></label>
+<button id="pen" class="active">Кисть</button><button id="eraser">Ластик</button><button id="undo">Отменить</button><button id="clear">Очистить</button><button id="save">Скачать PNG</button>
+</div></header>
+<main><div class="canvas-wrap"><canvas id="canvas" aria-label="Холст для рисования"></canvas></div></main>
+<script>
+(()=>{const c=document.querySelector('#canvas'),ctx=c.getContext('2d'),wrap=document.querySelector('.canvas-wrap');let drawing=false,last=null,erase=false,history=[];
+function resize(){const old=document.createElement('canvas');old.width=c.width||1;old.height=c.height||1;old.getContext('2d').drawImage(c,0,0);const rect=wrap.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);c.width=Math.max(1,Math.floor(rect.width*dpr));c.height=Math.max(1,Math.floor(rect.height*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#fff';ctx.fillRect(0,0,rect.width,rect.height);if(old.width>1)ctx.drawImage(old,0,0,old.width,old.height,0,0,rect.width,rect.height)}
+function snapshot(){try{history.push(c.toDataURL());if(history.length>20)history.shift()}catch{}}
+function pos(e){const r=c.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function down(e){e.preventDefault();snapshot();drawing=true;last=pos(e);c.setPointerCapture(e.pointerId);ctx.beginPath();ctx.fillStyle=erase?'#fff':document.querySelector('#color').value;ctx.arc(last.x,last.y,Number(document.querySelector('#size').value)/2,0,Math.PI*2);ctx.fill()}
+function move(e){if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.strokeStyle=erase?'#fff':document.querySelector('#color').value;ctx.lineWidth=Number(document.querySelector('#size').value);ctx.lineCap='round';ctx.lineJoin='round';ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p}
+c.addEventListener('pointerdown',down);c.addEventListener('pointermove',move);c.addEventListener('pointerup',()=>drawing=false);c.addEventListener('pointercancel',()=>drawing=false);
+document.querySelector('#size').addEventListener('input',e=>document.querySelector('#sizeVal').textContent=e.target.value);
+document.querySelector('#pen').onclick=()=>{erase=false;document.querySelector('#pen').classList.add('active');document.querySelector('#eraser').classList.remove('active')};
+document.querySelector('#eraser').onclick=()=>{erase=true;document.querySelector('#eraser').classList.add('active');document.querySelector('#pen').classList.remove('active')};
+document.querySelector('#undo').onclick=()=>{const data=history.pop();if(!data)return;const img=new Image();img.onload=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width/(Math.min(window.devicePixelRatio||1,2)),c.height/(Math.min(window.devicePixelRatio||1,2)))};img.src=data};
+document.querySelector('#clear').onclick=()=>{if(confirm('Очистить холст?')){snapshot();const r=wrap.getBoundingClientRect();ctx.fillStyle='#fff';ctx.fillRect(0,0,r.width,r.height)}};
+document.querySelector('#save').onclick=()=>{const out=document.createElement('canvas'),dpr=Math.min(window.devicePixelRatio||1,2);out.width=c.width;out.height=c.height;out.getContext('2d').drawImage(c,0,0);const a=document.createElement('a');a.download='paint.png';a.href=out.toDataURL('image/png');a.click()};
+resize();window.addEventListener('resize',()=>{const data=c.toDataURL();resize();const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,c.width/Math.min(window.devicePixelRatio||1,2),c.height/Math.min(window.devicePixelRatio||1,2));img.src=data});
+})();
+</script></body></html>
