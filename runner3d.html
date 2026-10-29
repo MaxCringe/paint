@@ -3,23 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Jungle Rush 3D</title>
+<title>KNOTTY PINE — Fiona in Hell</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07150f;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}canvas{display:block;width:100%;height:100%}#hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 10px #00160b}#top{display:flex;justify-content:space-between;align-items:flex-start;padding:18px;gap:10px}.pill{background:#07150fc9;border:1px solid #ffffff30;border-radius:16px;padding:10px 14px;backdrop-filter:blur(8px);font-weight:800;letter-spacing:.04em}.small{font-size:11px;opacity:.72;display:block;letter-spacing:.16em;margin-bottom:3px}.big{font-size:23px;font-variant-numeric:tabular-nums}#center{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(90vw,470px);text-align:center;pointer-events:auto;background:linear-gradient(180deg,#071b13eF,#07120fea);border:1px solid #b8ff9a55;border-radius:26px;padding:26px 24px;box-shadow:0 20px 90px #0009}h1{font-size:clamp(28px,7vw,48px);line-height:.95;margin:0 0 12px;letter-spacing:-.05em}h1 em{color:#a8ff74;font-style:normal}.desc{color:#c5d8ca;line-height:1.55;font-size:14px;margin:0 auto 20px;max-width:350px}button{border:0;border-radius:14px;padding:14px 20px;font-weight:900;font-size:15px;cursor:pointer;color:#10210e;background:linear-gradient(135deg,#c5ff7e,#66df7c);box-shadow:0 7px 0 #34763d;min-width:180px}button:active{transform:translateY(3px);box-shadow:0 4px 0 #34763d}#hint{font-size:11px;color:#a9c2b0;margin-top:17px;letter-spacing:.08em}#bottom{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;pointer-events:auto}.ctrl{min-width:0;width:58px;height:54px;padding:0;border-radius:17px;background:#06160fba;border:1px solid #ffffff3a;color:white;box-shadow:none;font-size:22px;backdrop-filter:blur(8px);touch-action:manipulation}#toast{position:absolute;top:100px;left:50%;transform:translateX(-50%);font-weight:900;color:#caff98;opacity:0;transition:opacity .2s;font-size:14px;letter-spacing:.12em}#toast.show{opacity:1}@media(min-width:800px){#bottom{opacity:.8}.desc{font-size:15px}}.hidden{display:none!important}
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#16080d;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}canvas{display:block;width:100%;height:100%}#hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 10px #00160b}#top{display:flex;justify-content:space-between;align-items:flex-start;padding:18px;gap:10px}.pill{background:#16080dc9;border:1px solid #ffffff30;border-radius:16px;padding:10px 14px;backdrop-filter:blur(8px);font-weight:800;letter-spacing:.04em}.small{font-size:11px;opacity:.72;display:block;letter-spacing:.16em;margin-bottom:3px}.big{font-size:23px;font-variant-numeric:tabular-nums}#center{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(90vw,470px);text-align:center;pointer-events:auto;background:linear-gradient(180deg,#071b13eF,#07120fea);border:1px solid #b8ff9a55;border-radius:26px;padding:26px 24px;box-shadow:0 20px 90px #0009}h1{font-size:clamp(28px,7vw,48px);line-height:.95;margin:0 0 12px;letter-spacing:-.05em}h1 em{color:#a8ff74;font-style:normal}.desc{color:#c5d8ca;line-height:1.55;font-size:14px;margin:0 auto 20px;max-width:350px}button{border:0;border-radius:14px;padding:14px 20px;font-weight:900;font-size:15px;cursor:pointer;color:#10210e;background:linear-gradient(135deg,#c5ff7e,#66df7c);box-shadow:0 7px 0 #34763d;min-width:180px}button:active{transform:translateY(3px);box-shadow:0 4px 0 #34763d}#hint{font-size:11px;color:#a9c2b0;margin-top:17px;letter-spacing:.08em}#bottom{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:center;gap:10px;pointer-events:auto}.ctrl{min-width:0;width:58px;height:54px;padding:0;border-radius:17px;background:#06160fba;border:1px solid #ffffff3a;color:white;box-shadow:none;font-size:22px;backdrop-filter:blur(8px);touch-action:manipulation}#toast{position:absolute;top:100px;left:50%;transform:translateX(-50%);font-weight:900;color:#caff98;opacity:0;transition:opacity .2s;font-size:14px;letter-spacing:.12em}#toast.show{opacity:1}@media(min-width:800px){#bottom{opacity:.8}.desc{font-size:15px}}.hidden{display:none!important}
 </style>
 </head>
 <body>
 <div id="hud">
  <div id="top">
-  <div class="pill"><span class="small">DISTANCE</span><span class="big" id="distance">0 m</span></div>
-  <div class="pill" style="text-align:right"><span class="small">COINS</span><span class="big" id="coins">0</span></div>
-  <div class="pill" style="text-align:right"><span class="small">BEST</span><span class="big" id="best">0 m</span></div>
+  <div class="pill"><span class="small">ПУТЬ ИЗ АДА</span><span class="big" id="distance">0 m</span></div>
+  <div class="pill" style="text-align:right"><span class="small">ДУШИ</span><span class="big" id="coins">0</span></div>
+  <div class="pill" style="text-align:right"><span class="small">РЕКОРД</span><span class="big" id="best">0 m</span></div>
  </div>
  <div id="toast">+ COIN</div>
  <section id="center">
-  <h1>JUNGLE<br><em>RUSH 3D</em></h1>
-  <p class="desc" id="message">Мчись по древнему храмовому пути. Уклоняйся от препятствий, собирай монеты и побей свой рекорд.</p>
-  <button id="start">НАЧАТЬ ЗАБЕГ</button>
+  <h1>KNOTTY<br><em>PINE</em></h1>
+  <p class="desc" id="message">Фиона Гуд — ведьма в аду. Уклоняйся от сучковатых сосен, прыгай через корни и переживи этот кошмар.</p>
+  <button id="start">СПУСТИТЬСЯ В АД</button>
   <div id="hint">← → СМЕНА ПОЛОСЫ &nbsp; • &nbsp; ↑ ПРЫЖОК &nbsp; • &nbsp; ↓ ПОДКАТ</div>
  </section>
  <div id="bottom">
@@ -30,8 +30,8 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8ec8b2);
-scene.fog = new THREE.Fog(0x8ec8b2, 25, 105);
+scene.background = new THREE.Color(0x1b050b);
+scene.fog = new THREE.Fog(0x3b101b, 18, 82);
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 180);
 camera.position.set(0,5.3,10.5);
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
@@ -39,10 +39,10 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.7)); renderer.setSize(innerWi
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15;
 document.body.prepend(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xd9fff0,0x35452a,2.1));
-const sun=new THREE.DirectionalLight(0xffefcf,3.0); sun.position.set(-8,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xff8b76,0x120308,1.45));
+const sun=new THREE.DirectionalLight(0xff3927,2.8); sun.position.set(-8,15,5); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
 const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-const grassMat=mat(0x3d8b4d), roadMat=mat(0x77644a), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x236b3d),mat(0x31834b),mat(0x4a9a50),mat(0x174d32)], goldMat=mat(0xffc928,.3,.35), trunkMat=mat(0x68472d);
+const grassMat=mat(0x3d8b4d), roadMat=mat(0x77644a), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x236b3d),mat(0x31834b),mat(0x4a9a50),mat(0x174d32)], goldMat=mat(0xff4b36,.3,.2), trunkMat=mat(0x68472d);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
 for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
@@ -54,23 +54,25 @@ for(let i=0;i<35;i++){const z=-i*6-4;tree(-6.4-Math.random()*3,z,.8+Math.random(
 function arch(z){const g=new THREE.Group();g.position.z=z;scene.add(g);box(.42,3.2,.55,stoneMat,-3.5,1.55,0,g);box(.42,3.2,.55,stoneMat,3.5,1.55,0,g);box(7.4,.55,.8,stoneMat,0,3.15,0,g);box(6.5,.18,.9,edgeMat,0,2.83,0,g);return g}
 for(let z=-26;z>-115;z-=30)fixedDecor.push(arch(z));
 const runner=new THREE.Group();scene.add(runner);
-const bodyMat=mat(0x2478b7), pantsMat=mat(0x25334a), skinMat=mat(0xd99c72), shoeMat=mat(0x20252a), packMat=mat(0x9a4f2c);
+const bodyMat=mat(0x100b12), pantsMat=mat(0x171019), skinMat=mat(0xe8c0a3), shoeMat=mat(0x09070a), packMat=mat(0x25111d);
 const torso=box(.72,.9,.4,bodyMat,0,1.35,0,runner);const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),skinMat);head.position.set(0,2.03,0);head.castShadow=true;runner.add(head);
-box(.52,.17,.44,mat(0x3a251a),0,2.24,0,runner);box(.42,.58,.25,packMat,0,1.37,.31,runner);
+box(.56,.2,.48,mat(0xb8b2b7),0,2.24,0,runner);box(.42,.58,.25,packMat,0,1.37,.31,runner);
+const skirt=new THREE.Mesh(new THREE.ConeGeometry(.57,.72,7),bodyMat);skirt.position.set(0,.78,0);skirt.castShadow=true;runner.add(skirt);
+box(.13,.32,.2,mat(0xb8b2b7),-.22,1.98,.02,runner);box(.13,.32,.2,mat(0xb8b2b7),.22,1.98,.02,runner);
 const armL=box(.2,.68,.22,skinMat,-.49,1.39,0,runner),armR=box(.2,.68,.22,skinMat,.49,1.39,0,runner);
 const legL=box(.25,.62,.27,pantsMat,-.22,.52,0,runner),legR=box(.25,.62,.27,pantsMat,.22,.52,0,runner);
 box(.3,.16,.42,shoeMat,-.22,.18,-.05,runner);box(.3,.16,.42,shoeMat,.22,.18,-.05,runner);
 runner.position.set(0,0,2.3);
 const obstacles=[], coins=[], segments=[];
-function makeObstacle(lane,z,type){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);if(type==='rock'){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(.72,0),darkStone);m.position.y=.68;m.scale.set(1,1.1,.8);m.castShadow=true;g.add(m)}else if(type==='log'){box(1.9,.36,.48,trunkMat,0,1.18,0,g);for(let x of [-.72,.72])box(.12,.4,.5,edgeMat,x,1.18,0,g)}else{box(1.6,.14,.14,stoneMat,0,1.2,0,g);box(.15,1.25,.18,stoneMat,-.72,.58,0,g);box(.15,1.25,.18,stoneMat,.72,.58,0,g);box(1.6,.12,.18,edgeMat,0,1.9,0,g)}obstacles.push({g,lane,type,z,passed:false})}
+function makeObstacle(lane,z,type){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);if(type==='knot'){const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}}else if(type==='branch'){box(2,.38,.48,trunkMat,0,1.18,0,g);for(let x of [-.72,.72]){box(.14,.7,.18,darkStone,x,1.36,0,g)}}else{box(1.6,.14,.14,stoneMat,0,1.2,0,g);box(.15,1.25,.18,stoneMat,-.72,.58,0,g);box(.15,1.25,.18,stoneMat,.72,.58,0,g);box(1.6,.12,.18,edgeMat,0,1.9,0,g)}obstacles.push({g,lane,type,z,passed:false})}
 function makeCoin(lane,z,y=1.2){const g=new THREE.Group();g.position.set((lane-1)*2.55,y,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(.28,.085,8,16),goldMat);ring.rotation.y=Math.PI/2;ring.castShadow=true;g.add(ring);const core=new THREE.Mesh(new THREE.CircleGeometry(.2,12),mat(0xffe57a,.35,.2));core.position.x=.02;core.rotation.y=Math.PI/2;g.add(core);coins.push({g,lane,z,got:false,baseY:y})}
-function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;const r=Math.random();makeObstacle(lane,z,r<.48?'rock':r<.76?'log':'gate');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
+function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;const r=Math.random();makeObstacle(lane,z,r<.55?'knot':r<.82?'branch':'gate');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
 let lane=1, state='ready', distance=0, coinCount=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
-const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('jungleRushBest')||0);$('best').textContent=best+' m';
+const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('knottyPineBest')||0);$('best').textContent=best+' m';
 function updateHud(){$('distance').textContent=Math.floor(distance)+' m';$('coins').textContent=coinCount}
 function popToast(t){$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.65}
 function start(){for(const o of obstacles)scene.remove(o.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;invuln=0;runner.position.set(0,0,2.3);state='playing';$('center').classList.add('hidden');updateHud()}
-function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('jungleRushBest',best);$('best').textContent=best+' m';$('message').innerHTML='Забег окончен! Ты пробежал <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' монет</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
+function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('knottyPineBest',best);$('best').textContent=best+' m';$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' монет</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
 function move(d){if(state!=='playing')return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&jumpT<=0&&slideT<=0)jumpT=.72}
 function slide(){if(state==='playing'&&slideT<=0&&jumpT<=0)slideT=.68}
@@ -91,9 +93,9 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   runner.scale.y=sliding?.58:1;runner.position.z=2.3;
   const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
-  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){const safe=o.type==='rock'?jumping:o.type==='log'?jumping:sliding;if(!safe){end();break}else{invuln=.22}}} }
+  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){const safe=o.type==='knot'?jumping:o.type==='branch'?jumping:sliding;if(!safe){end();break}else{invuln=.22}}} }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
-  for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 МОНЕТА')}} 
+  for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   for(const d of fixedDecor){d.position.z+=speed*dt*.72;if(d.position.z>16)d.position.z-=120}
   updateHud();
