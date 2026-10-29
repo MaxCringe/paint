@@ -82,6 +82,21 @@ button,input,select{font:inherit}button{color:inherit;cursor:pointer;border:1px 
       <div class="two" style="margin-top:8px"><button id="flipH">↔ Отразить</button><button id="rotate">⟳ Повернуть</button></div>
     </section>
     <section class="section">
+      <h3 class="section-title">Фильтры и коррекция</h3>
+      <div class="two"><button id="filterGray">◐ Ч/Б</button><button id="filterInvert">◒ Инверсия</button></div>
+      <div class="two" style="margin-top:7px"><button id="filterSepia">Сепия</button><button id="filterVintage">Винтаж</button></div>
+      <div class="field"><label for="brightness">Яркость</label><input id="brightness" type="range" min="-100" max="100" value="0"><output id="brightnessOut">0</output></div>
+      <div class="field"><label for="contrast">Контраст</label><input id="contrast" type="range" min="-100" max="100" value="0"><output id="contrastOut">0</output></div>
+      <div class="two"><button id="applyAdjust">Применить</button><button id="resetAdjust">Сбросить</button></div>
+      <p class="hint">Фильтры применяются к текущему изображению. Отменить результат можно через ↶.</p>
+    </section>
+    <section class="section">
+      <h3 class="section-title">Проект</h3>
+      <div class="two"><button id="saveProject">Сохранить проект</button><button id="loadProject">Открыть проект</button></div>
+      <input id="projectInput" type="file" accept=".json,application/json" class="hidden">
+      <p class="hint">Проект JSON сохраняет изображение и параметры холста для продолжения работы.</p>
+    </section>
+    <section class="section">
       <h3 class="section-title">Быстрые действия</h3>
       <div class="two"><button id="clear2">🗑 Очистить</button><button id="downloadJpg">JPG</button></div>
       <button id="saveBtn2" class="wide" style="margin-top:7px">Скачать PNG</button>
@@ -151,6 +166,31 @@ $('rotate').onclick=()=>{saveHistory();const w=canvas.width,h=canvas.height,t=do
 $('sideToggle').onclick=$('settingsBtn').onclick=()=>$('sidebar').classList.toggle('open');
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}if(e.code==='Space'&&!e.target.matches('input,textarea,select')){spaceHeld=true;e.preventDefault();canvas.style.cursor='grab';return}if(e.target.matches('input,textarea,select'))return;const k=e.key.toLowerCase(),map={b:'brush',p:'pencil',e:'eraser',g:'fill',i:'picker',l:'line',r:'rect',o:'ellipse',t:'text'};if(map[k])setTool(map[k]);if(k==='['){$('size').value=Math.max(1,Number($('size').value)-1);$('size').dispatchEvent(new Event('input'))}if(k===']'){$('size').value=Math.min(100,Number($('size').value)+1);$('size').dispatchEvent(new Event('input'))}});
 document.addEventListener('keyup',e=>{if(e.code==='Space'){spaceHeld=false;canvas.style.cursor='crosshair'}});
+
+function applyPixelFilter(kind){
+ saveHistory();
+ const image=ctx.getImageData(0,0,canvas.width,canvas.height),d=image.data;
+ for(let i=0;i<d.length;i+=4){
+  const r=d[i],g=d[i+1],b=d[i+2];
+  if(kind==='gray'){const v=.299*r+.587*g+.114*b;d[i]=d[i+1]=d[i+2]=v}
+  else if(kind==='invert'){d[i]=255-r;d[i+1]=255-g;d[i+2]=255-b}
+  else if(kind==='sepia'){d[i]=Math.min(255,.393*r+.769*g+.189*b);d[i+1]=Math.min(255,.349*r+.686*g+.168*b);d[i+2]=Math.min(255,.272*r+.534*g+.131*b)}
+  else if(kind==='vintage'){d[i]=Math.min(255,.45*r+.72*g+.18*b+18);d[i+1]=Math.min(255,.32*r+.66*g+.12*b+10);d[i+2]=Math.min(255,.22*r+.48*g+.08*b)}
+ }
+ ctx.putImageData(image,0,0);toast('Фильтр применён');
+}
+$('filterGray').onclick=()=>applyPixelFilter('gray');
+$('filterInvert').onclick=()=>applyPixelFilter('invert');
+$('filterSepia').onclick=()=>applyPixelFilter('sepia');
+$('filterVintage').onclick=()=>applyPixelFilter('vintage');
+$('brightness').oninput=e=>$('brightnessOut').textContent=e.target.value;
+$('contrast').oninput=e=>$('contrastOut').textContent=e.target.value;
+$('applyAdjust').onclick=()=>{const br=Number($('brightness').value),co=Number($('contrast').value);if(br===0&&co===0){toast('Измените яркость или контраст');return}saveHistory();const im=ctx.getImageData(0,0,canvas.width,canvas.height),d=im.data,f=(259*(co+255))/(255*(259-co));for(let i=0;i<d.length;i+=4){d[i]=Math.max(0,Math.min(255,f*(d[i]-128)+128+br));d[i+1]=Math.max(0,Math.min(255,f*(d[i+1]-128)+128+br));d[i+2]=Math.max(0,Math.min(255,f*(d[i+2]-128)+128+br))}ctx.putImageData(im,0,0);toast('Коррекция применена')};
+$('resetAdjust').onclick=()=>{$('brightness').value=0;$('contrast').value=0;$('brightnessOut').textContent='0';$('contrastOut').textContent='0'};
+$('saveProject').onclick=()=>{const payload={app:'Paint Pro',version:1,width:canvas.width,height:canvas.height,background:$('bgColor').value,color,secondary,tool,brushSize:size,opacity,showGrid,zoom,image:canvas.toDataURL('image/png')};const blob=new Blob([JSON.stringify(payload)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='paint-pro-project.json';a.click();URL.revokeObjectURL(url);toast('Проект сохранён')};
+$('loadProject').onclick=()=>$('projectInput').click();
+$('projectInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const p=JSON.parse(reader.result);if(!p.image||!p.width||!p.height)throw new Error('invalid');const im=new Image();im.onload=()=>{saveHistory();canvas.width=overlay.width=Math.min(4000,p.width);canvas.height=overlay.height=Math.min(4000,p.height);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(im,0,0,canvas.width,canvas.height);$('canvasW').value=canvas.width;$('canvasH').value=canvas.height;$('canvasInfo').textContent=canvas.width+' × '+canvas.height+' px';if(p.background){$('bgColor').value=p.background;secondary=p.background}if(p.color)setColor(p.color);if(p.brushSize){$('size').value=p.brushSize;$('size').dispatchEvent(new Event('input'))}if(typeof p.opacity==='number'){$('opacity').value=Math.round(p.opacity*100);$('opacity').dispatchEvent(new Event('input'))}toast('Проект открыт')};im.onerror=()=>toast('Не удалось прочитать изображение проекта');im.src=p.image}catch(err){toast('Файл проекта повреждён или имеет неверный формат')}};reader.readAsText(file);e.target.value=''};
+
 ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);saveHistory();setTool('brush');updateHistoryButtons();
 })();
 </script>
