@@ -221,7 +221,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
   for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength}
-  for(const d of fixedDecor){d.position.z+=speed*dt*.72;if(d.position.z>16)d.position.z-=120}
+  for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   updateHud();
  }
  // Camera follows gently; maintain forward view
