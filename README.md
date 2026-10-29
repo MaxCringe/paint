@@ -24,14 +24,16 @@ Vite writes the production site to `dist/`. Wrangler runs the build before deplo
 
 - `index.html` — static game HUD and menu markup.
 - `src/main.js` — Vite entry point.
-- `src/game.js` — the existing Three.js game engine and gameplay loop. The tightly coupled loop remains intact in this first migration to avoid changing behavior.
+- `src/game.js` — core Three.js scene, player setup, gameplay loop, and collision handling. The tightly coupled loop remains intact to avoid changing behavior.
 - `src/config.js` — shared gameplay constants.
 - `src/world/buildFernGeometry.js` — reusable procedural fern geometry.
+- `src/obstacles/LavaRiver.js` — lava materials, wide river geometry, glowing surface, charred boards, and riverbank flames.
+- `src/systems/ObstacleManager.js` — existing random choices and probabilities for generating the next obstacle segment.
 - `src/souls/buildSoulFlameGeometry.js` — procedural soul-flame geometry.
 - `src/souls/animateSoulFlame.js` — animation of soul-flame meshes.
 - `src/styles/game.css` — HUD and page styles.
 
-This is the first behavior-preserving architecture pass. Collision, obstacle, HUD, forest, and player systems can be extracted individually after the Vite build is confirmed.
+This is the first behavior-preserving architecture pass. Collision, HUD, forest, and player systems can be extracted individually in later passes.
 
 ## Controls
 
