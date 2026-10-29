@@ -80,6 +80,22 @@ horizonShape([[-2.8,17],[-2.1,14],[-2.8,11],[-1.9,8],[-3,5],[-2.5,2],[-3.4,.1],[
 horizonShape([[3.8,17],[4.3,14],[3.8,11],[5,8],[4.5,5],[5.6,2],[6.2,.1],[5.7,.1],[5,2],[4.9,5],[4.3,8],[4.5,11],[3.4,14]],-72.15,lavaGlowMat,30);
 // A small glowing lava fan at the foot of the mountain.
 horizonShape([[-5,-.1],[-3.8,1],[-2,1.3],[0,.7],[2,1.4],[4,.8],[6.5,1],[8,-.1]],-72.1,lavaMat,30);
+// Animated molten rivulets visibly travel from the crater toward the foot of the volcano.
+const movingLava=[];
+const lavaDropGeo=new THREE.SphereGeometry(1,8,6);
+function addLavaStream(xStart,xEnd,count,phase){
+ for(let i=0;i<count;i++){
+  const material=new THREE.MeshBasicMaterial({color:i%3===0?0xffc04a:0xff5a0a});
+  const drop=new THREE.Mesh(lavaDropGeo,material);
+  drop.scale.set(.08+Math.random()*.04,.22+Math.random()*.18,.035);
+  scene.add(drop);
+  movingLava.push({mesh:drop,xStart,xEnd,phase:phase+i/count});
+ }
+}
+addLavaStream(27.2,27.7,7,0);
+addLavaStream(33.2,34.1,7,.23);
+addLavaStream(22.8,23.6,5,.51);
+
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
 for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.18,220),edgeMat);e.position.set(x,0,-65);e.receiveShadow=true;scene.add(e)}
@@ -155,6 +171,9 @@ $('start').addEventListener('click',start);$('left').addEventListener('click',()
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 function resetDecor(){for(const d of fixedDecor){if(d.position.z>16)d.position.z-=120}}
 function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||0,.04);last=t;
+ // Animate molten streaks from the summit down the volcano's face, looping continuously.
+ for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
+
  if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
  if(state==='playing'){
   // Scroll the road texture toward the camera so the boards stay fixed to the world as Fiona runs.
