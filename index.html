@@ -773,7 +773,7 @@ function makeSoul(lane,z,y=1.2){
 
  coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
 }
-const lavaGlowMat=new THREE.MeshBasicMaterial({color:0xff3000,transparent:true,opacity:.23,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+const lavaRiverGlowMaterial=new THREE.MeshBasicMaterial({color:0xff3000,transparent:true,opacity:.23,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
 const lavaSurfaceMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
 const lavaCoreMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
 const lavaRockMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
