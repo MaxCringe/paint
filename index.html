@@ -493,7 +493,8 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
 
  if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
  if(state==='playing'){
-  // Keep the road texture locked to the track geometry; do not scroll UVs.
+  // Move the road texture slowly in world-space: repeat.y=15 means one UV unit spans 220 world units.
+  pineFloorTexture.offset.y=(pineFloorTexture.offset.y+speed*dt/220)%1;
   distance+=speed*dt*.72;updateHud();speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
   if(spawnZ<-150)spawnZ= -50;
