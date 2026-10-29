@@ -65,19 +65,19 @@ box(.42,.58,.25,packMat,0,1.37,.31,runner);
 // Long, slightly flared black skirt with red panel details.
 const skirt=new THREE.Mesh(new THREE.ConeGeometry(.61,.78,10),bodyMat);skirt.position.set(0,.78,0);skirt.castShadow=true;runner.add(skirt);
 for(const x of [-.22,0,.22]){const panel=box(.045,.59,.018,dressTrim,x,.76,.31,runner);panel.rotation.z=x*.16}
-const collar=new THREE.Mesh(new THREE.ConeGeometry(.31,.32,5),silverMat);collar.position.set(0,1.86,.01);collar.rotation.x=Math.PI;collar.castShadow=true;runner.add(collar);
+const collar=new THREE.Mesh(new THREE.ConeGeometry(.31,.32,5),silverMat);collar.position.set(0,1.86,-.01);collar.rotation.x=Math.PI;collar.castShadow=true;runner.add(collar);
 // Neck and sculpted face.
 limb(.105,.105,.18,skinMat,0,1.91,.015);
 const head=sphere(.285,skinMat,0,2.12,.015,1,.98,.88);
 sphere(.045,skinMat,-.274,2.08,.025,.65,1,1);sphere(.045,skinMat,.274,2.08,.025,.65,1,1);
-// Face points toward the camera (+Z).
-sphere(.034,eyeMat,-.105,2.145,.255,.8,.72,.5);sphere(.034,eyeMat,.105,2.145,.255,.8,.72,.5);
-box(.105,.025,.025,silverMat,-.105,2.205,.25,runner).rotation.z=.12;
-box(.105,.025,.025,silverMat,.105,2.205,.25,runner).rotation.z=-.12;
-const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.13,5),skinMat);nose.position.set(0,2.09,.28);nose.rotation.x=Math.PI/2;nose.castShadow=true;runner.add(nose);
-box(.105,.025,.018,lipMat,0,2.015,.258,runner);
+// Face points in the running direction (-Z); camera sees the character from behind.
+sphere(.034,eyeMat,-.105,2.145,-.255,.8,.72,.5);sphere(.034,eyeMat,.105,2.145,-.255,.8,.72,.5);
+box(.105,.025,.025,silverMat,-.105,2.205,-.25,runner).rotation.z=.12;
+box(.105,.025,.025,silverMat,.105,2.205,-.25,runner).rotation.z=-.12;
+const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.13,5),skinMat);nose.position.set(0,2.09,-.28);nose.rotation.x=Math.PI/2;nose.castShadow=true;runner.add(nose);
+box(.105,.025,.018,lipMat,0,2.015,-.258,runner);
 // Distinctive silver bob: cap, side locks and layered locks down the back.
-sphere(.285,silverMat,0,2.31,-.14,1.08,.55,1.02);
+sphere(.285,silverMat,0,2.31,.14,1.08,.55,1.02);
 for(const side of [-1,1]){
   const lock=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.63,7),silverMat);lock.position.set(side*.245,2.02,-.015);lock.rotation.z=side*-.13;lock.castShadow=true;runner.add(lock);
   sphere(.105,silverLight,side*.25,1.78,.025,.78,1.5,.85);
@@ -90,8 +90,8 @@ armL.rotation.z=-.12;armR.rotation.z=.12;
 limb(.09,.075,.25,skinMat,-.53,1.03,.02,.12);limb(.09,.075,.25,skinMat,.53,1.03,.02,-.12);
 sphere(.105,skinMat,-.55,.89,.035,.9,1,.85);sphere(.105,skinMat,.55,.89,.035,.9,1,.85);
 // Pendant and fine gold necklace.
-const chain=new THREE.Mesh(new THREE.TorusGeometry(.16,.012,6,18),jewelryMat);chain.position.set(0,1.57,.215);chain.rotation.x=.2;runner.add(chain);
-const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(.065,0),jewelryMat);pendant.position.set(0,1.42,.245);pendant.rotation.z=Math.PI/4;pendant.castShadow=true;runner.add(pendant);
+const chain=new THREE.Mesh(new THREE.TorusGeometry(.16,.012,6,18),jewelryMat);chain.position.set(0,1.57,-.215);chain.rotation.x=.2;runner.add(chain);
+const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(.065,0),jewelryMat);pendant.position.set(0,1.42,-.245);pendant.rotation.z=Math.PI/4;pendant.castShadow=true;runner.add(pendant);
 // Legs and pointed black boots.
 const legL=box(.25,.58,.27,pantsMat,-.22,.51,0,runner),legR=box(.25,.58,.27,pantsMat,.22,.51,0,runner);
 const bootL=box(.31,.17,.45,shoeMat,-.22,.17,.015,runner),bootR=box(.31,.17,.45,shoeMat,.22,.17,.015,runner);
