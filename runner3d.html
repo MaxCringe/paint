@@ -106,7 +106,7 @@ const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('kn
 function updateHud(){$('distance').textContent=Math.floor(distance)+' m';$('coins').textContent=coinCount}
 function popToast(t){$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.65}
 function start(){for(const o of obstacles)scene.remove(o.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;invuln=0;runner.position.set(0,0,2.3);state='playing';$('center').classList.add('hidden');updateHud()}
-function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('knottyPineBest',best);$('best').textContent=best+' m';$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' монет</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
+function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('knottyPineBest',best);$('best').textContent=best+' m';$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
 function move(d){if(state!=='playing')return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&jumpT<=0&&slideT<=0)jumpT=.72}
 function slide(){if(state==='playing'&&slideT<=0&&jumpT<=0)slideT=.68}
