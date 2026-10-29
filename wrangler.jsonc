@@ -2,6 +2,15 @@
   "name": "paint",
   "compatibility_date": "2026-10-29",
   "assets": {
-    "directory": "."
+    "directory": "./dist"
+  },
+  "build": {
+    "command": "npm run build",
+    "watch_dir": [
+      "src",
+      "index.html",
+      "package.json",
+      "vite.config.js"
+    ]
   }
 }
