@@ -177,15 +177,16 @@ bootL.rotation.x=-.04;bootR.rotation.x=-.04;
 runner.position.set(0,0,2.3);
 const obstacles=[], coins=[], segments=[];
 function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
+function makePuddle(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const peeMat=new THREE.MeshStandardMaterial({color:0xc6a83b,roughness:.22,metalness:.04,transparent:true,opacity:.88});const puddle=new THREE.Mesh(new THREE.CircleGeometry(1,24),peeMat);puddle.rotation.x=-Math.PI/2;puddle.scale.set(1.02,.62,1);puddle.position.y=-.045;g.add(puddle);const sheenMat=new THREE.MeshStandardMaterial({color:0xffe9a0,roughness:.16,transparent:true,opacity:.72});for(const [x,zz,sx,sz] of [[-.28,-.06,.2,.09],[.24,.12,.14,.07],[-.02,.2,.1,.045]]){const shine=new THREE.Mesh(new THREE.CircleGeometry(1,12),sheenMat);shine.rotation.x=-Math.PI/2;shine.scale.set(sx,sz,1);shine.position.set(x,-.038,zz);g.add(shine)}obstacles.push({g,lane,type:'pee',z,passed:false})}
 function makeCoin(lane,z,y=1.2){const g=new THREE.Group();g.position.set((lane-1)*2.55,y,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(.28,.085,8,16),goldMat);ring.rotation.y=Math.PI/2;ring.castShadow=true;g.add(ring);const core=new THREE.Mesh(new THREE.CircleGeometry(.2,12),mat(0xffe57a,.35,.2));core.position.x=.02;core.rotation.y=Math.PI/2;g.add(core);coins.push({g,lane,z,got:false,baseY:y})}
-function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;makeObstacle(lane,z,'knot');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
-let lane=1, state='ready', distance=0, coinCount=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
+function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
+let lane=1, state='ready', distance=0, coinCount=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
 const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('knottyPineBest')||0);$('best').textContent=best+' m';
 function updateHud(){$('distance').textContent=Math.floor(distance)+' m';$('coins').textContent=coinCount}
 function popToast(t){$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.65}
-function start(){for(const o of obstacles)scene.remove(o.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;invuln=0;runner.position.set(0,0,2.3);state='playing';$('center').classList.add('hidden');updateHud()}
+function start(){for(const o of obstacles)scene.remove(o.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.z=0;runner.position.set(0,0,2.3);state='playing';$('center').classList.add('hidden');updateHud()}
 function end(){state='over';best=Math.max(best,Math.floor(distance));localStorage.setItem('knottyPineBest',best);$('best').textContent=best+' m';$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
-function move(d){if(state!=='playing')return;lane=Math.max(0,Math.min(2,lane+d))}
+function move(d){if(state!=='playing'||slipT>0)return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&jumpT<=0&&slideT<=0)jumpT=.72}
 function slide(){if(state==='playing'&&slideT<=0&&jumpT<=0)slideT=.68}
 function actionKey(e){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state!=='playing'){if(e.code==='Enter'||e.code==='Space')start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
@@ -204,13 +205,13 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   distance+=speed*dt*.72;updateHud();speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
   if(spawnZ<-150)spawnZ= -50;
-  jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);invuln=Math.max(0,invuln-dt);
+  jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);
   const jumping=jumpT>0, sliding=slideT>0;const jumpY=jumping?Math.sin((1-jumpT/.72)*Math.PI)*1.75:0;
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
-  runner.scale.y=sliding?.58:1;runner.position.z=2.3;
+  runner.scale.y=sliding?.58:1;runner.position.z=2.3;runner.rotation.z=slipT>0?Math.sin(t*.045)*.2:0;
   const run= t*.012*speed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
-  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){const safe=o.type==='knot'?jumping:o.type==='branch'?jumping:sliding;if(!safe){end();break}else{invuln=.22}}} }
+  for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&invuln<=0){if(o.type==='pee'){if(!jumping){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else{invuln=.22}}else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}}} }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
   for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
