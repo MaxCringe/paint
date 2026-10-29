@@ -24,8 +24,9 @@ Vite writes the production site to `dist/`. Wrangler runs the build before deplo
 
 - `index.html` — static game HUD and menu markup.
 - `src/main.js` — Vite entry point.
-- `src/game.js` — scene setup, world objects, shared run state, collision checks, and the main animation loop.
+- `src/game.js` — shared run state, obstacle collision checks, input handling, and the main animation loop.
 - `src/config.js` — shared gameplay constants.
+- `src/world/World.js` — scene, camera, renderer, volcanic horizon, track, forest, and recycled roadside vegetation.
 - `src/world/buildFernGeometry.js` — reusable procedural fern geometry.
 - `src/player/Fiona.js` — Fiona's procedural 3D model and the body parts driven by the run animation.
 - `src/souls/createSoulFactory.js` — soul materials, collectible soul models, and their registration in the shared coin list.
