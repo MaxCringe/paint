@@ -614,7 +614,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   // Move physical road segments at the same speed as the world; texture UVs stay attached to each segment.
   moveRoadSegments(speed*dt);
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
-  for(const treeGroup of roadsideTrees{treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength;treeGroup.position.x=curveX(treeGroup.position.z)+treeGroup.userData.trackBaseX}
+  for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength;treeGroup.position.x=curveX(treeGroup.position.z)+treeGroup.userData.trackBaseX}
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   updateHud();
  }
