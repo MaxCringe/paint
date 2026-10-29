@@ -248,8 +248,73 @@ function makePuddle(lane,z){
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
 function makeFish(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);g.rotation.y=0;scene.add(g);const fishMat=new THREE.MeshStandardMaterial({color:0x777f89,roughness:.42,metalness:.22});const bellyMat=new THREE.MeshStandardMaterial({color:0xd0cec4,roughness:.58});const finMat=new THREE.MeshStandardMaterial({color:0x626b76,roughness:.55});const body=new THREE.Mesh(new THREE.SphereGeometry(.52,16,10),fishMat);body.scale.set(.78,.48,1.75);body.position.y=.19;body.rotation.x=-.04;g.add(body);const belly=new THREE.Mesh(new THREE.SphereGeometry(.39,14,8),bellyMat);belly.scale.set(.78,.24,1.48);belly.position.set(0,.075,-.04);g.add(belly);const tail=new THREE.Mesh(new THREE.ConeGeometry(.34,.66,5),fishMat);tail.rotation.x=Math.PI/2;tail.position.set(0,.19,1.02);g.add(tail);for(const side of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(.19,.43,4),finMat);fin.rotation.z=side*.8;fin.position.set(side*.34,.19,.13);g.add(fin);const eye=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6),new THREE.MeshBasicMaterial({color:0x090b0e}));eye.position.set(side*.28,.32,-.55);g.add(eye)}obstacles.push({g,lane,type:'fish',z,passed:false})}
-function makeCoin(lane,z,y=1.2){const g=new THREE.Group();g.position.set((lane-1)*2.55,y,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(.28,.085,8,16),goldMat);ring.rotation.y=Math.PI/2;ring.castShadow=true;g.add(ring);const core=new THREE.Mesh(new THREE.CircleGeometry(.2,12),mat(0xffe57a,.35,.2));core.position.x=.02;core.rotation.y=Math.PI/2;g.add(core);coins.push({g,lane,z,got:false,baseY:y})}
-function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;if(Math.random()<.20)makeFish(lane,z);else if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeCoin(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeCoin(lane,z-j*1.55,1.2)}}
+// Shared soul meshes: a luminous, irregular flame-shaped spirit instead of a metal coin.
+const soulShape=new THREE.Shape();
+soulShape.moveTo(-.24,-.42);
+soulShape.bezierCurveTo(-.47,-.24,-.43,-.02,-.28,.14);
+soulShape.bezierCurveTo(-.38,.34,-.20,.56,-.025,.72);
+soulShape.bezierCurveTo(.015,.54,.18,.48,.23,.31);
+soulShape.bezierCurveTo(.44,.12,.41,-.13,.24,-.30);
+soulShape.bezierCurveTo(.16,-.22,.08,-.33,.015,-.41);
+soulShape.bezierCurveTo(-.075,-.30,-.17,-.36,-.24,-.42);
+soulShape.closePath();
+const soulGeometry=new THREE.ExtrudeGeometry(soulShape,{depth:.10,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:.025,bevelThickness:.025,curveSegments:12});
+soulGeometry.center();
+const soulAuraMaterial=new THREE.MeshBasicMaterial({color:0x7c5dff,transparent:true,opacity:.23,depthWrite:false,side:THREE.DoubleSide});
+const soulBodyMaterial=new THREE.MeshBasicMaterial({color:0x35e7ff,side:THREE.DoubleSide});
+const soulInnerMaterial=new THREE.MeshBasicMaterial({color:0x9cffff,side:THREE.DoubleSide});
+const soulCoreMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
+const soulEyeMaterial=new THREE.MeshBasicMaterial({color:0x291754});
+const soulOrbGeometry=new THREE.SphereGeometry(.12,14,10);
+const soulEyeGeometry=new THREE.SphereGeometry(.027,10,8);
+const soulWispMaterial=new THREE.MeshBasicMaterial({color:0x69f5ff,transparent:true,opacity:.85});
+const soulWispLeftGeometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+ new THREE.Vector3(-.20,-.10,.11),new THREE.Vector3(-.34,-.20,.12),new THREE.Vector3(-.30,-.34,.12),new THREE.Vector3(-.18,-.38,.12)
+]),12,.018,5,false);
+const soulWispRightGeometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+ new THREE.Vector3(.20,-.12,.11),new THREE.Vector3(.34,-.20,.12),new THREE.Vector3(.32,-.33,.12),new THREE.Vector3(.19,-.39,.12)
+]),12,.018,5,false);
+function makeSoul(lane,z,y=1.2){
+ const g=new THREE.Group();
+ g.position.set((lane-1)*2.55,y,z);
+ scene.add(g);
+
+ const aura=new THREE.Mesh(soulGeometry,soulAuraMaterial);
+ aura.scale.set(1.38,1.28,1);
+ aura.position.z=-.11;
+ g.add(aura);
+
+ const body=new THREE.Mesh(soulGeometry,soulBodyMaterial);
+ body.scale.set(1.12,1.10,1);
+ body.position.z=-.005;
+ g.add(body);
+
+ // A pale inner glow makes the spirit readable from a distance.
+ const inner=new THREE.Mesh(soulGeometry,soulInnerMaterial);
+ inner.scale.set(.66,.70,.55);
+ inner.position.set(.015,.015,.105);
+ g.add(inner);
+
+ const core=new THREE.Mesh(soulOrbGeometry,soulCoreMaterial);
+ core.scale.set(.72,1.05,.55);
+ core.position.set(-.015,-.055,.20);
+ g.add(core);
+
+ // Tiny shadowed eyes give the soul a distinct character without making it look like a coin.
+ for(const x of [-.082,.082]){
+  const eye=new THREE.Mesh(soulEyeGeometry,soulEyeMaterial);
+  eye.scale.set(.78,1.18,.48);
+  eye.position.set(x,.10,.225);
+  g.add(eye);
+ }
+
+ const leftWisp=new THREE.Mesh(soulWispLeftGeometry,soulWispMaterial);
+ const rightWisp=new THREE.Mesh(soulWispRightGeometry,soulWispMaterial);
+ g.add(leftWisp,rightWisp);
+
+ coins.push({g,lane,z,got:false,baseY:y});
+}
+function makeSegment(z){if(Math.random()<.88){const lane=(Math.random()*3)|0;if(Math.random()<.20)makeFish(lane,z);else if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');if(Math.random()<.72){const cl=(lane+1+(Math.random()<.5?1:0))%3;for(let j=0;j<4;j++)makeSoul(cl,z-j*1.65,1.2+Math.sin(j*.8)*.18)}}else{const lane=(Math.random()*3)|0;for(let j=0;j<5;j++)makeSoul(lane,z-j*1.55,1.2)}}
 let lane=1, state='ready', distance=0, coinCount=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
 const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('knottyPineBest')||0);$('best').textContent=best+' m';
 function updateHud(){$('distance').textContent=Math.floor(distance)+' m';$('coins').textContent=coinCount}
@@ -283,7 +348,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){o.g.position.z+=speed*dt;if(!o.passed&&o.g.position.z>1.2){o.passed=true;if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}}} }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles.splice(i,1)}
-  for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.y+=dt*2.2;c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.12;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
+  for(const c of coins){c.g.position.z+=speed*dt;c.g.rotation.z=Math.sin(t*.003+c.z)*.13;c.g.rotation.y=Math.sin(t*.0025+c.z)*.08;const soulPulse=1+Math.sin(t*.006+c.z)*.055;c.g.scale.set(soulPulse,soulPulse,soulPulse);c.g.position.y=c.baseY+Math.sin(t*.004+c.z)*.14;if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){c.g.userData.got=true;coinCount++;scene.remove(c.g);popToast('+ 1 ДУША')}} 
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
   for(const treeGroup of roadsideTrees){treeGroup.position.z+=speed*dt;if(treeGroup.position.z>12)treeGroup.position.z-=treeGroup.userData.recycleLength}
