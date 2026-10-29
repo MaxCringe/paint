@@ -347,7 +347,7 @@ const pendantDrop=new THREE.Mesh(new THREE.SphereGeometry(.012,10,8),dressTrim);
 pendantDrop.position.set(0,.38,-.27);torso.add(pendantDrop);
 
 // A shaped face with visible eyes and mature, understated features.
-const head=sphere(.24,skinMat,0,1.12,-.005,.96,1.17,.90,torso);
+const head=sphere(.225,skinMat,0,1.12,-.005,.91,1.10,.83,torso);
 sphere(.043,skinMat,-.222,1.095,-.005,.72,1.04,.82,torso);
 sphere(.043,skinMat,.222,1.095,-.005,.72,1.04,.82,torso);
 const earL=sphere(.029,skinShadeMat,-.229,1.10,-.035,.65,1.0,.8,torso);
@@ -377,35 +377,72 @@ sphere(.034,lipMat,0,1.005,-.195,1.42,.48,.48,torso);
 sphere(.029,skinShadeMat,0,.989,-.195,1.16,.28,.42,torso);
 characterTube(torso,[[-.045,1.0,-.217],[0,.996,-.222],[.045,1.0,-.217]],.0028,eyeMat,8,4);
 
-// Ash-blonde shoulder-length bob. The layered rear silhouette is deliberately detailed,
-// because the runner camera mostly sees Fiona from behind.
-sphere(.25,hairMat,0,1.345,.045,1.08,.66,.98,torso);
-sphere(.255,hairDarkMat,0,.88,.095,1.02,1.14,.94,torso);
-sphere(.13,hairMat,-.213,.84,.055,.78,1.34,1.02,torso);
-sphere(.13,hairMat,.213,.84,.055,.78,1.34,1.02,torso);
-sphere(.10,hairLightMat,-.255,1.02,.025,.58,1.18,.92,torso);
-sphere(.10,hairLightMat,.255,1.02,.025,.58,1.18,.92,torso);
-// Fine curved locks from the crown to the shoulders, with warm and cool blonde highlights.
-for(let i=0;i<17;i++){
- const x=-.22+i*.0275;
- const bend=(i-8)*.0032;
- const matHair=[hairDarkMat,hairMat,hairWarmMat,hairLightMat][i%4];
- characterTube(torso,[[x*.45,1.43,.10],[x*.72,1.27,.205],[x+bend,1.03,.305],[x*1.02,.80+(i%3)*.018,.245]],.010+(i%3)*.003,matHair,10,5);
-}
+// Full, softly rounded ash-blonde bob: overlapping hair masses, not a flat cap.
+// Slightly fuller crown and back volume conceal the scalp while keeping the face clear.
+sphere(.255,hairMat,0,1.315,.035,1.055,.91,1.02,torso);
+sphere(.235,hairDarkMat,0,.955,.13,1.08,1.42,.99,torso);
+sphere(.145,hairMat,0,1.39,.045,.96,.88,.92,torso);
+// Uneven overlapping crown tufts give the silhouette a natural, fluffy outline.
+sphere(.125,hairWarmMat,-.158,1.365,.025,.95,.96,.95,torso);
+sphere(.132,hairMat,-.055,1.418,.055,.92,.88,1.0,torso);
+sphere(.12,hairLightMat,.075,1.405,.045,.95,.91,.98,torso);
+sphere(.128,hairWarmMat,.176,1.36,.03,.93,.97,.94,torso);
+// Thick shoulder-length sides, with rounded, slightly irregular ends.
 for(const sign of [-1,1]){
- for(let i=0;i<5;i++){
-  const x=sign*(.16+i*.018);
-  characterTube(torso,[[sign*.12,1.40,-.03],[x,1.23,-.115],[sign*(.255+i*.009),1.02,-.075],[sign*(.245+i*.008),.80+(i%2)*.035,.015]],.011+(i%2)*.003,i%2?hairLightMat:hairMat,10,5);
+ sphere(.135,hairDarkMat,sign*.202,1.105,.075,.88,1.50,1.02,torso);
+ sphere(.118,hairMat,sign*.218,.875,.085,.98,1.05,1.02,torso);
+ sphere(.087,hairWarmMat,sign*.252,.965,.015,.78,1.30,.93,torso);
+ sphere(.065,hairLightMat,sign*.247,1.13,.0,.72,1.24,.94,torso);
+}
+// Layered curved locks across the back, deliberately varied in length and wave.
+for(let i=0;i<25;i++){
+ const x=-.245+i*.0204;
+ const wave=Math.sin(i*1.7)*.014;
+ const endY=.735+(i%5)*.035;
+ const hairTone=[hairDarkMat,hairMat,hairWarmMat,hairLightMat,hairMat][i%5];
+ characterTube(torso,[
+  [x*.47,1.43,.105],
+  [x*.78+wave,1.28,.225],
+  [x+wave,1.045,.315],
+  [x*.98+wave,endY,.245+Math.cos(i*1.3)*.025]
+ ],.010+(i%4)*.0025,hairTone,12,5);
+}
+// Side locks frame the face and hide the skin edge at the temples without covering the eyes.
+for(const sign of [-1,1]){
+ for(let i=0;i<7;i++){
+  const t=i/6;
+  const x=sign*(.13+t*.115);
+  const z=-.045+Math.sin(t*Math.PI)*-.065;
+  characterTube(torso,[
+   [sign*(.09+t*.045),1.405-t*.035,-.025],
+   [sign*(.19+t*.035),1.255-t*.045,z],
+   [sign*(.245+t*.012),1.035-t*.08,-.055],
+   [sign*(.22+t*.035),.79+(i%3)*.045,.045+t*.045]
+  ],.012+(i%3)*.0025,i%3===0?hairLightMat:(i%2?hairMat:hairWarmMat),12,5);
  }
 }
-// A few delicate strands sweep across the side part; no helmet-like solid cap.
-for(let i=0;i<6;i++){
- const x=-.12+i*.045;
- characterTube(torso,[[x,1.47,.035],[x+.07,1.40,-.055],[x+.14,1.31,-.095],[x+.18,1.19,-.065]],.009,i%2?hairLightMat:hairMat,9,5);
+// A loose side-swept fringe and a visible off-centre part.
+for(let i=0;i<10;i++){
+ const t=i/9;
+ const x=-.16+t*.31;
+ const sweep=x+.075+Math.sin(t*Math.PI)*.018;
+ characterTube(torso,[
+  [x*.52,1.50,.005],
+  [x*.72+.045,1.445,-.075],
+  [sweep*.88,1.365,-.145],
+  [sweep,1.275-(i%3)*.018,-.155]
+ ],.010+(i%3)*.0018,i%4===0?hairLightMat:(i%2?hairMat:hairWarmMat),11,5);
 }
-const hairClip=new THREE.Mesh(new THREE.TorusGeometry(.035,.006,5,14),jewelryMat);
-hairClip.position.set(.105,1.31,.255);hairClip.rotation.x=Math.PI/2;torso.add(hairClip);
-sphere(.009,jewelryMat,.105,1.31,.265,1,1,1,torso);
+// Fine highlights follow the direction of the hair instead of forming a hard helmet edge.
+for(let i=0;i<13;i++){
+ const x=-.22+i*.036;
+ characterTube(torso,[
+  [x*.5,1.44,.17],
+  [x*.78,1.28,.285],
+  [x,1.08,.335],
+  [x*.98,.87+(i%4)*.026,.275]
+ ],.0045,i%3===0?hairLightMat:hairWarmMat,10,4);
+}
 
 // Long black sleeves with rounded shoulders, cuffs, articulated hands and tiny fingers.
 const armL=new THREE.Group(),armR=new THREE.Group();
