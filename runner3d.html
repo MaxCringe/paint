@@ -182,45 +182,48 @@ function makePuddle(lane,z){
  g.position.set((lane-1)*2.55,0,z);
  scene.add(g);
 
- // High-contrast urine puddle: dark silhouette, acid-yellow liquid, bright rim and visible splashes.
- const outlineMat=new THREE.MeshBasicMaterial({color:0x342708,side:THREE.DoubleSide});
- const peeMat=new THREE.MeshBasicMaterial({color:0xffdf00,side:THREE.DoubleSide});
- const deepMat=new THREE.MeshBasicMaterial({color:0xe3b900,side:THREE.DoubleSide});
- const rimMat=new THREE.MeshBasicMaterial({color:0xfff27a,side:THREE.DoubleSide});
- const shineMat=new THREE.MeshBasicMaterial({color:0xfffbd0,side:THREE.DoubleSide});
+ // Intentionally exaggerated high-contrast puddle so it reads clearly over the floor texture.
+ const outlineMat=new THREE.MeshBasicMaterial({color:0x160d00,side:THREE.DoubleSide});
+ const peeMat=new THREE.MeshBasicMaterial({color:0xffe600,side:THREE.DoubleSide});
+ const innerMat=new THREE.MeshBasicMaterial({color:0xffc900,side:THREE.DoubleSide});
+ const rimMat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
+ const shineMat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
 
- function flatDisc(radius,sx,sz,material,x,y,zz){
-  const mesh=new THREE.Mesh(new THREE.CircleGeometry(radius,32),material);
+ function puddleDisc(sx,sz,material,x,y,zz){
+  const mesh=new THREE.Mesh(new THREE.CircleGeometry(1,40),material);
   mesh.rotation.x=-Math.PI/2;
   mesh.scale.set(sx,sz,1);
   mesh.position.set(x,y,zz);
+  mesh.renderOrder=5;
   g.add(mesh);
   return mesh;
  }
 
- // The dark outline keeps the silhouette legible even on bright floor planks.
- flatDisc(1,1.27,.88,outlineMat,0,-.047,0);
- flatDisc(1,1.19,.80,peeMat,0,-.028,0);
- flatDisc(1,.73,.43,deepMat,-.03,-.023,.05);
+ // Large dark silhouette provides a clear edge against any plank color.
+ puddleDisc(1.55,1.02,outlineMat,0,-.012,0);
+ // Neon-yellow liquid body, raised just above the road to avoid z-fighting.
+ puddleDisc(1.43,.91,peeMat,0,.006,0);
+ // Uneven golden area in the middle gives the liquid some depth.
+ puddleDisc(.92,.52,innerMat,-.02,.009,.04);
 
- // A pale, thick ring reads as wet liquid rather than a patch of floor texture.
- const rim=new THREE.Mesh(new THREE.TorusGeometry(1,.045,8,36),rimMat);
+ // Thick white/yellow outer rim and oversized wet highlights.
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(1,.075,10,48),rimMat);
  rim.rotation.x=-Math.PI/2;
- rim.scale.set(1.19,.80,1);
- rim.position.y=-.009;
+ rim.scale.set(1.40,.88,1);
+ rim.position.y=.018;
+ rim.renderOrder=6;
  g.add(rim);
+ puddleDisc(.32,.095,shineMat,-.32,.020,-.20);
+ puddleDisc(.19,.07,shineMat,.34,.021,.20);
+ puddleDisc(.13,.055,shineMat,.05,.022,-.43);
 
- // Bright reflections across the surface.
- flatDisc(1,.23,.065,shineMat,-.25,-.006,-.14);
- flatDisc(1,.15,.045,shineMat,.25,-.005,.20);
- flatDisc(1,.10,.035,rimMat,.02,-.004,-.30);
+ // Separate splash lobes increase the visible footprint of the obstacle.
+ puddleDisc(.23,.16,peeMat,-1.30,.008,-.20);
+ puddleDisc(.20,.20,peeMat,1.22,.008,.28);
+ puddleDisc(.18,.15,peeMat,-.72,.009,.78);
+ puddleDisc(.24,.15,peeMat,.52,.009,-.77);
 
- // A few separate splashes make the puddle larger and easier to spot at running speed.
- flatDisc(1,.17,.12,peeMat,-1.12,-.021,-.22);
- flatDisc(1,.13,.17,peeMat,.98,-.020,.28);
- flatDisc(1,.12,.10,peeMat,-.68,-.020,.67);
- flatDisc(1,.18,.11,peeMat,.45,-.019,-.67);
-
+ // Keep the entire obstacle centred in its lane and preserve existing slip collision logic.
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
 function makeFish(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);g.rotation.y=0;scene.add(g);const fishMat=new THREE.MeshStandardMaterial({color:0x777f89,roughness:.42,metalness:.22});const bellyMat=new THREE.MeshStandardMaterial({color:0xd0cec4,roughness:.58});const finMat=new THREE.MeshStandardMaterial({color:0x626b76,roughness:.55});const body=new THREE.Mesh(new THREE.SphereGeometry(.52,16,10),fishMat);body.scale.set(.78,.48,1.75);body.position.y=.19;body.rotation.x=-.04;g.add(body);const belly=new THREE.Mesh(new THREE.SphereGeometry(.39,14,8),bellyMat);belly.scale.set(.78,.24,1.48);belly.position.set(0,.075,-.04);g.add(belly);const tail=new THREE.Mesh(new THREE.ConeGeometry(.34,.66,5),fishMat);tail.rotation.x=Math.PI/2;tail.position.set(0,.19,1.02);g.add(tail);for(const side of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(.19,.43,4),finMat);fin.rotation.z=side*.8;fin.position.set(side*.34,.19,.13);g.add(fin);const eye=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6),new THREE.MeshBasicMaterial({color:0x090b0e}));eye.position.set(side*.28,.32,-.55);g.add(eye)}obstacles.push({g,lane,type:'fish',z,passed:false})}
