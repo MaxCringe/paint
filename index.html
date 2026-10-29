@@ -780,15 +780,15 @@ const lavaRockMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.Doub
 const lavaBubbleGeo=new THREE.SphereGeometry(1,8,6);
 const lavaBubbleMats=[new THREE.MeshBasicMaterial({color:0xffd76a,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xff8610,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xffffad,toneMapped:false})];
 function makeLavaRiver(z){
- const g=new THREE.Group();g.position.z=z;g.userData.halfDepth=.88;g.userData.bubbles=[];scene.add(g);
- const phase=Math.random()*6.28,steps=56;
- const center=x=>.20*Math.sin(x*.83+phase)+.12*Math.sin(x*2.05-phase*.7)+.04*Math.sin(x*4.2+phase*1.8);
- const half=x=>.65+.12*Math.sin(x*1.23+phase)+.06*Math.sin(x*3.4-phase);
- const noise=x=>.023*Math.sin(x*7.1+phase*2)+.014*Math.sin(x*11.2-phase);
+ const g=new THREE.Group();g.position.z=z;g.userData.halfDepth=2.65;g.userData.bubbles=[];scene.add(g);
+ const phase=Math.random()*6.28,steps=88;
+ const center=x=>.28*Math.sin(x*.58+phase)+.16*Math.sin(x*1.37-phase*.7)+.07*Math.sin(x*2.65+phase*1.8);
+ const half=x=>2.08+.22*Math.sin(x*.72+phase)+.12*Math.sin(x*2.05-phase);
+ const noise=x=>.045*Math.sin(x*4.1+phase*2)+.022*Math.sin(x*7.2-phase);
  function ribbon(rows,y,palette,material,factor=1){
   const p=[],col=[],idx=[],n=rows.length;
   for(let i=0;i<=steps;i++){
-   const x=-4.28+8.56*i/steps,mid=center(x)+noise(x),w=half(x)*factor;
+   const x=-12.5+25*i/steps,mid=center(x)+noise(x),w=half(x)*factor;
    for(let j=0;j<n;j++){
     const q=rows[j];p.push(x,y,mid+q*w+(Math.abs(q)>.7?noise(x)*(q>0?1:-1):0));
     if(palette){const v=new THREE.Color(palette[j]);col.push(v.r,v.g,v.b)}
@@ -807,14 +807,14 @@ function makeLavaRiver(z){
  const rp=[],rc=[],ri=[];
  function tri(a,b,c,color){const base=rp.length/3,v=new THREE.Color(color);for(const p of [a,b,c]){rp.push(p[0],p[1],p[2]);rc.push(v.r,v.g,v.b)}ri.push(base,base+1,base+2)}
  const rocks=[0x211613,0x34201a,0x4a291d,0x612b1b,0x2a211c,0x754022];
- for(let i=2;i<steps-2;i+=2){const x=-4.28+8.56*i/steps,mid=center(x)+noise(x),w=half(x);
+ for(let i=2;i<steps-2;i+=2){const x=-12.5+25*i/steps,mid=center(x)+noise(x),w=half(x);
   for(const side of [-1,1]){if(Math.random()<.12)continue;const rx=.05+Math.random()*.1,rz=.03+Math.random()*.08,cx=x+(Math.random()-.5)*.1,cz=mid+side*(w+.02);
    const a=[cx-rx,.01,cz-side*rz*.45],b=[cx-rx*.2,.028,cz+side*rz],d=[cx+rx,.012,cz+side*rz*.7],e=[cx+rx*.6,.009,cz-side*rz*.4],m=[cx,.019,cz+side*rz*.1];
    tri(m,a,b,rocks[i%rocks.length]);tri(m,b,d,rocks[(i+2)%rocks.length]);tri(m,d,e,rocks[(i+3)%rocks.length]);tri(m,e,a,rocks[(i+1)%rocks.length]);
   }
  }
  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));rg.setAttribute('color',new THREE.Float32BufferAttribute(rc,3));rg.setIndex(ri);rg.computeVertexNormals();g.add(new THREE.Mesh(rg,lavaRockMat));
- for(let i=0;i<8;i++){const x=-3.8+Math.random()*7.6,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
+ for(let i=0;i<8;i++){const x=-11.8+Math.random()*23.6,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
  obstacles.push({g,lane:-1,type:'lava',z,passed:false});
 }
 
