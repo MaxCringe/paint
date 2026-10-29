@@ -148,7 +148,7 @@ addLavaStream(22.8,23.6,5,.51);
 
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
 function curveX(z){return Math.sin((z+18)/25)*2.05+Math.sin((z-8)/48)*1.05}
-function makeCurvedStrip(width,y,material,edgeOffset=0){const positions=[],uvs=[],indices=[],steps=220;for(let i=0;i<=steps;i++){const z=45-i,center=curveX(z)+edgeOffset;positions.push(center-width/2,y,z,center+width/2,y,z);uvs.push(0,i/steps*15,1,i/steps*15);if(i<steps){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3)}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();const mesh=new THREE.Mesh(geo,material);mesh.receiveShadow=true;scene.add(mesh);return mesh}
+function makeCurvedStrip(width,y,material,edgeOffset=0){const positions=[],uvs=[],indices=[],steps=220;for(let i=0;i<=steps;i++){const z=45-i,center=curveX(z)+edgeOffset;positions.push(center-width/2,y,z,center+width/2,y,z);uvs.push(0,i/steps*15,1,i/steps*15);if(i<steps){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();const mesh=new THREE.Mesh(geo,material);mesh.receiveShadow=true;scene.add(mesh);return mesh}
 const road=makeCurvedStrip(8.7,-.07,roadMat);makeCurvedStrip(.22,.015,edgeMat,-4.34);makeCurvedStrip(.22,.015,edgeMat,4.34);
 // Decorative temple arches in the distance and along the trail
 const fixedDecor=[];
