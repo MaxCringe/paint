@@ -77,7 +77,7 @@ box(.105,.025,.025,silverMat,.105,2.205,.25,runner).rotation.z=-.12;
 const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.13,5),skinMat);nose.position.set(0,2.09,.28);nose.rotation.x=Math.PI/2;nose.castShadow=true;runner.add(nose);
 box(.105,.025,.018,lipMat,0,2.015,.258,runner);
 // Distinctive silver bob: cap, side locks and layered locks down the back.
-sphere(.285,silverMat,0,2.31,-.015,1.08,.55,1.02);
+sphere(.285,silverMat,0,2.31,-.14,1.08,.55,1.02);
 for(const side of [-1,1]){
   const lock=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.63,7),silverMat);lock.position.set(side*.245,2.02,-.015);lock.rotation.z=side*-.13;lock.castShadow=true;runner.add(lock);
   sphere(.105,silverLight,side*.25,1.78,.025,.78,1.5,.85);
