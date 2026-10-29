@@ -156,9 +156,22 @@ function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE
 const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
 const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
 function tree(x,z,scale=1,recycleLength=180){
- const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);g.userData.recycleLength=recycleLength;scene.add(g);
- const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);trunk.position.set(0,1.15,0);trunk.castShadow=false;g.add(trunk);
- for(let i=0;i<3;i++){const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);cone.position.set(0,2.15+i*.63,0);cone.castShadow=false;g.add(cone)}
+ const g=new THREE.Group();g.position.set(x,0,z);
+ // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
+ g.scale.set(scale*(.84+Math.random()*.30),scale*(.76+Math.random()*.48),scale*(.84+Math.random()*.30));
+ g.userData.recycleLength=recycleLength;scene.add(g);
+ const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);
+ trunk.position.set((Math.random()-.5)*.09,1.15,0);
+ trunk.rotation.z=(Math.random()-.5)*.035;
+ trunk.castShadow=false;g.add(trunk);
+ for(let i=0;i<3;i++){
+  const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);
+  cone.position.set((Math.random()-.5)*.12,2.05+i*.69+(Math.random()-.5)*.16,(Math.random()-.5)*.08);
+  const width=.78+Math.random()*.40;
+  cone.scale.set(width,.86+Math.random()*.28,width);
+  cone.rotation.y=(Math.random()-.5)*.42;
+  cone.castShadow=false;g.add(cone);
+ }
  return g
 }
 const roadsideVegetation=[];
@@ -207,6 +220,12 @@ function buildFernGeometry(){
 }
 const fernGeometry=buildFernGeometry();
 const fernMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.92});
+function randomFernScale(){
+ const roll=Math.random();
+ if(roll<.27)return .36+Math.random()*.30; // little young fern
+ if(roll<.79)return .68+Math.random()*.48; // ordinary fern
+ return 1.18+Math.random()*.55; // large mature fern
+}
 function fern(x,z,scale=1,recycleLength=174){
  const g=new THREE.Group();
  g.position.set(x,-.095,z);
@@ -217,18 +236,56 @@ function fern(x,z,scale=1,recycleLength=174){
  leaves.castShadow=false;leaves.receiveShadow=true;g.add(leaves);scene.add(g);
  return g;
 }
+// Low wild grass: many small blade meshes are combined into one geometry per tuft.
+function buildGrassGeometry(){
+ const positions=[],colors=[];
+ const palette=[0x326b32,0x548d3b,0x70984a,0x3e7d36,0x87a957,0x2c5b2d];
+ function addTriangle(a,b,c,color){
+  const col=new THREE.Color(color);
+  for(const p of [a,b,c]){positions.push(p[0],p[1],p[2]);colors.push(col.r,col.g,col.b)}
+ }
+ for(let i=0;i<24;i++){
+  const angle=i*2.399963+Math.random()*.25;
+  const radius=.035+Math.random()*.18;
+  const h=.14+Math.random()*.21;
+  const width=.018+Math.random()*.018;
+  const bx=Math.cos(angle)*radius,bz=Math.sin(angle)*radius;
+  const lean=(Math.random()-.5)*.16;
+  const tx=bx+Math.cos(angle+.55)*lean,tz=bz+Math.sin(angle+.55)*lean;
+  const sideX=-Math.sin(angle)*width,sideZ=Math.cos(angle)*width;
+  const color=palette[(Math.random()*palette.length)|0];
+  addTriangle([bx-sideX,0,bz-sideZ],[bx+sideX,0,bz+sideZ],[tx,h,tz],color);
+  // A second slim blade crosses the first, so the tuft reads as wild grass from multiple angles.
+  const crossX=Math.cos(angle+1.2)*width*.55,crossZ=Math.sin(angle+1.2)*width*.55;
+  addTriangle([bx-crossX,0,bz-crossZ],[bx+crossX,0,bz+crossZ],[tx+Math.cos(angle+1.2)*width*.8,h*.82,tz+Math.sin(angle+1.2)*width*.8],palette[(i+2)%palette.length]);
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+ geo.computeVertexNormals();return geo;
+}
+const grassGeometry=buildGrassGeometry();
+const grassTuftMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:1});
+function grassTuft(x,z,scale=1,recycleLength=174){
+ const g=new THREE.Group();g.position.set(x,-.105,z);
+ g.rotation.y=Math.random()*Math.PI*2;
+ g.scale.set(scale*(.8+Math.random()*.4),scale,scale*(.8+Math.random()*.4));
+ g.userData.recycleLength=recycleLength;
+ const blades=new THREE.Mesh(grassGeometry,grassTuftMaterial);
+ blades.castShadow=false;blades.receiveShadow=true;g.add(blades);scene.add(g);return g;
+}
 // Pines are staggered with natural gaps instead of forming a continuous wall.
 const roadsideSpacing=4.9, roadsideCount=32;
 const roadsideLoop=(roadsideCount-1)*roadsideSpacing+16;
 for(let i=0;i<roadsideCount;i++){
  const z=-i*roadsideSpacing-4+(Math.random()-.5)*1.35;
- const nearScale=.84+Math.random()*.4;
+ const nearScale=.66+Math.random()*.82;
  roadsideVegetation.push(tree(-4.95-Math.random()*1.35,z,nearScale,roadsideLoop));
  roadsideVegetation.push(tree(4.95+Math.random()*1.35,z+(Math.random()-.5)*.9,.84+Math.random()*.4,roadsideLoop));
  // A more distant, staggered pine appears only every other position.
  if(i%2===0){
   const backZ=z-2.25+(Math.random()-.5)*1.7;
-  const backScale=.92+Math.random()*.42;
+  const backScale=.72+Math.random()*.92;
   roadsideVegetation.push(tree(-8.0-Math.random()*2.1,backZ,backScale,roadsideLoop));
   roadsideVegetation.push(tree(8.0+Math.random()*2.1,backZ+(Math.random()-.5)*1.1,.92+Math.random()*.42,roadsideLoop));
  }
@@ -237,24 +294,37 @@ for(let i=0;i<roadsideCount;i++){
 const farSpacing=4.25,farCount=39,farForestLoop=(farCount-1)*farSpacing+21;
 for(let i=0;i<farCount;i++){
  const z=-i*farSpacing-9+(Math.random()-.5)*1.5;
- const scale=.96+Math.random()*.5;
+ const scale=.72+Math.random()*.96;
  roadsideVegetation.push(tree(-13-Math.random()*9,z,scale,farForestLoop));
  roadsideVegetation.push(tree(13+Math.random()*9,z+(Math.random()-.5)*1.4,.96+Math.random()*.5,farForestLoop));
  if(i%4===0){
   const outerZ=z-1.7+(Math.random()-.5)*1.5;
-  roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.88+Math.random()*.4,farForestLoop));
-  roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.88+Math.random()*.4,farForestLoop));
+  roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.62+Math.random()*.82,farForestLoop));
+  roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.62+Math.random()*.82,farForestLoop));
  }
 }
 // Ferns grow in loose clumps along both verges, filling the spaces below and between the pines.
 const fernSpacing=3.55,fernCount=44,fernLoop=(fernCount-1)*fernSpacing+15.5;
 for(let i=0;i<fernCount;i++){
  const z=-i*fernSpacing-3.5+(Math.random()-.5)*1.55;
- if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,.78+Math.random()*.48,fernLoop));
- if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,.78+Math.random()*.48,fernLoop));
+ if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,randomFernScale(),fernLoop));
+ if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,randomFernScale(),fernLoop));
  if(i%4===1&&Math.random()<.68){
   const side=Math.random()<.5?-1:1;
-  roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,.7+Math.random()*.4,fernLoop));
+  roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,randomFernScale(),fernLoop));
+ }
+}
+
+// Scatter tufts of fine grass in irregular pockets on both sides of the path.
+const grassSpacing=2.8,grassCount=59,grassLoop=(grassCount-1)*grassSpacing+19;
+for(let i=0;i<grassCount;i++){
+ const z=-i*grassSpacing-2.5+(Math.random()-.5)*1.8;
+ if(Math.random()<.94){
+  roadsideVegetation.push(grassTuft((Math.random()<.5?-1:1)*(4.55+Math.random()*2.8),z,.48+Math.random()*.64,grassLoop));
+ }
+ if(i%3===1&&Math.random()<.72){
+  const side=Math.random()<.5?-1:1;
+  roadsideVegetation.push(grassTuft(side*(6.5+Math.random()*3.2),z-1.05+(Math.random()-.5)*1.0,.34+Math.random()*.45,grassLoop));
  }
 }
 
