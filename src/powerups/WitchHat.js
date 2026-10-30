@@ -57,6 +57,28 @@ export function createWitchHatFactory(scene,hats,runner) {
  const stitchGeo=new THREE.BoxGeometry(.035,.012,.014);
  const buckleGeo=new THREE.BoxGeometry(.12,.105,.02);
  const buckleHoleGeo=new THREE.BoxGeometry(.060,.050,.024);
+ // A single shared soft violet glow texture keeps rare road pick-ups lightweight.
+ // The worn hat on Fiona never receives this effect.
+ const glowCanvas=document.createElement('canvas');
+ glowCanvas.width=glowCanvas.height=64;
+ const glowCtx=glowCanvas.getContext('2d');
+ const glowGradient=glowCtx.createRadialGradient(32,32,1,32,32,32);
+ glowGradient.addColorStop(0,'rgba(255,255,255,.58)');
+ glowGradient.addColorStop(.30,'rgba(255,255,255,.32)');
+ glowGradient.addColorStop(.65,'rgba(255,255,255,.11)');
+ glowGradient.addColorStop(1,'rgba(255,255,255,0)');
+ glowCtx.fillStyle=glowGradient;
+ glowCtx.fillRect(0,0,64,64);
+ const glowTexture=new THREE.CanvasTexture(glowCanvas);
+ const glowMat=new THREE.SpriteMaterial({
+  map:glowTexture,color:0xb59ae5,transparent:true,opacity:.8,
+  depthWrite:false,blending:THREE.AdditiveBlending
+ });
+ const glowingBrimGeo=new THREE.TorusGeometry(.79,.023,6,32);
+ const glowingBrimMat=new THREE.MeshBasicMaterial({
+  color:0xb59ae5,transparent:true,opacity:.65,
+  depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide
+ });
  function mesh(parent,geo,material,x=0,y=0,z=0){
   const part=new THREE.Mesh(geo,material);part.position.set(x,y,z);parent.add(part);return part;
  }
@@ -89,13 +111,24 @@ export function createWitchHatFactory(scene,hats,runner) {
   scene.add(g);
   const visual=model();
   visual.position.y=.71;
+  const glow=new THREE.Sprite(glowMat);
+  glow.position.set(0,.67,-.18);
+  glow.scale.set(2.75,2.55,1);
+  visual.add(glow);
+  const glowingBrim=new THREE.Mesh(glowingBrimGeo,glowingBrimMat);
+  glowingBrim.rotation.x=Math.PI/2;
+  glowingBrim.position.y=.045;
+  visual.add(glowingBrim);
   g.add(visual);
-  hats.push({g,visual,lane,z,phase:Math.random()*Math.PI*2,passed:false,collected:false});
+  hats.push({g,visual,glow,glowingBrim,lane,z,phase:Math.random()*Math.PI*2,passed:false,collected:false});
  }
  function animateHat(h,t){
   h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10;
   h.visual.rotation.y=t*.0018+h.phase;
   h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065;
+  const pulse=Math.sin(t*.004+h.phase);
+  h.glow.scale.set(2.75*(1+pulse*.065),2.55*(1+pulse*.065),1);
+  h.glowingBrim.scale.setScalar(1+pulse*.025);
  }
  function animateWearable(t,active){
   wearable.visible=active;
