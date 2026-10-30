@@ -18,6 +18,9 @@
 | `death.ogg` | Поражение | Kenney Impact Sounds — impactMetal_heavy_001.ogg |
 | `step.ogg` | Тихие шаги при беге | Kenney RPG Audio — footstep06.ogg |
 | `land.ogg` | Приземление | Kenney Impact Sounds — impactMining_002.ogg |
+| `bats-flap_1.ogg` | Первые взмахи взлетающей стаи | Cerise_Virtuelle, Large flying creature (Freesound 759529), переработка CC0 из simplyWings |
+| `bats-flap_2.ogg` | Следующий взмах | Тот же источник, отдельная обработанная вариация CC0 |
+| `bats-flap_3.ogg` | Последний взмах | Тот же источник, отдельная обработанная вариация CC0 |
 
 Источники и лицензии:
 - https://kenney.nl/assets/rpg-audio
@@ -26,6 +29,8 @@
 - https://kenney.nl/assets/music-jingles
 - https://opengameart.org/content/80-cc0-rpg-sfx
 - https://creativecommons.org/publicdomain/zero/1.0/
+- https://freesound.org/people/Cerise_Virtuelle/sounds/759529/
+- https://github.com/zorago/simplyWings/blob/main/art/sounds/SOURCES.md
 - https://mixkit.co/license/modal/sfxFree/
 
 Звук загружается при первом взаимодействии с игрой, в настройке громкости остаётся прежнее значение 0–100%, кнопка отключения звука сохраняется.
