@@ -12,7 +12,7 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  const trees=roadsideVegetation.filter(g=>g.children.some(c=>c.geometry?.type==='ConeGeometry'));
  const events=[],impacts=[],burns=[];
- const yAxis=new THREE.Vector3(0,1,0),velocity=new THREE.Vector3(),direction=new THREE.Vector3(),pos=new THREE.Vector3();
+ const yAxis=new THREE.Vector3(0,1,0),direction=new THREE.Vector3(),pos=new THREE.Vector3();
  const start=new THREE.Vector3(),end=new THREE.Vector3();
  // Shared low-poly geometry / unlit materials. No lights, shadows or heavy particles.
  const rockGeo=new THREE.IcosahedronGeometry(.50,0);
@@ -28,17 +28,18 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
    -.18,.05,.002,.12,.06,.002,.04,.58,.002
  ],3));
  flameGeo.computeVertexNormals();
- const hot=new THREE.MeshBasicMaterial({color:0xff8b19,toneMapped:false});
- const halo=new THREE.MeshBasicMaterial({color:0xff3d05,transparent:true,opacity:.26,depthWrite:false,toneMapped:false});
- const tailMat=new THREE.MeshBasicMaterial({color:0xff5010,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
- const emberMat=new THREE.MeshBasicMaterial({color:0xffd36c,toneMapped:false});
- const ringMat=new THREE.MeshBasicMaterial({color:0xff6b1b,transparent:true,opacity:.8,depthWrite:false,toneMapped:false});
- const scarMat=new THREE.MeshBasicMaterial({color:0x291410,transparent:true,opacity:.67,depthWrite:false,side:THREE.DoubleSide});
+ const hot=new THREE.MeshBasicMaterial({color:0xffbd35,toneMapped:false,fog:false});
+ const halo=new THREE.MeshBasicMaterial({color:0xff4910,transparent:true,opacity:.39,depthWrite:false,toneMapped:false,fog:false});
+ const tailMat=new THREE.MeshBasicMaterial({color:0xff6013,transparent:true,opacity:.93,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false});
+ const emberMat=new THREE.MeshBasicMaterial({color:0xffed91,toneMapped:false,fog:false});
+ const ringMat=new THREE.MeshBasicMaterial({color:0xff6b1b,transparent:true,opacity:.8,depthWrite:false,toneMapped:false,fog:false});
+ const scarMat=new THREE.MeshBasicMaterial({color:0x291410,transparent:true,opacity:.67,depthWrite:false,side:THREE.DoubleSide,fog:false});
  const fireMats=[
-  new THREE.MeshBasicMaterial({color:0xff420c,transparent:true,opacity:.83,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}),
-  new THREE.MeshBasicMaterial({color:0xffab23,transparent:true,opacity:.88,side:THREE.DoubleSide,depthWrite:false,toneMapped:false})
+  new THREE.MeshBasicMaterial({color:0xff420c,transparent:true,opacity:.83,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false}),
+  new THREE.MeshBasicMaterial({color:0xffab23,transparent:true,opacity:.88,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false})
  ];
- let skyClock=rand(8,14),landClock=rand(16,24),time=0;
+ // Show an early preview in the first run; later meteors are uncommon.
+ let skyClock=rand(2.2,3.8),landClock=rand(7.5,10.5),time=0;
  const maxEvents=mobile?1:2;
  function makeGroup(){const g=new THREE.Group();scene.add(g);return g}
  function meteor(type,targetTree=null){
@@ -46,19 +47,24 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
   const group=makeGroup(),ground=type==='ground';
   if(ground){
    const side=Math.random()<.5?-1:1;
-   const x=targetTree?targetTree.position.x+rand(-.7,.7):side*rand(6.4,14.5);
-   const z=targetTree?targetTree.position.z+rand(-.8,.8):rand(-58,-24);
+   const x=targetTree?targetTree.position.x+rand(-.5,.5):side*rand(6.1,mobile?9.2:11.2);
+   const z=targetTree?targetTree.position.z+rand(-.5,.5):rand(-42,-22);
    group.position.set(x,0,z);
-   start.set(rand(-16,-7)*(Math.random()<.5?-1:1),rand(23,31),-rand(6,13));
+   start.set(rand(-11,11),rand(14,20),-rand(3,8));
    end.set(0,.55,0);
   }else{
    group.position.set(0,0,0);
+   // Keep the entire path in the sky above mountains, but INSIDE the camera view.
+   // The old 31-39-unit height placed meteors above the screen.
    const side=Math.random()<.5?-1:1;
-   start.set(side*rand(24,39),rand(31,39),-69);
-   end.set(start.x-side*rand(17,27),rand(15,22),-69);
+   start.set(side*rand(mobile?6:11,mobile?9:20),rand(19,22),-63);
+   end.set(-side*rand(mobile?4:6,mobile?7:10),rand(12,14.5),-63);
   }
   const core=new THREE.Mesh(rockGeo,hot),aura=new THREE.Mesh(glowGeo,halo);
   const trail=new THREE.Mesh(trailGeo,tailMat);
+  // More legible at distance, while using the same few cheap shared meshes.
+  const size=ground?1.5:2.4;
+  core.scale.setScalar(size);aura.scale.setScalar(size*1.2);
   const sparks=[];
   group.add(trail,core,aura);
   for(let i=0;i<3;i++){
@@ -68,13 +74,13 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
   }
   const length=ground?rand(1.8,2.5):rand(1.9,2.9);
   events.push({type,group,start:start.clone(),end:end.clone(),core,aura,trail,sparks,
-   age:0,duration:length,landTree:targetTree});
+   age:0,duration:length,landTree:targetTree,size});
  }
  function spawnGround(){
   // Only hit grass or forest OUTSIDE the road; never spawn a new gameplay hazard.
   const available=trees.filter(t=>Math.abs(t.position.x)<14&&t.position.z< -21&&
-   t.position.z> -65&&!burns.some(b=>b.tree===t));
-  const hitForest=Math.random()<.48&&available.length>0;
+   t.position.z> -50&&!burns.some(b=>b.tree===t));
+  const hitForest=Math.random()<.65&&available.length>0;
   meteor('ground',hitForest?available[(Math.random()*available.length)|0]:null);
  }
  function ignite(tree){
@@ -125,7 +131,7 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
   for(const e of impacts)removeGroup(e.group);
   for(const b of burns)b.tree.remove(b.flames);
   events.length=0;impacts.length=0;burns.length=0;
-  skyClock=rand(8,14);landClock=rand(16,24);time=0;
+  skyClock=rand(2.2,3.8);landClock=rand(7.5,10.5);time=0;
  }
  function update(dt,{playing=false,speed=0}={}){
   if(!playing||dt<=0)return;
@@ -133,11 +139,11 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
   skyClock-=dt;landClock-=dt;
   if(skyClock<=0){
    if(events.length<maxEvents)meteor('sky');
-   skyClock=rand(13,24);
+   skyClock=rand(14,22);
   }
   if(landClock<=0){
    if(events.length<maxEvents)spawnGround();
-   landClock=rand(25,39);
+   landClock=rand(24,35);
   }
   for(let i=events.length-1;i>=0;i--){
    const e=events[i];e.age+=dt;
@@ -148,12 +154,12 @@ export function createMeteorEcosystem(scene, roadsideVegetation, {
    e.core.position.copy(pos);
    e.aura.position.copy(pos);
    const pulse=1+.14*Math.sin(time*19+i*2);
-   e.aura.scale.setScalar(pulse);
+   e.aura.scale.setScalar(e.size*1.2*pulse);
    direction.subVectors(e.start,e.end).normalize();
-   const tailLength=e.type==='ground'?3.7:5.1;
+   const tailLength=e.type==='ground'?5.5:8.5;
    e.trail.position.copy(pos).addScaledVector(direction,tailLength*.5);
    e.trail.quaternion.setFromUnitVectors(yAxis,direction);
-   e.trail.scale.set(.9,tailLength,.9);
+   e.trail.scale.set(e.size,tailLength,e.size);
    e.sparks.forEach((s,k)=>s.position.copy(pos).addScaledVector(direction,.7+k*.76));
    if(p>=1){
     events.splice(i,1);
