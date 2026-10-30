@@ -1,8 +1,8 @@
 # KNOTTY PINE — отдельные звуковые эффекты
 
-Каждый игровой эффект — отдельный файл .ogg. Звуки не генерируются осцилляторами, поэтому вместо ретро-пищалок используются готовые звуковые записи. Заменить звук можно просто заменив файл с тем же именем; длительность/громкость/скорость воспроизведения задаются в `src/audio/sfx.js`.
+Большинство эффектов — отдельные файлы .ogg. Звуки не генерируются осцилляторами. Для сбора души теперь используется запись Mixkit Fast magic game spell #883, выбранная автором игры; она воспроизводится с CDN Mixkit и не включена в исходники. Параметры звуков задаются в `src/audio/sfx.js`.
 
-Все использованные исходные записи опубликованы под **CC0 1.0 (public domain)**, коммерческое использование и публикация с исходным кодом разрешены. Указание авторства необязательно, но ниже оно сохранено.
+Локальные файлы Kenney и rubberduck опубликованы под **CC0 1.0 (public domain)**. Исключение — запись Mixkit, доступная по **Mixkit Sound Effects Free License**: её можно использовать в видеоиграх, но нельзя выкладывать отдельно в комплекте с исходными звуковыми файлами. Поэтому в репозитории хранится только ссылка на официальную CDN, а старый `soul.ogg` сохранён для возможного отката, но не используется.
 
 | Файл | Событие | Исходная запись |
 |---|---|---|
@@ -10,7 +10,8 @@
 | `move.ogg` | Смена полосы | Kenney RPG Audio — footstep00.ogg |
 | `jump.ogg` | Прыжок | rubberduck, 80 CC0 RPG SFX — blade_01.ogg |
 | `slide.ogg` | Подкат | Kenney RPG Audio — footstep02.ogg |
-| `soul.ogg` | Сбор души | rubberduck, 80 CC0 RPG SFX — spell_01.ogg |
+| `soul.ogg` | Запасной звук, сейчас НЕ используется | rubberduck, 80 CC0 RPG SFX — spell_01.ogg |
+| Mixkit #883, удалённый MP3 | Сбор души (текущий звук) | https://mixkit.co/free-sound-effects/spell/ — Fast magic game spell (Mixkit Sound Effects Free License) |
 | `ultimate.ogg` | Ульта | Kenney Music Jingles — jingles_STEEL14.ogg |
 | `slip.ogg` | Скольжение по луже | Kenney RPG Audio — footstep09.ogg |
 | `hat.ogg` | Ведьмина шляпа | Kenney Interface Sounds — confirmation_001.ogg |
@@ -25,5 +26,6 @@
 - https://kenney.nl/assets/music-jingles
 - https://opengameart.org/content/80-cc0-rpg-sfx
 - https://creativecommons.org/publicdomain/zero/1.0/
+- https://mixkit.co/license/modal/sfxFree/
 
 Звук загружается при первом взаимодействии с игрой, в настройке громкости остаётся прежнее значение 0–100%, кнопка отключения звука сохраняется.
