@@ -54,6 +54,115 @@ export function createWorld() {
   horizonShape([[3.8,17],[4.3,14],[3.8,11],[5,8],[4.5,5],[5.6,2],[6.2,.1],[5.7,.1],[5,2],[4.9,5],[4.3,8],[4.5,11],[3.4,14]],-72.15,lavaGlowMat,30);
   // A small glowing lava fan at the foot of the mountain.
   horizonShape([[-5,-.1],[-3.8,1],[-2,1.3],[0,.7],[2,1.4],[4,.8],[6.5,1],[8,-.1]],-72.1,lavaMat,30);
+  // Small faceted 3D volcanic cone in front of the original silhouette,
+  // but BEHIND the existing orange lava streaks (-72.4 and closer).
+  // Single mesh, inexpensive unlit facets, no changes to the mountain ranges.
+  const volcanoVertices=[],volcanoColors=[];
+  const coneRings=[
+   {y:-.9,x:17.0,d:1.0},{y:4.7,x:13.8,d:1.0},
+   {y:11.9,x:9.2,d:.91},{y:18.4,x:5.5,d:.84},
+   {y:21.7,x:3.35,d:.78},{y:23.6,x:2.25,d:.67}
+  ];
+  const coneSegments=28,coneCenterZ=-73.73;
+  const conePalette=[
+   new THREE.Color(0x24131a),new THREE.Color(0x301821),
+   new THREE.Color(0x3b2029),new THREE.Color(0x472831),
+   new THREE.Color(0x342029),new THREE.Color(0x1b1018)
+  ];
+  function conePoint(ring,i,ringIndex){
+   const theta=i/coneSegments*Math.PI*2;
+   const jitter=1+.045*Math.sin(theta*5+ringIndex*2.1)+.03*Math.sin(theta*11-ringIndex);
+   return [
+    30+Math.cos(theta)*ring.x*jitter,
+    -1+ring.y+(ringIndex?Math.sin(theta*7+ringIndex*1.4)*.16:0),
+    coneCenterZ+Math.sin(theta)*ring.d*jitter
+   ];
+  }
+  function coneFacet(a,b,c,col){
+   for(const p of [a,b,c]){
+    volcanoVertices.push(...p);
+    volcanoColors.push(col.r,col.g,col.b);
+   }
+  }
+  for(let j=0;j<coneRings.length-1;j++){
+   for(let i=0;i<coneSegments;i++){
+    const a=conePoint(coneRings[j],i,j);
+    const b=conePoint(coneRings[j],i+1,j);
+    const c=conePoint(coneRings[j+1],i,j+1);
+    const d=conePoint(coneRings[j+1],i+1,j+1);
+    const shade=conePalette[(i*7+j*3)%conePalette.length];
+    const ridge=conePalette[(i*3+j*5+2)%conePalette.length];
+    coneFacet(a,b,c,shade);
+    coneFacet(b,d,c,ridge);
+   }
+  }
+  const volcano3DGeo=new THREE.BufferGeometry();
+  volcano3DGeo.setAttribute('position',new THREE.Float32BufferAttribute(volcanoVertices,3));
+  volcano3DGeo.setAttribute('color',new THREE.Float32BufferAttribute(volcanoColors,3));
+  volcano3DGeo.computeVertexNormals();
+  const volcano3D=new THREE.Mesh(volcano3DGeo,
+   new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:false}));
+  volcano3D.renderOrder=-1.8;
+  scene.add(volcano3D);
+
+  // Elliptical dark interior and glowing magma visible inside the crater rim.
+  const craterDark=new THREE.Mesh(
+   new THREE.CircleGeometry(2.15,20),
+   new THREE.MeshBasicMaterial({color:0x120b10,side:THREE.DoubleSide,fog:false})
+  );
+  craterDark.rotation.x=-Math.PI/2;
+  craterDark.scale.y=.36;
+  craterDark.position.set(30,21.6,-72.51);
+  craterDark.renderOrder=-1.5;
+  scene.add(craterDark);
+  const craterMagma=new THREE.Mesh(
+   new THREE.CircleGeometry(1.25,20),
+   new THREE.MeshBasicMaterial({color:0xff5410,side:THREE.DoubleSide,fog:false})
+  );
+  craterMagma.rotation.x=-Math.PI/2;
+  craterMagma.scale.y=.32;
+  craterMagma.position.set(30,21.64,-72.5);
+  craterMagma.renderOrder=-1.4;
+  scene.add(craterMagma);
+
+  // One lightweight particle system for ash and glowing fragments above the vent.
+  const ventCount=64,ventPos=new Float32Array(ventCount*3),ventColor=new Float32Array(ventCount*3);
+  const ventGeo=new THREE.BufferGeometry();
+  const ventPosAttr=new THREE.BufferAttribute(ventPos,3);
+  const ventColorAttr=new THREE.BufferAttribute(ventColor,3);
+  ventPosAttr.setUsage(THREE.DynamicDrawUsage);
+  ventColorAttr.setUsage(THREE.DynamicDrawUsage);
+  ventGeo.setAttribute('position',ventPosAttr);
+  ventGeo.setAttribute('color',ventColorAttr);
+  ventGeo.boundingSphere=new THREE.Sphere(new THREE.Vector3(30,27,-72.1),18);
+  const ventAsh=new THREE.Color(0x6c5860),ventEmber=new THREE.Color(0xff9821),ventHot=new THREE.Color(0xffe485);
+  const ventSeeds=Array.from({length:ventCount},(_,i)=>({
+   phase:Math.random()*5.5,side:(Math.random()-.5)*2,
+   drift:(Math.random()-.5)*1.65,rise:2.1+Math.random()*2.3,
+   period:2.8+Math.random()*2.5,ash:i%4===0
+  }));
+  const ventPoints=new THREE.Points(ventGeo,new THREE.PointsMaterial({
+   size:4.3,sizeAttenuation:false,vertexColors:true,
+   transparent:true,opacity:.96,depthWrite:false,
+   blending:THREE.AdditiveBlending,fog:false
+  }));
+  ventPoints.frustumCulled=false;
+  ventPoints.renderOrder=4;
+  ventPoints.onBeforeRender=()=>{
+   const now=performance.now()*.001;
+   for(let i=0;i<ventCount;i++){
+    const p=ventSeeds[i],age=(now+p.phase)%p.period;
+    const progress=age/p.period;
+    const lateral=p.side*.62+p.drift*age*.65+.18*Math.sin(age*3.2+p.phase);
+    const height=22.4+p.rise*age-(p.ash?.04:.25)*age*age;
+    ventPosAttr.setXYZ(i,30+lateral,height,-72.08+.23*Math.sin(age*2.8+p.phase));
+    const fade=Math.min(1,age*3)*Math.pow(1-progress,p.ash?1.2:2.1);
+    const tint=p.ash?ventAsh:(i%3===0?ventHot:ventEmber);
+    ventColorAttr.setXYZ(i,tint.r*fade,tint.g*fade,tint.b*fade);
+   }
+   ventPosAttr.needsUpdate=true;ventColorAttr.needsUpdate=true;
+  };
+  scene.add(ventPoints);
   // Animated molten rivulets visibly travel from the crater toward the foot of the volcano.
   const movingLava=[];
   const lavaDropGeo=new THREE.SphereGeometry(1,8,6);
