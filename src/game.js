@@ -9,11 +9,13 @@ import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createWorld } from './world/World.js';
 import { createBatEcosystem } from './systems/BatEcosystem.js';
+import { createRatEcosystem } from './systems/RatEcosystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
 const batEcosystem=createBatEcosystem(scene);
+const ratEcosystem=createRatEcosystem(scene);
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[], hats=[];
@@ -89,7 +91,11 @@ function makePuddle(lane,z){
 
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
-const {makeFish,animateFishOdor}=createFishFactory(scene,obstacles);
+const {makeFish:makeFishObstacle,animateFishOdor}=createFishFactory(scene,obstacles);
+function makeFish(lane,z){
+ makeFishObstacle(lane,z);
+ ratEcosystem.considerFish(obstacles[obstacles.length-1],obstacles);
+}
 // Procedural 3D soul-flame geometry. No face, eyes, or coin-like ring.
 
 const makeSoul = createSoulFactory(scene, coins);
@@ -122,7 +128,7 @@ function updateHud(){
 }
 function popToast(t){if(t==='+ 1 ДУША'||t==='+1 ДУША'||t==='+ COIN')return;$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.85}
 function activateUltimate(){soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
-function start(){for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
+function start(){ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
 function end(){state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
 function move(d){if(state!=='playing'||slipT>0)return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0)jumpT=.72}
@@ -244,6 +250,7 @@ function frame(t){requestAnimationFrame(frame);
    }
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)}
+  ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,obstacles});
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){
    h.g.position.z+=speed*dt;
