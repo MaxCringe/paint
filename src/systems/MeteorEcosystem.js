@@ -11,14 +11,13 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
  if(!enabled)return {update(){},reset(){},dispose(){},active:[]};
  const rand=(a,b)=>a+Math.random()*(b-a);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
- const meteors=[],flashes=[],UP=new THREE.Vector3(0,1,0);
+ const meteors=[],UP=new THREE.Vector3(0,1,0);
  const rockGeo=new THREE.IcosahedronGeometry(.68,1);
  const plasmaGeo=new THREE.IcosahedronGeometry(.85,1);
  const hotGeo=new THREE.SphereGeometry(.35,8,6);
  const coneGeo=new THREE.CylinderGeometry(.01,.40,1,9,1);
  const sparkGeo=new THREE.IcosahedronGeometry(.09,0);
- const ringGeo=new THREE.TorusGeometry(1,.095,5,24);
- const smokeCanvas=document.createElement('canvas');
+  const smokeCanvas=document.createElement('canvas');
  smokeCanvas.width=64;smokeCanvas.height=64;
  const ctx=smokeCanvas.getContext('2d');
  const grad=ctx.createRadialGradient(32,32,2,32,32,31);
@@ -47,25 +46,18 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
   side:THREE.DoubleSide,fog:false,toneMapped:false
  });
  const sparkMat=new THREE.MeshBasicMaterial({color:0xffd77a,fog:false,toneMapped:false});
- const flashMat=new THREE.MeshBasicMaterial({
-  color:0xff9f2c,transparent:true,opacity:.72,depthWrite:false,
-  fog:false,toneMapped:false,depthTest:false
- });
- const ringMat=new THREE.MeshBasicMaterial({
-  color:0xff5d1c,transparent:true,opacity:.8,depthWrite:false,
-  fog:false,toneMapped:false,depthTest:false
- });
- const ringAxis=new THREE.Vector3(0,1,0);
- const tailVector=new THREE.Vector3();
  const p=new THREE.Vector3();
- let nextMeteor=rand(2.4,3.7),elapsed=0;
+ let nextMeteor=rand(3.5,5.5),elapsed=0;
  function spawn(){
-  // Every meteor starts in the visible sky and continues all the way
-  // down to the remote horizon. There are no close-range forest strikes.
+  // Start ABOVE the camera's top edge, including the trailing smoke,
+  // then pass BEHIND the existing mountain meshes without crossing the road.
   const side=Math.random()<.5?-1:1;
   const group=new THREE.Group();scene.add(group);
-  const from=new THREE.Vector3(side*rand(mobile?9:12,mobile?14:20),rand(18,22),-67);
-  const to=new THREE.Vector3(side*rand(mobile?3.8:5,mobile?8:12),.65,-67);
+  // The distant mountains are at z=-77/-84/-91. z=-98 keeps meteors behind
+  // all three ridges; their opaque surfaces naturally hide the ending.
+  // Above ~40 world units at this depth is outside the vertical field of view.
+  const from=new THREE.Vector3(side*rand(mobile?9:12,mobile?15:23),rand(44,48),-98);
+  const to=new THREE.Vector3(side*rand(mobile?5:7,mobile?10:15),-8,-98);
   const trajectory=to.clone().sub(from).normalize();
   const backwards=trajectory.clone().negate();
   const rock=new THREE.Mesh(rockGeo,rockMat);
@@ -92,7 +84,7 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
    smoke.push({sprite,mat,phase:rand(0,Math.PI*2),width:rand(1.45,2.3)});
   }
   const e={group,from,to,trajectory,backwards,rock,plasma,bright,
-   outer,inner,particles,smoke,age:0,duration:rand(2.65,3.4),
+   outer,inner,particles,smoke,age:0,duration:rand(4.0,4.8),
    phase:rand(0,Math.PI*2)};
   meteors.push(e);
   animateMeteor(e,0);
@@ -137,60 +129,35 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
   e.group.parent?.remove(e.group);
   e.smoke.forEach(x=>x.mat.dispose());
  }
- function land(e){
-  // Short distant glow marks the actual arrival at ground/horizon.
-  // No forest fire, scorched pines, or near-road meteor objects.
-  const group=new THREE.Group();
-  group.position.copy(e.to);
-  scene.add(group);
-  const light=new THREE.Mesh(hotGeo,flashMat);
-  light.position.y=.65;
-  light.scale.setScalar(3.0);
-  group.add(light);
-  const ring=new THREE.Mesh(ringGeo,ringMat);
-  ring.rotation.x=Math.PI/2;
-  ring.position.y=.12;
-  group.add(ring);
-  flashes.push({group,light,ring,age:0,duration:.85});
- }
  function update(dt,{playing=false}={}){
   if(!playing||dt<=0)return;
   dt=clamp(dt,0,.04);
   elapsed+=dt;nextMeteor-=dt;
   if(nextMeteor<=0){
    if(meteors.length===0)spawn();
-   nextMeteor=rand(14,23);
+   nextMeteor=rand(20,33);
   }
   for(let i=meteors.length-1;i>=0;i--){
    const e=meteors[i];e.age+=dt;
    animateMeteor(e,dt);
    if(e.age>=e.duration){
-    // Impact only after the fireball reaches its final ground point.
-    animateMeteor(e,0);
-    land(e);
+    // Its last stretch has already passed behind the mountain ridge.
+    // Remove only after the whole meteor is fully obscured.
     release(e);
     meteors.splice(i,1);
    }
   }
-  for(let i=flashes.length-1;i>=0;i--){
-   const f=flashes[i];f.age+=dt;
-   const progress=clamp(f.age/f.duration,0,1);
-   f.light.scale.setScalar((2.7+progress*1.9)*(1-progress*.86));
-   f.ring.scale.setScalar(.4+progress*2.7);
-   if(progress>=1){f.group.parent?.remove(f.group);flashes.splice(i,1);}
-  }
  }
  function reset(){
   meteors.forEach(release);
-  flashes.forEach(f=>f.group.parent?.remove(f.group));
-  meteors.length=0;flashes.length=0;
-  nextMeteor=rand(2.4,3.7);elapsed=0;
+  meteors.length=0;
+  nextMeteor=rand(3.5,5.5);elapsed=0;
  }
  function dispose(){
   reset();
-  for(const geo of [rockGeo,plasmaGeo,hotGeo,coneGeo,sparkGeo,ringGeo])geo.dispose();
+  for(const geo of [rockGeo,plasmaGeo,hotGeo,coneGeo,sparkGeo])geo.dispose();
   smokeTexture.dispose();
-  for(const mat of [rockMat,plasmaMat,whiteHotMat,fireMat,fireCoreMat,sparkMat,flashMat,ringMat])mat.dispose();
+  for(const mat of [rockMat,plasmaMat,whiteHotMat,fireMat,fireCoreMat,sparkMat])mat.dispose();
  }
  return {update,reset,dispose,active:meteors};
 }
