@@ -16,7 +16,7 @@ const EFFECTS = {
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
-  bats:     {files:['bats-flap_1.ogg','bats-flap_2.ogg','bats-flap_3.ogg'],gain:.30,rate:1.07,cutoff:4300,gap:1300}
+  bats:     {files:['bats-flap_1.ogg','bats-flap_2.ogg','bats-flap_3.ogg'],gain:.90,rate:1.0,cutoff:7500,gap:950}
 };
 const base = import.meta.env.BASE_URL + 'audio/sfx/';
 function stored(key, fallback) {
@@ -105,39 +105,75 @@ export function createGameAudio() {
     return context;
   }
 
-  // A short three-beat flight burst, built from real CC0 wing recordings.
+  // Bat wings: find the first audible waveform rather than replaying silence.
+  // These are actual wing foley samples; never synthesize artificial beeps.
+  const batProfiles = new WeakMap();
+  function getBatProfile(buffer) {
+    if (batProfiles.has(buffer)) return batProfiles.get(buffer);
+    const samples = buffer.getChannelData(0);
+    const stride = 512;
+    const energies = [];
+    let peak = 0;
+    for (let k = 0; k < samples.length; k += stride) {
+      let total = 0;
+      const stop = Math.min(k + stride, samples.length);
+      for (let j = k; j < stop; j++) total += samples[j] * samples[j];
+      const level = Math.sqrt(total / (stop - k));
+      energies.push(level);
+      peak = Math.max(peak, level);
+    }
+    const threshold = Math.max(.00035, peak * .085);
+    const first = energies.findIndex(v => v >= threshold);
+    const onset = first < 0 ? 0 : Math.max(0, first * stride / buffer.sampleRate - .023);
+    const startSample = Math.floor(onset * buffer.sampleRate);
+    const endSample = Math.min(samples.length, startSample + Math.round(.75 * buffer.sampleRate));
+    let energy = 0, sampleCount = 0;
+    for (let j = startSample; j < endSample; j += 4) {
+      energy += samples[j] * samples[j];
+      sampleCount++;
+    }
+    const rms = Math.sqrt(energy / Math.max(sampleCount, 1));
+    const normalize = Math.min(7, Math.max(.65, .12 / Math.max(.002, rms)));
+    const profile = { onset, normalize };
+    batProfiles.set(buffer, profile);
+    return profile;
+  }
   function playBatFlight(fx) {
+    // The first sound is audible immediately; each subsequent wing beat decays.
     Promise.all(fx.files.map(read)).then(buffers => {
       if (!context || !master || muted || volume <= 0) return;
-      const startTime = context.currentTime + .01;
+      if (context.state === 'suspended') return;
+      const startTime = context.currentTime + .012;
       buffers.forEach((buffer, i) => {
         if (!buffer) return;
         try {
+          const {onset, normalize} = getBatProfile(buffer);
+          const rate = fx.rate * (.95 + Math.random() * .10);
+          const duration = Math.min(.76, (buffer.duration - onset) / rate);
+          if (duration <= .06) return;
+          const at = startTime + i * .18;
           const source = context.createBufferSource();
           const filter = context.createBiquadFilter();
           const gain = context.createGain();
-          const rate = fx.rate * (.94 + Math.random() * .12);
-          const at = startTime + i * .17;
-          const maxLength = Math.min(.48, buffer.duration / rate);
-          if (maxLength < .045) return;
           source.buffer = buffer;
           source.playbackRate.value = rate;
           filter.type = 'lowpass';
           filter.frequency.value = fx.cutoff;
+          filter.Q.value = .45;
+          const level = Math.min(1.8, normalize * fx.gain) * [1, .77, .63][i];
           gain.gain.setValueAtTime(.0001, at);
-          gain.gain.linearRampToValueAtTime(fx.gain * [1,.78,.56][i], at + .025);
-          gain.gain.exponentialRampToValueAtTime(.0001, at + maxLength);
+          gain.gain.linearRampToValueAtTime(level, at + .018);
+          gain.gain.setValueAtTime(level, at + Math.max(.035, duration - .11));
+          gain.gain.exponentialRampToValueAtTime(.0001, at + duration);
           source.connect(filter);
           filter.connect(gain);
           gain.connect(master);
-          source.start(at);
-          source.stop(at + maxLength);
-          source.onended = () => {
-            source.disconnect(); filter.disconnect(); gain.disconnect();
-          };
-        } catch (err) { console.warn('Bat flight audio failed', err); }
+          source.start(at, onset, duration);
+          source.stop(at + duration + .004);
+          source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+        } catch (err) { console.warn('Bat wing sound failed', err); }
       });
-    });
+    }).catch(err => console.warn('Bat wing samples unavailable', err));
   }
 
   function play(name) {
