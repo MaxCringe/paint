@@ -55,7 +55,7 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
    Math.abs(o.g.position.z-fish.g.position.z)<(o.g.userData.halfDepth||3)+6.5);
  }
  function remove(e){
-  e.fish.g.remove(e.container);
+  e.container.parent?.remove(e.container);
   const i=encounters.indexOf(e);
   if(i>=0)encounters.splice(i,1);
  }
@@ -83,30 +83,42 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
     ...parts,homeX,homeZ,x:homeX,z:homeZ,vx:0,vz:0,mode:'eat',
     timer:rand(.6,2),speed:rand(5,7),phase:rand(0,Math.PI*2),
     gait:rand(13,20),delay:rand(.02,.38),side:directions[i],
-    targetZ:rand(-1.8,1.8),sway:rand(-.18,.18),hidden:false
+    targetZ:rand(-1.8,1.8),sway:rand(-.18,.18),hidden:false,
+    hideX:rand(10.5,12.5)
    });
   }
-  encounters.push({fish,container,rats,alarmed:false,alarmTime:0});
+  encounters.push({fish,container,rats,alarmed:false,alarmTime:0,detached:false});
  }
- function update(dt,{playing=false,runnerX=0,runnerZ=2.3,ultimate=false,obstacles=[]}={}){
+ function update(dt,{playing=false,runnerX=0,runnerZ=2.3,ultimate=false,speed=0,obstacles=[]}={}){
   if(!playing||dt<=0)return;
   dt=Math.min(dt,.04);
   for(let i=encounters.length-1;i>=0;i--){
    const e=encounters[i],fish=e.fish;
-   if(!fish.g.parent||fish.g.position.z>14||closeToLava(fish,obstacles)){
+   // As soon as Fiona scares them, the rats leave the fish group.
+   // They keep scrolling with the world even after the fish is recycled.
+   if(e.detached){
+    e.container.position.z+=speed*dt;
+    if(e.alarmTime>6.5||e.container.position.z>32){remove(e);continue;}
+   }else if(!fish.g.parent||fish.g.position.z>14||closeToLava(fish,obstacles)){
     remove(e);continue;
    }
-   const fishX=fish.g.position.x,fishZ=fish.g.position.z;
+   const fishX=e.detached?e.container.position.x:fish.g.position.x;
+   const fishZ=e.detached?e.container.position.z:fish.g.position.z;
    const distance=Math.hypot((fishX-runnerX)*.7,fishZ-runnerZ);
    if(!e.alarmed&&(distance<19||(ultimate&&distance<24))){
     e.alarmed=true;e.alarmTime=0;
+    // Keep current world position, then run independently toward the trees.
+    e.container.position.copy(fish.g.position);
+    fish.g.remove(e.container);
+    scene.add(e.container);
+    e.detached=true;
    }
    if(e.alarmed)e.alarmTime+=dt;
    for(const r of e.rats){
     if(r.hidden)continue;
     if(e.alarmed&&e.alarmTime>=r.delay){
      // Flee with acceleration/inertia; each rat has its own forest-side goal.
-     const goalX=r.side*(6.35+Math.abs(r.sway)*3)-fishX;
+     const goalX=r.side*(r.hideX+.8)-fishX;
      const goalZ=r.targetZ+Math.sin(e.alarmTime*2.7+r.phase)*.22;
      const dx=goalX-r.x,dz=goalZ-r.z,len=Math.max(.001,Math.hypot(dx,dz));
      const steering=1-Math.exp(-dt*6);
@@ -129,7 +141,11 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
      r.tail.rotation.y=Math.sin(e.alarmTime*13+r.phase)*.30;
      for(let j=0;j<r.feet.length;j++)
       r.feet[j].position.z=(j%2===0?-.18:.19)+Math.sin(phase+(j%3)*Math.PI)*.065;
-     if(Math.abs(fishX+r.x)>5.9){r.root.visible=false;r.hidden=true;}
+     // Only start disappearing well into the forest, beyond the first ferns.
+     const depth=Math.abs(fishX+r.x);
+     const hideProgress=Math.max(0,Math.min(1,(depth-(r.hideX-2))/(2)));
+     r.root.scale.setScalar(r.scale*(1-hideProgress*.8));
+     if(depth>=r.hideX){r.root.visible=false;r.hidden=true;}
     }else{
      // Eat, sniff, or cautiously reposition near the fish; unsynchronized rhythms.
      r.timer-=dt;

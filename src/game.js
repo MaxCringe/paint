@@ -250,7 +250,7 @@ function frame(t){requestAnimationFrame(frame);
    }
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)}
-  ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,obstacles});
+  ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed,obstacles});
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){
    h.g.position.z+=speed*dt;
