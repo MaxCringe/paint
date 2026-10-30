@@ -17,7 +17,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
 const audio=createGameAudio();
-const batEcosystem=createBatEcosystem(scene,{onFlee:()=>audio.play('bats')});
+const batEcosystem=createBatEcosystem(scene,{onFlee:({x})=>audio.play('bats',{pan:x<0?-1:1})});
 const ratEcosystem=createRatEcosystem(scene);
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 
