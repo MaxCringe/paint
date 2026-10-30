@@ -109,21 +109,49 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
   g.group.parent?.remove(g.group);
   for(const material of g.mats)material.dispose();
  }
+ // Vary WHERE meteors fall and HOW they approach. Avoid repeating
+ // the same mountain region or flight profile in consecutive events.
+ const LANDING_ZONES=[
+  [-.84,-.48], // hills on the left
+  [-.28,.21],  // middle ridges
+  [.48,.83]   // right-hand mountains
+ ];
+ let previousZone=-1,previousFlight=-1;
+ function chooseDifferent(previous,count){
+  if(previous<0)return (Math.random()*count)|0;
+  return (previous+1+((Math.random()*(count-1))|0))%count;
+ }
  let nextMeteor=rand(3.5,5.5),elapsed=0;
  function spawn(){
-  // Enter from beyond the LEFT or RIGHT edge, streak across the sky at
-  // a shallow randomized angle (like a diagonal meteor in the reference),
-  // then let the existing mountain geometry obscure the descent.
-  const side=Math.random()<.65?1:-1;
+  // Select a new part of the mountain range and a distinct flight angle.
+  // Shallow = crosses most of the sky; diagonal = more pronounced fall;
+  // steep = enters from above instead of from the side.
+  const zone=chooseDifferent(previousZone,LANDING_ZONES.length);
+  const profile=chooseDifferent(previousFlight,3);
+  previousZone=zone;previousFlight=profile;
   const group=new THREE.Group();scene.add(group);
   const tier=depthChoice();
   const size=rand(tier.scale[0],tier.scale[1]);
   const depth=tier.z+rand(-4,4);
-  const startX=-side*rand(1.23,1.42); // guaranteed off-screen, including the head
-  const endX=side*rand(-.16,.33);
-  const endY=rand(.08,.18); // below the visible mountain ridge
-  const slope=mobile?rand(.45,.58):rand(.26,.35);
-  const startY=endY+slope*camera.aspect*Math.abs(endX-startX);
+  const [zoneMin,zoneMax]=LANDING_ZONES[zone];
+  const endX=rand(zoneMin,zoneMax);
+  const endY=rand(.06,.19); // below the mountain skyline
+  let startX,startY;
+  if(profile===2){
+   // Steeper meteor: enter above the top of the view, not mid-screen.
+   const direction=Math.random()<.5?-1:1;
+   startX=clamp(endX-direction*rand(.68,1.05),-1.0,1.0);
+   startY=rand(1.18,1.38);
+  }else{
+   // Side entry, usually from the OPPOSITE side to the landing region.
+   // A different route crosses the whole sky before it reaches the hills.
+   const entrySide=zone===0?1:zone===2?-1:(Math.random()<.5?-1:1);
+   startX=entrySide*rand(1.24,1.38);
+   const deltaX=Math.abs(endX-startX);
+   const slope=profile===0?(mobile?rand(.24,.37):rand(.14,.22)):
+                          (mobile?rand(.50,.67):rand(.30,.41));
+   startY=endY+slope*camera.aspect*deltaX;
+  }
   camera.updateMatrixWorld();
   const from=skyPoint(startX,startY,depth);
   const to=skyPoint(endX,endY,depth);
@@ -245,6 +273,7 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
   glows.forEach(removeGlow);
   meteors.length=0;glows.length=0;
   nextMeteor=rand(3.5,5.5);elapsed=0;
+  previousZone=-1;previousFlight=-1;
  }
  function dispose(){
   reset();
