@@ -202,48 +202,126 @@ export function createLavaRiverFactory(scene, obstacles) {
    const flameGeo=new THREE.BufferGeometry();flameGeo.setAttribute('position',new THREE.Float32BufferAttribute(flamePos,3));flameGeo.setAttribute('color',new THREE.Float32BufferAttribute(flameCol,3));flameGeo.computeVertexNormals();flameGeo.computeBoundingSphere();
    const bankFlames=new THREE.Mesh(flameGeo,lavaBankFlameMat);bankFlames.renderOrder=7;g.add(bankFlames);
    g.userData.bankFlames=bankFlames;g.userData.bankFlamePhase=phase;
-   // Flames visibly spill over the lava banks onto the scorched wood.
-   // The river's existing geometry, bright current and collisions are untouched.
+   // Denser overlapping flames follow both riverbanks and spill onto the pine.
+   // These are visual meshes only: lava collision geometry remains unchanged.
    for(const side of [-1,1]){
-    for(let i=0;i<19;i++){
-     if(i%6===3)continue; // gaps between fire clusters
-     const x=-4.18+(i+.5)*8.36/19+(Math.random()-.5)*.19;
+    for(let i=0;i<25;i++){
+     if(i%13===8)continue; // a few organic breaks, not a perfectly solid wall
+     const x=-4.20+(i+.5)*8.40/25+(Math.random()-.5)*.13;
      const edge=center(x)+noise(x)+side*half(x);
-     const z=edge+side*(.10+Math.random()*.37);
-     addLivingFlame(g,x,-.01,z,.28+Math.random()*.26,
-      .46+Math.random()*.43,phase+i*1.9+side*.7);
-     if(i%4===0) addLivingFlame(g,x+.14,-.01,z+side*.13,
-      .19,.33+Math.random()*.22,phase+i*3.1);
+     const z=edge+side*(.10+Math.random()*.43);
+     addLivingFlame(g,x,-.01,z,.36+Math.random()*.23,
+      .65+Math.random()*.46,phase+i*1.93+side*.7);
+     if(i%2===0) addLivingFlame(g,x+.12,-.01,z+side*.15,
+      .29+Math.random()*.15,.39+Math.random()*.39,phase+i*3.12);
+     if(i%5===1) addLivingFlame(g,x-.12,-.01,z-side*.08,
+      .21,.34+Math.random()*.2,phase+i*2.7);
     }
    }
    // Forest plants already travel at the same rate as each lava obstacle.
    // Anchor the fire to this river at their current positions; removing the
    // river automatically removes all of these temporary burning effects.
-   let burningPlants=0;
+   let burningTrees=0,burningUndergrowth=0;
    for(const plant of scene.children){
-    if(!plant.userData.recycleLength||burningPlants>=18)continue;
+    if(!plant.userData.recycleLength)continue;
     const x=plant.position.x;
     if(Math.abs(x)>27)continue;
     const plantZ=plant.position.z-z;
     const riverMiddle=center(x)+noise(x);
-    if(Math.abs(plantZ-riverMiddle)>half(x)+.9)continue;
-    burningPlants++;
+    if(Math.abs(plantZ-riverMiddle)>half(x)+.95)continue;
     const isTree=plant.children.length>1;
     if(isTree){
-     // Place fire at the trunk and in the lower pine canopy, not in empty space.
+     if(burningTrees>=7)continue;
+     burningTrees++;
      const sx=plant.scale.x,sy=plant.scale.y;
-     addLivingFlame(g,x-.24*sx,.08,plantZ+.26,.48*sx,.88*sy,phase+x);
-     addLivingFlame(g,x+.26*sx,.65*sy,plantZ+.28,.58*sx,1.1*sy,phase+x+2.2);
-     if(burningPlants%2===0)
-      addLivingFlame(g,x-.15*sx,1.62*sy,plantZ+.23,.46*sx,.88*sy,phase+x+4.4);
+     // Flames climb from the trunk up through each tier to the pine's crown.
+     const heights=[.16,.88,1.7,2.44,3.16,3.84];
+     for(let level=0;level<heights.length;level++){
+      const side=level%2===0?-1:1;
+      const y=heights[level]*sy;
+      addLivingFlame(g,x+side*(.22+.045*level)*sx,y,
+       plantZ+.31+(level%3)*.04,
+       (.52+(level>1?.18:0))*sx,(level===5?.78:1.12)*sy,
+       phase+x+level*1.9);
+      if(level===2||level===4) addLivingFlame(g,x-side*.21*sx,y+.08*sy,
+       plantZ-.18,.43*sx,.8*sy,phase+x+level*2.7);
+     }
     }else{
-     // Ferns and grass ignite only where the lava reaches the river margins.
+     // Reserve a separate quota for ferns and grass so trees don't use every slot.
+     if(burningUndergrowth>=9)continue;
+     burningUndergrowth++;
      const h=plant.children[0].geometry.attributes.position.count>200?.62:.31;
-     addLivingFlame(g,x,0,plantZ+.14,.31*plant.scale.x,
+     addLivingFlame(g,x,0,plantZ+.14,.35*plant.scale.x,
       h*plant.scale.y,phase+x+1.4);
-     if(h>.4&&burningPlants%2===0)
-      addLivingFlame(g,x+.17,0,plantZ+.17,.22*plant.scale.x,
-       h*.7*plant.scale.y,phase+x+3.3);
+     if(h>.4) addLivingFlame(g,x+.16,0,plantZ-.14,.25*plant.scale.x,
+      h*.75*plant.scale.y,phase+x+3.3);
+    }
+   }
+   // Scorched, bare pines and dried-out shrubs at the edge of the molten banks.
+   // They belong to this river group, not to the global forest/recycling system.
+   const charwood=new THREE.MeshStandardMaterial({color:0x201b1a,roughness:1});
+   const charwoodTip=new THREE.MeshStandardMaterial({color:0x3b2822,roughness:1});
+   const deadTrunkGeometry=new THREE.CylinderGeometry(.11,.23,1,6);
+   const deadBranchGeometry=new THREE.CylinderGeometry(.045,.085,1,5);
+   const upright=new THREE.Vector3(0,1,0);
+   function deadStick(parent,from,to,thickness=.75,tip=false){
+    const span=new THREE.Vector3().subVectors(to,from);
+    const stick=new THREE.Mesh(deadBranchGeometry,tip?charwoodTip:charwood);
+    stick.position.copy(from).addScaledVector(span,.5);
+    stick.quaternion.setFromUnitVectors(upright,span.clone().normalize());
+    stick.scale.set(thickness,span.length(),thickness);
+    parent.add(stick);
+   }
+   function scorchedPine(x,z,h,seed,stillBurning){
+    const tree=new THREE.Group();tree.position.set(x,.01,z);
+    tree.rotation.y=seed*.37;
+    const trunk=new THREE.Mesh(deadTrunkGeometry,charwood);
+    trunk.scale.y=h;trunk.position.y=h*.5;trunk.rotation.z=Math.sin(seed)*.06;
+    tree.add(trunk);
+    for(let j=0;j<6;j++){
+     const a=seed+j*2.39996,base=h*(.29+j*.115);
+     const spread=(.64-j*.065)*(h/3.5);
+     deadStick(tree,new THREE.Vector3(0,base,0),
+      new THREE.Vector3(Math.cos(a)*spread,base+.27+Math.random()*.24,
+       Math.sin(a)*spread),.58+j*.04,j%3===0);
+    }
+    g.add(tree);
+    if(stillBurning){
+     // Several flame levels, including the high branches and blackened crown.
+     for(let j=0;j<4;j++){
+      addLivingFlame(g,x+Math.sin(seed+j*2.1)*.18,h*(.13+j*.23),
+       z+.22,.48+(j%2)*.08,.85,phase+seed+j*2.7);
+     }
+    }else{
+     // Low remaining embers show that the wood burned earlier.
+     addLivingFlame(g,x-.09,0,z+.17,.23,.3,phase+seed);
+    }
+   }
+   function burntShrub(x,z,h,seed,stillBurning){
+    const shrub=new THREE.Group();shrub.position.set(x,.005,z);
+    for(let j=0;j<5;j++){
+     const a=seed+j*2.39996;
+     deadStick(shrub,new THREE.Vector3(0,.02,0),
+      new THREE.Vector3(Math.cos(a)*(.21+j*.035),h*(.69+(j%3)*.13),
+       Math.sin(a)*(.21+j*.035)),.35+(j%2)*.1,j%2===0);
+    }
+    g.add(shrub);
+    if(stillBurning) addLivingFlame(g,x,.005,z+.14,.34,h*.9,phase+seed);
+   }
+   // Only a handful of trees and shrubs per crossing keeps rendering manageable.
+   for(const side of [-1,1]){
+    for(let j=0;j<3;j++){
+     const x=side*(5.1+j*1.33+Math.random()*.4);
+     const edge=center(x)+noise(x)+side*half(x);
+     const z=edge+side*(.42+Math.random()*.6);
+     scorchedPine(x,z,2.65+Math.random()*1.15,
+      phase+j*1.53+side,j!==1);
+    }
+    for(let j=0;j<4;j++){
+     const x=side*(4.9+j*1.0+Math.random()*.45);
+     const edge=center(x)+noise(x)+side*half(x);
+     burntShrub(x,edge+side*(.29+Math.random()*.78),
+      .44+Math.random()*.46,phase+j*1.73+side,j%3===0);
     }
    }
    // A tiny reusable particle pool: rare bursts from cracking pine, not constant snowfall.
