@@ -182,64 +182,6 @@ export function createWorld() {
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
   const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
   for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
-  // Distant molten channels grow naturally out of the volcano's lava fan.
-  // Decorative background only: stop well before Fiona's active road and do not
-  // enter the obstacle registry or change any lava collision/jump mechanics.
-  const volcanicChannels=[
-   // Main glowing stream follows the valley toward the forest beside the road.
-   [[30,-71.6],[28,-69.3],[25,-65],[22,-61],[19,-56.5],[16,-51],[13.4,-46.1],[11,-40],[9.3,-33],[7.8,-27],[7.2,-22]],
-   [[25,-65],[29,-62],[32,-58],[34,-53],[37,-48],[39,-43]],
-   [[19,-56.5],[16,-57.7],[13,-55.1],[10.8,-51],[9.8,-46],[9.1,-42]]
-  ];
-  const flowPos=[],flowCol=[],flowIndex=[];
-  const crossOffsets=[-1.23,-1.02,-.79,-.48,-.20,0,.20,.48,.79,1.02,1.23];
-  const cooledMagmaColors=[
-   0x160f12,0x2c1817,0x912b10,0xf04b08,0xff9418,0xffffa8,
-   0xff9418,0xf04b08,0x912b10,0x2c1817,0x160f12
-  ].map(color=>new THREE.Color(color));
-  for(let branch=0;branch<volcanicChannels.length;branch++){
-   const path=new THREE.CatmullRomCurve3(volcanicChannels[branch].map(
-    ([x,z])=>new THREE.Vector3(x,0,z)
-   ));
-   const slices=branch===0?145:80,base=flowPos.length/3;
-   for(let i=0;i<=slices;i++){
-    const t=i/slices,p=path.getPoint(t),dir=path.getTangent(t);
-    const invLength=1/Math.hypot(dir.x,dir.z);
-    const nx=-dir.z*invLength,nz=dir.x*invLength;
-    const wiggle=.055*Math.sin(t*79+branch*2.4)+.028*Math.sin(t*166+branch);
-    // Readable distant channel, gently narrowing near the roadside.
-    const taper=(.82+.18*Math.sin(Math.PI*t))*(branch===0&&t>.82?1-.55*(t-.82)/.18:1);
-    const width=(branch===0?2.65:branch===1?1.42:1.55)*taper;
-    for(let j=0;j<crossOffsets.length;j++){
-     const q=crossOffsets[j],aq=Math.abs(q);
-     const x=p.x+nx*q*width*(1+wiggle);
-     const z=p.z+nz*q*width*(1+wiggle);
-     // Raised, dark cooled-rock sides surround the bright molten center.
-     const y=aq>1.1?-.085:aq>.78?.025+wiggle*.11:.012;
-     flowPos.push(x,y,z);
-     const hot=.90+.10*Math.sin(t*35+branch*2.7+j*.6);
-     const color=cooledMagmaColors[j];
-     flowCol.push(color.r*hot,color.g*hot,color.b*hot);
-    }
-    if(i<slices){
-     for(let j=0;j<crossOffsets.length-1;j++){
-      const a=base+i*crossOffsets.length,b=a+crossOffsets.length;
-      flowIndex.push(a,a+1,b,a+1,b+1,b);
-     }
-    }
-   }
-  }
-  const distantLavaGeo=new THREE.BufferGeometry();
-  distantLavaGeo.setAttribute('position',new THREE.Float32BufferAttribute(flowPos,3));
-  distantLavaGeo.setAttribute('color',new THREE.Float32BufferAttribute(flowCol,3));
-  distantLavaGeo.setIndex(flowIndex);
-  distantLavaGeo.computeVertexNormals();
-  distantLavaGeo.computeBoundingSphere();
-  const distantLava=new THREE.Mesh(distantLavaGeo,new THREE.MeshBasicMaterial({
-   vertexColors:true,side:THREE.DoubleSide,fog:false
-  }));
-  distantLava.renderOrder=1;
-  scene.add(distantLava);
   // Decorative temple arches in the distance and along the trail
   const fixedDecor=[];
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
