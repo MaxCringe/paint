@@ -4,7 +4,6 @@ import * as THREE from 'three';
 // Geometry/materials are shared between the road pick-up and Fiona's worn hat.
 export function createWitchHatFactory(scene,hats,runner) {
  const fabric=new THREE.MeshStandardMaterial({color:0x57402e,roughness:1,flatShading:true,side:THREE.DoubleSide});
- const fold=new THREE.MeshStandardMaterial({color:0x33251e,roughness:1,flatShading:true,side:THREE.DoubleSide});
  const highlight=new THREE.MeshStandardMaterial({color:0x755339,roughness:1,flatShading:true,side:THREE.DoubleSide});
  const seam=new THREE.MeshBasicMaterial({color:0xa7885e,side:THREE.DoubleSide});
  const band=new THREE.MeshStandardMaterial({color:0x30251d,roughness:1,flatShading:true,side:THREE.DoubleSide});
@@ -56,8 +55,6 @@ export function createWitchHatFactory(scene,hats,runner) {
  const stripeGeo=new THREE.TorusGeometry(.35,.027,5,20);
  const patchGeo=new THREE.PlaneGeometry(.23,.21);
  const stitchGeo=new THREE.BoxGeometry(.035,.012,.014);
- const eyesGeo=new THREE.BoxGeometry(.19,.034,.018);
- const mouthGeo=new THREE.BoxGeometry(.28,.033,.02);
  const buckleGeo=new THREE.BoxGeometry(.12,.105,.02);
  const buckleHoleGeo=new THREE.BoxGeometry(.060,.050,.024);
  function mesh(parent,geo,material,x=0,y=0,z=0){
@@ -74,13 +71,6 @@ export function createWitchHatFactory(scene,hats,runner) {
   mesh(group,buckleHoleGeo,band,0,.22,.384);
   const patch=mesh(group,patchGeo,highlight,-.228,.50,.23);
   patch.rotation.set(-.12,-.62,-.20);
-  // Hat-like face made entirely from deep folds; not a copied texture.
-  const browL=mesh(group,eyesGeo,fold,-.143,.52,.291);
-  browL.rotation.z=-.30;
-  const browR=mesh(group,eyesGeo,fold,.147,.52,.287);
-  browR.rotation.z=.29;
-  const mouth=mesh(group,mouthGeo,fold,0,.345,.361);
-  mouth.rotation.z=-.065;
   for(let i=0;i<4;i++){
    const st=mesh(group,stitchGeo,seam,-.31+i*.025,.48+i*.036,.255);
    st.rotation.z=i%2?.65:-.5;
