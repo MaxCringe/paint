@@ -15,7 +15,8 @@ const EFFECTS = {
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
-  land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180}
+  land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
+  bats:     {files:['bats-flap_1.ogg','bats-flap_2.ogg','bats-flap_3.ogg'],gain:.30,rate:1.07,cutoff:4300,gap:1300}
 };
 const base = import.meta.env.BASE_URL + 'audio/sfx/';
 function stored(key, fallback) {
@@ -95,10 +96,48 @@ export function createGameAudio() {
     if (!preloaded) {
       preloaded = true;
       // Start loading after the player's first gesture (also works on iPhone).
-      for (const {file} of Object.values(EFFECTS)) if(file) read(file);
+      for (const effect of Object.values(EFFECTS)) {
+        if (effect.file) read(effect.file);
+        if (effect.files) for (const file of effect.files) read(file);
+      }
       prepareSoulVoices();
     }
     return context;
+  }
+
+  // A short three-beat flight burst, built from real CC0 wing recordings.
+  function playBatFlight(fx) {
+    Promise.all(fx.files.map(read)).then(buffers => {
+      if (!context || !master || muted || volume <= 0) return;
+      const startTime = context.currentTime + .01;
+      buffers.forEach((buffer, i) => {
+        if (!buffer) return;
+        try {
+          const source = context.createBufferSource();
+          const filter = context.createBiquadFilter();
+          const gain = context.createGain();
+          const rate = fx.rate * (.94 + Math.random() * .12);
+          const at = startTime + i * .17;
+          const maxLength = Math.min(.48, buffer.duration / rate);
+          if (maxLength < .045) return;
+          source.buffer = buffer;
+          source.playbackRate.value = rate;
+          filter.type = 'lowpass';
+          filter.frequency.value = fx.cutoff;
+          gain.gain.setValueAtTime(.0001, at);
+          gain.gain.linearRampToValueAtTime(fx.gain * [1,.78,.56][i], at + .025);
+          gain.gain.exponentialRampToValueAtTime(.0001, at + maxLength);
+          source.connect(filter);
+          filter.connect(gain);
+          gain.connect(master);
+          source.start(at);
+          source.stop(at + maxLength);
+          source.onended = () => {
+            source.disconnect(); filter.disconnect(); gain.disconnect();
+          };
+        } catch (err) { console.warn('Bat flight audio failed', err); }
+      });
+    });
   }
 
   function play(name) {
@@ -108,6 +147,7 @@ export function createGameAudio() {
     if (stamp - (lastPlayed.get(name) ?? -Infinity) < fx.gap) return;
     lastPlayed.set(name, stamp);
     if (name === 'soul') { playSoul(); return; }
+    if (name === 'bats') { playBatFlight(fx); return; }
     read(fx.file).then(buffer => {
       if (!buffer || !context || !master || muted || volume <= 0) return;
       try {
