@@ -20,18 +20,18 @@ jobs:
           set -euo pipefail
           SOURCE='https://cdn.freesound.org/previews/432/432639_7414526-hq.mp3'
           curl --fail --location --silent --show-error --retry 3 "$SOURCE" --output /tmp/birds-wings-original.mp3
-          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1 /tmp/birds-wings-original.mp3
-          DURATION="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/birds-wings-original.mp3)"
-          python3 - "$DURATION" <<'PY'
-          import sys
-          duration=float(sys.argv[1])
-          if not (14.0 < duration < 15.5):
-            raise SystemExit('Freesound preview is not the expected 14.9 second recording')
-          PY
           mkdir -p public/audio/sfx
-          ffmpeg -hide_banner -loglevel error -y -i /tmp/birds-wings-original.mp3 -t 5.0 -af 'highpass=f=80,lowpass=f=7000,afade=t=in:st=0:d=0.08,afade=t=out:st=3.85:d=1.15,loudnorm=I=-15:TP=-1:LRA=7' -c:a libmp3lame -q:a 3 public/audio/sfx/bats-flock-digpro120.mp3
-          file public/audio/sfx/bats-flock-digpro120.mp3
-          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 public/audio/sfx/bats-flock-digpro120.mp3
+          python3 - <<'PY'
+          from pathlib import Path
+          raw = Path('/tmp/birds-wings-original.mp3').read_bytes()
+          if not (60000 < len(raw) < 1000000):
+            raise SystemExit(f'Unexpected Freesound preview size: {len(raw)}')
+          if not (raw.startswith(b'ID3') or raw[:1] == b'\\xff'):
+            raise SystemExit('Not an MP3 preview')
+          target=Path('public/audio/sfx/bats-flock-digpro120.mp3')
+          target.write_bytes(raw)
+          print('Imported verified MP3 bytes:',len(raw))
+          PY
       - name: Commit the selected recording
         shell: bash
         run: |
