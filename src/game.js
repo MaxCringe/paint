@@ -17,7 +17,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
 const batEcosystem=createBatEcosystem(scene);
 const ratEcosystem=createRatEcosystem(scene);
-const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation);
+const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[], hats=[];

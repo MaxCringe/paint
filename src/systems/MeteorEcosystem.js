@@ -6,8 +6,11 @@ export const METEOR_ECOSYSTEM_ENABLED = true;
 
 export function createMeteorEcosystem(scene, _roadsideVegetation, {
  enabled=METEOR_ECOSYSTEM_ENABLED,
+ camera,
  mobile=typeof window!=='undefined'&&window.innerWidth<720
 }={}){
+ // Camera is injected so off-screen entries and flight angles work at any aspect ratio.
+ if(enabled&&!camera)throw new Error('MeteorEcosystem requires the game camera');
  if(!enabled)return {update(){},reset(){},dispose(){},active:[]};
  const rand=(a,b)=>a+Math.random()*(b-a);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -47,17 +50,29 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
  });
  const sparkMat=new THREE.MeshBasicMaterial({color:0xffd77a,fog:false,toneMapped:false});
  const p=new THREE.Vector3();
+ const SKY_Z=-98;
+ // Convert normalized screen points to a world plane behind every mountain.
+ // This maintains the intended diagonal on phones and widescreen monitors.
+ function skyPoint(nx,ny){
+  const projected=new THREE.Vector3(nx,ny,.5).unproject(camera);
+  const ray=projected.sub(camera.position);
+  return camera.position.clone().addScaledVector(ray,(SKY_Z-camera.position.z)/ray.z);
+ }
  let nextMeteor=rand(3.5,5.5),elapsed=0;
  function spawn(){
-  // Start ABOVE the camera's top edge, including the trailing smoke,
-  // then pass BEHIND the existing mountain meshes without crossing the road.
-  const side=Math.random()<.5?-1:1;
+  // Enter from beyond the LEFT or RIGHT edge, streak across the sky at
+  // a shallow randomized angle (like a diagonal meteor in the reference),
+  // then let the existing mountain geometry obscure the descent.
+  const side=Math.random()<.65?1:-1;
   const group=new THREE.Group();scene.add(group);
-  // The distant mountains are at z=-77/-84/-91. z=-98 keeps meteors behind
-  // all three ridges; their opaque surfaces naturally hide the ending.
-  // Above ~40 world units at this depth is outside the vertical field of view.
-  const from=new THREE.Vector3(side*rand(mobile?9:12,mobile?15:23),rand(44,48),-98);
-  const to=new THREE.Vector3(side*rand(mobile?5:7,mobile?10:15),-8,-98);
+  const startX=-side*rand(1.23,1.42); // guaranteed off-screen, including the head
+  const endX=side*rand(-.16,.33);
+  const endY=rand(.08,.18); // below the visible mountain ridge
+  const slope=mobile?rand(.45,.58):rand(.26,.35);
+  const startY=endY+slope*camera.aspect*Math.abs(endX-startX);
+  camera.updateMatrixWorld();
+  const from=skyPoint(startX,startY);
+  const to=skyPoint(endX,endY);
   const trajectory=to.clone().sub(from).normalize();
   const backwards=trajectory.clone().negate();
   const rock=new THREE.Mesh(rockGeo,rockMat);
@@ -84,16 +99,16 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
    smoke.push({sprite,mat,phase:rand(0,Math.PI*2),width:rand(1.45,2.3)});
   }
   const e={group,from,to,trajectory,backwards,rock,plasma,bright,
-   outer,inner,particles,smoke,age:0,duration:rand(4.0,4.8),
+   outer,inner,particles,smoke,age:0,duration:rand(8.0,9.5),
    phase:rand(0,Math.PI*2)};
   meteors.push(e);
   animateMeteor(e,0);
  }
  function animateMeteor(e,dt){
   const t=clamp(e.age/e.duration,0,1);
-  // Quadratic fall: an accelerating trajectory rather than a straight,
-  // constant-speed streak that abruptly stops in mid-air.
-  const fall=t*t*(1.3-.3*t);
+  // Gentle acceleration, keeping the fireball on screen for several seconds
+  // rather than barely moving above the frame before suddenly dropping.
+  const fall=t*(.72+.28*t);
   p.lerpVectors(e.from,e.to,fall);
   p.x+=Math.sin(t*Math.PI)*.32*Math.sin(e.phase);
   e.rock.position.copy(p);
