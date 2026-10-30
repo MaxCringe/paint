@@ -143,6 +143,13 @@ $('sound-bats-test')?.addEventListener('click',()=>{
  updateSoundControls();
  audio.play('bats');
 });
+$('sound-tree-test')?.addEventListener('click',()=>{
+ // Test on demand without restarting or crashing Fiona.
+ if(audio.getMuted())audio.setMuted(false);
+ if(audio.getVolume()<.25)audio.setVolume(.35);
+ updateSoundControls();
+ audio.play('treeHit');
+});
 soundVolume.addEventListener('input',()=>{audio.setVolume(Number(soundVolume.value)/100);updateSoundControls();});
 updateSoundControls();
 const musicToggle=$('music-toggle');

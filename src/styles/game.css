@@ -49,7 +49,7 @@
 #sound-toggle:active,#sound-bats-test:active,#music-toggle:active{transform:none;box-shadow:none}
 #sound-bats-test{font-size:17px;opacity:.93}
 #sound-bats-test:hover{opacity:1;background:#20445b}
-#sound-toggle:focus-visible,#sound-bats-test:focus-visible,#sound-volume:focus-visible,#music-toggle:focus-visible,#music-volume:focus-visible{outline:2px solid #7cdaff;outline-offset:2px}
+#sound-toggle:focus-visible,#sound-bats-test:focus-visible,#sound-tree-test:focus-visible,#sound-volume:focus-visible,#music-toggle:focus-visible,#music-volume:focus-visible{outline:2px solid #7cdaff;outline-offset:2px}
 #sound-volume,#music-volume{width:74px;min-width:0;accent-color:#61c9ff;cursor:pointer;touch-action:pan-x}
 #sound-volume-value,#music-volume-value{color:#bdeaff;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;min-width:29px;text-align:right}
 @media(max-width:700px){#audio-controls{left:10px;bottom:84px;gap:5px;padding:3px 6px}#sound-toggle,#sound-bats-test,#music-toggle{width:29px;height:29px}#sound-volume,#music-volume{width:64px}#sound-volume-value,#music-volume-value{font-size:10px}}
@@ -59,3 +59,5 @@
 #music-toggle{font-size:16px}
 #music-toggle:hover{background:#20445b}
 @media(max-width:700px){.audio-control-row{gap:5px;min-height:29px}.audio-row-label{font-size:9px;min-width:30px}}
+
+#sound-tree-test{font-size:16px;opacity:.94}#sound-tree-test:hover{background:#20445b;opacity:1}
