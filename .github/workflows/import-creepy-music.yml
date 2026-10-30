@@ -1,0 +1,45 @@
+name: Import Creepy CC0 music (one-time)
+on:
+  push:
+    paths:
+      - .github/workflows/import-creepy-music.yml
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout KNOTTY PINE
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Download original CrEEP.mp3 from OpenGameArt and verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import urllib.request, pathlib, hashlib
+          url='https://opengameart.org/sites/default/files/CrEEP_0.mp3'
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+          with urllib.request.urlopen(req,timeout=35) as r:
+              data=r.read(8*1024*1024)
+              print('HTTP:',r.status,'Content-Type:',r.headers.get('Content-Type'))
+          if not (2_000_000<len(data)<6_000_000):
+              raise SystemExit('Unexpected CrEEP.mp3 file size: '+str(len(data)))
+          if not (data.startswith(b'ID3') or data[0]==255):
+              raise SystemExit('This does not appear to be an MP3; first bytes: '+data[:24].hex())
+          dst=pathlib.Path('public/audio/music/creepy-tokyogeisha.mp3')
+          dst.parent.mkdir(parents=True,exist_ok=True)
+          dst.write_bytes(data)
+          print('Downloaded',len(data),'bytes SHA256',hashlib.sha256(data).hexdigest())
+          PY
+      - name: Add licensed track to repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/audio/music/creepy-tokyogeisha.mp3
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add TokyoGeisha Creepy CC0 game soundtrack'
+            git push origin HEAD:main
+          fi
