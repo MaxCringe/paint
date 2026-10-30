@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Independent decorative ecosystem. Change to false to disable all rats.
 export const RAT_ECOSYSTEM_ENABLED=true;
@@ -27,6 +28,39 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
  const blackMat=new THREE.MeshBasicMaterial({color:0x1b1517});
  const tailMat=new THREE.MeshStandardMaterial({color:0x8e6d67,roughness:1,flatShading:true});
  const whiskerMat=new THREE.LineBasicMaterial({color:0xb9a89a,transparent:true,opacity:.65});
+ // Bake all tiny face parts into a SINGLE mesh per rat rather than rendering
+ // ten separate meshes. These geometries are shared across every rat.
+ const faceMaterial=new THREE.MeshStandardMaterial({
+  vertexColors:true,roughness:1,flatShading:true
+ });
+ function makeFaceGeometry(furColor){
+  const pieces=[];
+  function bake(geo,color,x,y,z,sx,sy,sz,rotX=0){
+   const copy=geo.clone();
+   copy.scale(sx,sy,sz);
+   if(rotX)copy.rotateX(rotX);
+   copy.translate(x,y,z);
+   const tint=new THREE.Color(color),colorArray=new Float32Array(copy.attributes.position.count*3);
+   for(let k=0;k<colorArray.length;k+=3){
+    colorArray[k]=tint.r;colorArray[k+1]=tint.g;colorArray[k+2]=tint.b;
+   }
+   copy.setAttribute('color',new THREE.BufferAttribute(colorArray,3));
+   pieces.push(copy);
+  }
+  bake(headGeo,furColor,0,0,.065,.156,.135,.173);
+  bake(noseGeo,0x8e6d67,0,-.06,.275,.74,.8,.74,Math.PI/2);
+  for(const side of [-1,1]){
+   bake(earGeo,furColor,side*.113,.102,-.014,.075,.096,.051);
+   bake(earGeo,0x846158,side*.114,.107,.025,.045,.066,.020);
+   bake(eyeGeo,0xcd8e6b,side*.139,.03,.151,1,1,1);
+   bake(eyeGeo,0x1b1517,side*.150,.03,.165,.55,.65,.65);
+  }
+  const merged=mergeGeometries(pieces,false);
+  for(const piece of pieces)piece.dispose();
+  if(!merged)throw new Error('Unable to merge rat face geometry');
+  return merged;
+ }
+ const faceGeometries=[0x322c29,0x4a3730,0x3d3a34].map(makeFaceGeometry);
  function part(group,geo,mat,x,y,z,sx=1,sy=1,sz=1){
   const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);group.add(o);return o;
  }
@@ -34,14 +68,7 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
   const root=new THREE.Group(),fur=furMats[index%furMats.length];
   const body=part(root,bodyGeo,fur,0,.22,-.04,.205,.17,.33);
   const headPivot=new THREE.Group();headPivot.position.set(0,.25,.22);root.add(headPivot);
-  part(headPivot,headGeo,fur,0,0,.065,.156,.135,.173);
-  part(headPivot,noseGeo,tailMat,0,-.06,.275,.74,.8,.74).rotation.x=Math.PI/2;
-  for(const side of [-1,1]){
-   part(headPivot,earGeo,fur,side*.113,.102,-.014,.075,.096,.051);
-   part(headPivot,earGeo,earMat,side*.114,.107,.025,.045,.066,.020);
-   part(headPivot,eyeGeo,eyeMat,side*.139,.03,.151);
-   part(headPivot,eyeGeo,blackMat,side*.150,.03,.165,.55,.65,.65);
-  }
+  headPivot.add(new THREE.Mesh(faceGeometries[index%faceGeometries.length],faceMaterial));
   const tail=new THREE.Group();root.add(tail);
   tail.add(new THREE.Mesh(tailGeo,tailMat));
   root.add(new THREE.LineSegments(whiskerGeo,whiskerMat));
@@ -80,7 +107,7 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
    parts.root.position.set(homeX,0,homeZ);
    parts.root.rotation.y=Math.atan2(-homeX,-homeZ);
    rats.push({
-    ...parts,homeX,homeZ,x:homeX,z:homeZ,vx:0,vz:0,mode:'eat',
+    ...parts,homeX,homeZ,x:homeX,z:homeZ,vx:0,vz:0,scale:size,mode:'eat',
     timer:rand(.6,2),speed:rand(5,7),phase:rand(0,Math.PI*2),
     gait:rand(13,20),delay:rand(.02,.38),side:directions[i],
     targetZ:rand(-1.8,1.8),sway:rand(-.18,.18),hidden:false,
@@ -98,7 +125,7 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
    // They keep scrolling with the world even after the fish is recycled.
    if(e.detached){
     e.container.position.z+=speed*dt;
-    if(e.alarmTime>6.5||e.container.position.z>32){remove(e);continue;}
+    if(e.alarmTime>5.5||e.container.position.z>48){remove(e);continue;}
    }else if(!fish.g.parent||fish.g.position.z>14||closeToLava(fish,obstacles)){
     remove(e);continue;
    }
@@ -172,7 +199,8 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
  function reset(){for(const e of [...encounters])remove(e);}
  function dispose(){
   reset();
-  for(const geo of [bodyGeo,headGeo,earGeo,noseGeo,footGeo,eyeGeo,tailGeo,whiskerGeo])geo.dispose();
+  for(const geo of [bodyGeo,headGeo,earGeo,noseGeo,footGeo,eyeGeo,tailGeo,whiskerGeo,...faceGeometries])geo.dispose();
+  faceMaterial.dispose();
   for(const mat of [...furMats,earMat,eyeMat,blackMat,tailMat,whiskerMat])mat.dispose();
  }
  return {considerFish,update,reset,dispose,encounters};
