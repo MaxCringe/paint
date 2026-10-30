@@ -14,6 +14,7 @@ const EFFECTS = {
   slip:     {file:'slip.ogg',gain:.38,rate:.72,cutoff:2400,gap:300},
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
+  treeHit:  {files:['tree-wood-impact.ogg','tree-body-impact.ogg'],gain:.88,gap:600},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
   bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800},
@@ -172,6 +173,43 @@ export function createGameAudio() {
     }).catch(e=>console.warn('Birds Wings unavailable',e));
   }
 
+  // Body-against-pine collision: wooden crack plus a low, soft torso thump.
+  // Both recordings are original Kenney CC0 foley, not generated tones.
+  function playTreeImpact(fx) {
+    Promise.all(fx.files.map(read)).then(buffers=>{
+      if(!context||!master||muted||volume<=0)return;
+      if(context.state==='suspended')context.resume().catch(()=>{});
+      const time=context.currentTime+.012;
+      buffers.forEach((buffer,i)=>{
+        if(!buffer)return;
+        try{
+          const source=context.createBufferSource();
+          const filter=context.createBiquadFilter();
+          const gain=context.createGain();
+          source.buffer=buffer;
+          source.playbackRate.value=i===0?.89:.76;
+          filter.type='lowpass';
+          filter.frequency.value=i===0?3800:1850;
+          filter.Q.value=.6;
+          const at=time+(i===0?0:.026);
+          const duration=Math.min(.70,buffer.duration/source.playbackRate.value);
+          if(duration<.04)return;
+          const strength=fx.gain*(i===0?1:.72);
+          gain.gain.setValueAtTime(.0001,at);
+          gain.gain.linearRampToValueAtTime(strength,at+.012);
+          gain.gain.setValueAtTime(strength,at+Math.max(.025,duration-.12));
+          gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
+          source.connect(filter);
+          filter.connect(gain);
+          gain.connect(master);
+          source.start(at,0,duration);
+          source.stop(at+duration+.01);
+          source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
+        }catch(e){console.warn('Tree collision sound failed',e);}
+      });
+    }).catch(e=>console.warn('Tree impact samples unavailable',e));
+  }
+
   function play(name, details = {}) {
     const fx = EFFECTS[name];
     if (!fx || !unlock()) return;
@@ -180,6 +218,7 @@ export function createGameAudio() {
     lastPlayed.set(name, stamp);
     if (name === 'soul') { playSoul(); return; }
     if (name === 'bats') { playBatFlight(fx, details); return; }
+    if (name === 'treeHit') { playTreeImpact(fx); return; }
     read(fx.file).then(buffer => {
       if (!buffer || !context || !master || muted || volume <= 0) return;
       try {
