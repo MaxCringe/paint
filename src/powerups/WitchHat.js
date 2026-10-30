@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 
+// Pickup-only aura settings; opacity is a 0–1 value (88% = 10% brighter than 80%).
+const PICKUP_GLOW_COLOR=0xb59ae5;
+const PICKUP_GLOW_OPACITY=.88;
+
 // Old, folded low-poly witch hat with a crooked tip, inspired by storybook hats.
 // Geometry/materials are shared between the road pick-up and Fiona's worn hat.
 export function createWitchHatFactory(scene,hats,runner) {
@@ -71,13 +75,8 @@ export function createWitchHatFactory(scene,hats,runner) {
  glowCtx.fillRect(0,0,64,64);
  const glowTexture=new THREE.CanvasTexture(glowCanvas);
  const glowMat=new THREE.SpriteMaterial({
-  map:glowTexture,color:0xb59ae5,transparent:true,opacity:.8,
+  map:glowTexture,color:PICKUP_GLOW_COLOR,transparent:true,opacity:PICKUP_GLOW_OPACITY,
   depthWrite:false,blending:THREE.AdditiveBlending
- });
- const glowingBrimGeo=new THREE.TorusGeometry(.79,.023,6,32);
- const glowingBrimMat=new THREE.MeshBasicMaterial({
-  color:0xb59ae5,transparent:true,opacity:.65,
-  depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide
  });
  function mesh(parent,geo,material,x=0,y=0,z=0){
   const part=new THREE.Mesh(geo,material);part.position.set(x,y,z);parent.add(part);return part;
@@ -115,12 +114,8 @@ export function createWitchHatFactory(scene,hats,runner) {
   glow.position.set(0,.67,-.18);
   glow.scale.set(2.75,2.55,1);
   visual.add(glow);
-  const glowingBrim=new THREE.Mesh(glowingBrimGeo,glowingBrimMat);
-  glowingBrim.rotation.x=Math.PI/2;
-  glowingBrim.position.y=.045;
-  visual.add(glowingBrim);
   g.add(visual);
-  hats.push({g,visual,glow,glowingBrim,lane,z,phase:Math.random()*Math.PI*2,passed:false,collected:false});
+  hats.push({g,visual,glow,lane,z,phase:Math.random()*Math.PI*2,passed:false,collected:false});
  }
  function animateHat(h,t){
   h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10;
@@ -128,7 +123,6 @@ export function createWitchHatFactory(scene,hats,runner) {
   h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065;
   const pulse=Math.sin(t*.004+h.phase);
   h.glow.scale.set(2.75*(1+pulse*.065),2.55*(1+pulse*.065),1);
-  h.glowingBrim.scale.setScalar(1+pulse*.025);
  }
  function animateWearable(t,active){
   wearable.visible=active;
