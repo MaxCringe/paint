@@ -23,11 +23,19 @@
    </div>
   </div>
  </div>
- <div id="audio-controls" aria-label="Настройки звуков игры">
-  <button id="sound-toggle" type="button" title="Включить или выключить звук" aria-label="Выключить звук">🔊</button>
-  <button id="sound-bats-test" type="button" title="Послушать взлёт летучих мышей" aria-label="Проверить звук летучих мышей">🦇</button>
-  <input id="sound-volume" type="range" min="0" max="100" step="1" value="35" aria-label="Громкость эффектов">
-  <span id="sound-volume-value">35%</span>
+ <div id="audio-controls" aria-label="Настройки музыки и звуков игры">
+  <div class="audio-control-row">
+   <button id="sound-toggle" type="button" title="Включить или выключить игровые звуки" aria-label="Выключить игровые звуки">🔊</button>
+   <button id="sound-bats-test" type="button" title="Послушать взлёт летучих мышей" aria-label="Проверить звук летучих мышей">🦇</button>
+   <input id="sound-volume" type="range" min="0" max="100" step="1" value="35" aria-label="Громкость эффектов">
+   <span id="sound-volume-value">35%</span>
+  </div>
+  <div class="audio-control-row">
+   <button id="music-toggle" type="button" title="Включить или выключить музыку" aria-label="Выключить музыку">🎵</button>
+   <span class="audio-row-label">МУЗЫКА</span>
+   <input id="music-volume" type="range" min="0" max="100" step="1" value="30" aria-label="Громкость музыки">
+   <span id="music-volume-value">30%</span>
+  </div>
  </div>
  <div id="toast">+ COIN</div>
  <section id="center">
