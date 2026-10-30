@@ -1,203 +1,196 @@
 import * as THREE from 'three';
 
-// Independent atmospheric layer. Switch this off to remove ALL meteor effects.
+// Independent, lightweight distant meteor shower. Set to false to switch it off.
+// No impacts in the forest, no burning trees, and no gameplay collisions.
 export const METEOR_ECOSYSTEM_ENABLED = true;
 
-export function createMeteorEcosystem(scene, roadsideVegetation, {
+export function createMeteorEcosystem(scene, _roadsideVegetation, {
  enabled=METEOR_ECOSYSTEM_ENABLED,
  mobile=typeof window!=='undefined'&&window.innerWidth<720
 }={}){
  if(!enabled)return {update(){},reset(){},dispose(){},active:[]};
  const rand=(a,b)=>a+Math.random()*(b-a);
- const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
- const trees=roadsideVegetation.filter(g=>g.children.some(c=>c.geometry?.type==='ConeGeometry'));
- const events=[],impacts=[],burns=[];
- const yAxis=new THREE.Vector3(0,1,0),direction=new THREE.Vector3(),pos=new THREE.Vector3();
- const start=new THREE.Vector3(),end=new THREE.Vector3();
- // Shared low-poly geometry / unlit materials. No lights, shadows or heavy particles.
- const rockGeo=new THREE.IcosahedronGeometry(.50,0);
- const glowGeo=new THREE.SphereGeometry(.82,8,6);
- const trailGeo=new THREE.CylinderGeometry(.018,.29,1,7,1);
- const sparkGeo=new THREE.IcosahedronGeometry(.10,0);
- const ringGeo=new THREE.TorusGeometry(1,.085,4,22);
- const craterGeo=new THREE.CircleGeometry(.87,15);
- const flameGeo=new THREE.BufferGeometry();
- flameGeo.setAttribute('position',new THREE.Float32BufferAttribute([
-   -.22,0,0,.18,0,0,-.01,1.05,0,
-   -.07,.30,.005,.24,.20,.005,.08,.80,.005,
-   -.18,.05,.002,.12,.06,.002,.04,.58,.002
- ],3));
- flameGeo.computeVertexNormals();
- const hot=new THREE.MeshBasicMaterial({color:0xffbd35,toneMapped:false,fog:false});
- const halo=new THREE.MeshBasicMaterial({color:0xff4910,transparent:true,opacity:.39,depthWrite:false,toneMapped:false,fog:false});
- const tailMat=new THREE.MeshBasicMaterial({color:0xff6013,transparent:true,opacity:.93,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false});
- const emberMat=new THREE.MeshBasicMaterial({color:0xffed91,toneMapped:false,fog:false});
- const ringMat=new THREE.MeshBasicMaterial({color:0xff6b1b,transparent:true,opacity:.8,depthWrite:false,toneMapped:false,fog:false});
- const scarMat=new THREE.MeshBasicMaterial({color:0x291410,transparent:true,opacity:.67,depthWrite:false,side:THREE.DoubleSide,fog:false});
- const fireMats=[
-  new THREE.MeshBasicMaterial({color:0xff420c,transparent:true,opacity:.83,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false}),
-  new THREE.MeshBasicMaterial({color:0xffab23,transparent:true,opacity:.88,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false})
- ];
- // Show an early preview in the first run; later meteors are uncommon.
- let skyClock=rand(2.2,3.8),landClock=rand(7.5,10.5),time=0;
- const maxEvents=mobile?1:2;
- function makeGroup(){const g=new THREE.Group();scene.add(g);return g}
- function meteor(type,targetTree=null){
-  if(events.length>=maxEvents)return;
-  const group=makeGroup(),ground=type==='ground';
-  if(ground){
-   const side=Math.random()<.5?-1:1;
-   const x=targetTree?targetTree.position.x+rand(-.5,.5):side*rand(6.1,mobile?9.2:11.2);
-   const z=targetTree?targetTree.position.z+rand(-.5,.5):rand(-42,-22);
-   group.position.set(x,0,z);
-   start.set(rand(-11,11),rand(14,20),-rand(3,8));
-   end.set(0,.55,0);
-  }else{
-   group.position.set(0,0,0);
-   // Keep the entire path in the sky above mountains, but INSIDE the camera view.
-   // The old 31-39-unit height placed meteors above the screen.
-   const side=Math.random()<.5?-1:1;
-   start.set(side*rand(mobile?6:11,mobile?9:20),rand(19,22),-63);
-   end.set(-side*rand(mobile?4:6,mobile?7:10),rand(12,14.5),-63);
-  }
-  const core=new THREE.Mesh(rockGeo,hot),aura=new THREE.Mesh(glowGeo,halo);
-  const trail=new THREE.Mesh(trailGeo,tailMat);
-  // More legible at distance, while using the same few cheap shared meshes.
-  const size=ground?1.5:2.4;
-  core.scale.setScalar(size);aura.scale.setScalar(size*1.2);
-  const sparks=[];
-  group.add(trail,core,aura);
-  for(let i=0;i<3;i++){
-   const p=new THREE.Mesh(sparkGeo,emberMat);
-   p.scale.setScalar(1-i*.2);
-   group.add(p);sparks.push(p);
-  }
-  const length=ground?rand(1.8,2.5):rand(1.9,2.9);
-  events.push({type,group,start:start.clone(),end:end.clone(),core,aura,trail,sparks,
-   age:0,duration:length,landTree:targetTree,size});
- }
- function spawnGround(){
-  // Only hit grass or forest OUTSIDE the road; never spawn a new gameplay hazard.
-  const available=trees.filter(t=>Math.abs(t.position.x)<14&&t.position.z< -21&&
-   t.position.z> -50&&!burns.some(b=>b.tree===t));
-  const hitForest=Math.random()<.65&&available.length>0;
-  meteor('ground',hitForest?available[(Math.random()*available.length)|0]:null);
- }
- function ignite(tree){
-  if(!tree||burns.some(b=>b.tree===tree))return;
-  const flames=new THREE.Group();
-  tree.add(flames);
-  const meshes=[];
-  for(let i=0;i<(mobile?3:4);i++){
-   const flame=new THREE.Mesh(flameGeo,fireMats[i%2]);
-   flame.position.set(rand(-.36,.36),.25+i*.54,rand(-.23,.23));
-   flame.rotation.y=i*1.73;
-   flame.scale.setScalar(rand(.58,1.0));
-   flames.add(flame);meshes.push({mesh:flame,base:flame.scale.x,phase:rand(0,Math.PI*2)});
-  }
-  burns.push({tree,flames,meshes,age:0,lifetime:rand(5.5,8),lastZ:tree.position.z});
- }
- function blast(e){
-  const g=e.group;
-  g.remove(e.core,e.aura,e.trail,...e.sparks);
-  // Expanding shock ring and a short-lived blackened patch in the grass.
-  const crater=new THREE.Mesh(craterGeo,scarMat);
-  crater.rotation.x=-Math.PI/2;crater.position.y=-.055;g.add(crater);
-  const ring=new THREE.Mesh(ringGeo,ringMat);
-  ring.rotation.x=-Math.PI/2;ring.position.y=.04;g.add(ring);
-  const embers=[];
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const meteors=[],flashes=[],UP=new THREE.Vector3(0,1,0);
+ const rockGeo=new THREE.IcosahedronGeometry(.68,1);
+ const plasmaGeo=new THREE.IcosahedronGeometry(.85,1);
+ const hotGeo=new THREE.SphereGeometry(.35,8,6);
+ const coneGeo=new THREE.CylinderGeometry(.01,.40,1,9,1);
+ const sparkGeo=new THREE.IcosahedronGeometry(.09,0);
+ const ringGeo=new THREE.TorusGeometry(1,.095,5,24);
+ const smokeCanvas=document.createElement('canvas');
+ smokeCanvas.width=64;smokeCanvas.height=64;
+ const ctx=smokeCanvas.getContext('2d');
+ const grad=ctx.createRadialGradient(32,32,2,32,32,31);
+ grad.addColorStop(0,'rgba(255,255,255,.76)');
+ grad.addColorStop(.38,'rgba(255,255,255,.48)');
+ grad.addColorStop(.78,'rgba(255,255,255,.15)');
+ grad.addColorStop(1,'rgba(255,255,255,0)');
+ ctx.fillStyle=grad;ctx.fillRect(0,0,64,64);
+ const smokeTexture=new THREE.CanvasTexture(smokeCanvas);
+ smokeTexture.colorSpace=THREE.SRGBColorSpace;
+ const rockMat=new THREE.MeshStandardMaterial({
+  color:0x302322,emissive:0x8e2a08,emissiveIntensity:.67,
+  flatShading:true,roughness:1,fog:false
+ });
+ const plasmaMat=new THREE.MeshBasicMaterial({
+  color:0xff5410,transparent:true,opacity:.37,
+  depthWrite:false,fog:false,toneMapped:false
+ });
+ const whiteHotMat=new THREE.MeshBasicMaterial({color:0xfff1b2,fog:false,toneMapped:false});
+ const fireMat=new THREE.MeshBasicMaterial({
+  color:0xff5812,transparent:true,opacity:.76,depthWrite:false,
+  side:THREE.DoubleSide,fog:false,toneMapped:false
+ });
+ const fireCoreMat=new THREE.MeshBasicMaterial({
+  color:0xffcb53,transparent:true,opacity:.94,depthWrite:false,
+  side:THREE.DoubleSide,fog:false,toneMapped:false
+ });
+ const sparkMat=new THREE.MeshBasicMaterial({color:0xffd77a,fog:false,toneMapped:false});
+ const flashMat=new THREE.MeshBasicMaterial({
+  color:0xff9f2c,transparent:true,opacity:.72,depthWrite:false,
+  fog:false,toneMapped:false,depthTest:false
+ });
+ const ringMat=new THREE.MeshBasicMaterial({
+  color:0xff5d1c,transparent:true,opacity:.8,depthWrite:false,
+  fog:false,toneMapped:false,depthTest:false
+ });
+ const ringAxis=new THREE.Vector3(0,1,0);
+ const tailVector=new THREE.Vector3();
+ const p=new THREE.Vector3();
+ let nextMeteor=rand(2.4,3.7),elapsed=0;
+ function spawn(){
+  // Every meteor starts in the visible sky and continues all the way
+  // down to the remote horizon. There are no close-range forest strikes.
+  const side=Math.random()<.5?-1:1;
+  const group=new THREE.Group();scene.add(group);
+  const from=new THREE.Vector3(side*rand(mobile?9:12,mobile?14:20),rand(18,22),-67);
+  const to=new THREE.Vector3(side*rand(mobile?3.8:5,mobile?8:12),.65,-67);
+  const trajectory=to.clone().sub(from).normalize();
+  const backwards=trajectory.clone().negate();
+  const rock=new THREE.Mesh(rockGeo,rockMat);
+  rock.scale.set(1.06,.92,.95);
+  const plasma=new THREE.Mesh(plasmaGeo,plasmaMat);
+  plasma.scale.set(1.27,1.17,1.18);
+  const bright=new THREE.Mesh(hotGeo,whiteHotMat);
+  const outer=new THREE.Mesh(coneGeo,fireMat),inner=new THREE.Mesh(coneGeo,fireCoreMat);
+  group.add(outer,inner,plasma,rock,bright);
+  const particles=[];
   for(let i=0;i<4;i++){
-   const m=new THREE.Mesh(sparkGeo,emberMat);
-   const a=i*Math.PI/2+rand(-.25,.25);
-   m.position.set(Math.cos(a)*rand(.3,.75),rand(.2,.8),Math.sin(a)*rand(.3,.75));
-   g.add(m);embers.push({mesh:m,v:rand(.4,1),phase:rand(0,6.28)});
+   const m=new THREE.Mesh(sparkGeo,sparkMat);
+   group.add(m);
+   particles.push({mesh:m,offset:rand(.5,3.5),phase:rand(0,Math.PI*2)});
   }
-  impacts.push({group:g,ring,crater,embers,age:0,lifetime:3.7});
-  // Set fire only to genuine pine models near a forest landing.
-  if(e.landTree){
-   for(const tree of trees){
-    if(Math.abs(tree.position.x-g.position.x)<2.7&&
-       Math.abs(tree.position.z-g.position.z)<3.2&&
-       !burns.some(b=>b.tree===tree)){
-     ignite(tree);
-     if(burns.length>=3)break;
-    }
-   }
-  }
- }
- function removeGroup(g){g.parent?.remove(g)}
- function reset(){
-  for(const e of events)removeGroup(e.group);
-  for(const e of impacts)removeGroup(e.group);
-  for(const b of burns)b.tree.remove(b.flames);
-  events.length=0;impacts.length=0;burns.length=0;
-  skyClock=rand(2.2,3.8);landClock=rand(7.5,10.5);time=0;
- }
- function update(dt,{playing=false,speed=0}={}){
-  if(!playing||dt<=0)return;
-  dt=clamp(dt,0,.04);time+=dt;
-  skyClock-=dt;landClock-=dt;
-  if(skyClock<=0){
-   if(events.length<maxEvents)meteor('sky');
-   skyClock=rand(14,22);
-  }
-  if(landClock<=0){
-   if(events.length<maxEvents)spawnGround();
-   landClock=rand(24,35);
-  }
-  for(let i=events.length-1;i>=0;i--){
-   const e=events[i];e.age+=dt;
-   if(e.type==='ground')e.group.position.z+=speed*dt;
-   const p=clamp(e.age/e.duration,0,1);
-   const travel=e.type==='ground'?p*p*(3-2*p):p;
-   pos.lerpVectors(e.start,e.end,travel);
-   e.core.position.copy(pos);
-   e.aura.position.copy(pos);
-   const pulse=1+.14*Math.sin(time*19+i*2);
-   e.aura.scale.setScalar(e.size*1.2*pulse);
-   direction.subVectors(e.start,e.end).normalize();
-   const tailLength=e.type==='ground'?5.5:8.5;
-   e.trail.position.copy(pos).addScaledVector(direction,tailLength*.5);
-   e.trail.quaternion.setFromUnitVectors(yAxis,direction);
-   e.trail.scale.set(e.size,tailLength,e.size);
-   e.sparks.forEach((s,k)=>s.position.copy(pos).addScaledVector(direction,.7+k*.76));
-   if(p>=1){
-    events.splice(i,1);
-    if(e.type==='ground')blast(e);
-    else removeGroup(e.group);
-   }
-  }
-  for(let i=impacts.length-1;i>=0;i--){
-   const e=impacts[i];
-   e.age+=dt;e.group.position.z+=speed*dt;
-   const p=clamp(e.age/e.lifetime,0,1);
-   e.ring.scale.setScalar(.2+p*2.4);
-   e.ring.material=ringMat;
-   e.crater.scale.setScalar(.85+p*.4);
-   e.embers.forEach(s=>{
-    s.mesh.position.y+=dt*s.v;
-    s.mesh.scale.setScalar(Math.max(.001,1-p));
+  const smoke=[];
+  for(let i=0;i<5;i++){
+   const mat=new THREE.SpriteMaterial({
+    map:smokeTexture,color:i%2?0x4c3130:0x382e32,
+    transparent:true,opacity:.19,depthWrite:false,fog:false
    });
-   if(p>=1){removeGroup(e.group);impacts.splice(i,1);}
+   const sprite=new THREE.Sprite(mat);
+   group.add(sprite);
+   smoke.push({sprite,mat,phase:rand(0,Math.PI*2),width:rand(1.45,2.3)});
   }
-  for(let i=burns.length-1;i>=0;i--){
-   const b=burns[i];b.age+=dt;
-   const recycled=b.tree.position.z<b.lastZ-25;
-   b.lastZ=b.tree.position.z;
-   const fade=clamp((b.lifetime-b.age)/1.7,0,1);
-   for(const f of b.meshes){
-    const pulse=.84+Math.sin(time*13+f.phase)*.17;
-    f.mesh.scale.set(f.base*pulse*fade,f.base*(.9+pulse*.3)*fade,f.base);
-   }
-   if(recycled||b.age>=b.lifetime){
-    b.tree.remove(b.flames);burns.splice(i,1);
+  const e={group,from,to,trajectory,backwards,rock,plasma,bright,
+   outer,inner,particles,smoke,age:0,duration:rand(2.65,3.4),
+   phase:rand(0,Math.PI*2)};
+  meteors.push(e);
+  animateMeteor(e,0);
+ }
+ function animateMeteor(e,dt){
+  const t=clamp(e.age/e.duration,0,1);
+  // Quadratic fall: an accelerating trajectory rather than a straight,
+  // constant-speed streak that abruptly stops in mid-air.
+  const fall=t*t*(1.3-.3*t);
+  p.lerpVectors(e.from,e.to,fall);
+  p.x+=Math.sin(t*Math.PI)*.32*Math.sin(e.phase);
+  e.rock.position.copy(p);
+  e.rock.rotation.x+=dt*2.3;
+  e.rock.rotation.z+=dt*1.4;
+  e.plasma.position.copy(p);
+  e.plasma.scale.setScalar(1.06+.16*Math.sin(elapsed*17+e.phase));
+  e.bright.position.copy(p).addScaledVector(e.trajectory,.53);
+  e.bright.scale.setScalar(.94+.11*Math.sin(elapsed*23+e.phase));
+  for(const [idx,trail] of [e.outer,e.inner].entries()){
+   const length=idx===0?7.4:4.4;
+   trail.position.copy(p).addScaledVector(e.backwards,length*.50);
+   trail.quaternion.setFromUnitVectors(UP,e.backwards);
+   const width=(idx===0?1.34:.60)*(1+.11*Math.sin(elapsed*15+e.phase));
+   trail.scale.set(width,length,width);
+  }
+  e.particles.forEach((item,i)=>{
+   const drift=Math.sin(elapsed*11+item.phase)*(.14+i*.04);
+   item.mesh.position.copy(p).addScaledVector(e.backwards,item.offset+drift);
+   item.mesh.position.x+=Math.sin(elapsed*9+item.phase)*.23;
+   item.mesh.scale.setScalar(.8+.35*Math.sin(elapsed*12+item.phase)**2);
+  });
+  e.smoke.forEach((item,i)=>{
+   const distance=2.3+i*1.76;
+   item.sprite.position.copy(p).addScaledVector(e.backwards,distance);
+   item.sprite.position.x+=Math.sin(elapsed*3.5+item.phase)*.30;
+   const scale=item.width*(1+i*.21);
+   item.sprite.scale.set(scale,scale,1);
+   item.mat.opacity=.19*(1-i*.11)*(.87+.13*Math.sin(elapsed*5+item.phase));
+  });
+ }
+ function release(e){
+  e.group.parent?.remove(e.group);
+  e.smoke.forEach(x=>x.mat.dispose());
+ }
+ function land(e){
+  // Short distant glow marks the actual arrival at ground/horizon.
+  // No forest fire, scorched pines, or near-road meteor objects.
+  const group=new THREE.Group();
+  group.position.copy(e.to);
+  scene.add(group);
+  const light=new THREE.Mesh(hotGeo,flashMat);
+  light.position.y=.65;
+  light.scale.setScalar(3.0);
+  group.add(light);
+  const ring=new THREE.Mesh(ringGeo,ringMat);
+  ring.rotation.x=Math.PI/2;
+  ring.position.y=.12;
+  group.add(ring);
+  flashes.push({group,light,ring,age:0,duration:.85});
+ }
+ function update(dt,{playing=false}={}){
+  if(!playing||dt<=0)return;
+  dt=clamp(dt,0,.04);
+  elapsed+=dt;nextMeteor-=dt;
+  if(nextMeteor<=0){
+   if(meteors.length===0)spawn();
+   nextMeteor=rand(14,23);
+  }
+  for(let i=meteors.length-1;i>=0;i--){
+   const e=meteors[i];e.age+=dt;
+   animateMeteor(e,dt);
+   if(e.age>=e.duration){
+    // Impact only after the fireball reaches its final ground point.
+    animateMeteor(e,0);
+    land(e);
+    release(e);
+    meteors.splice(i,1);
    }
   }
+  for(let i=flashes.length-1;i>=0;i--){
+   const f=flashes[i];f.age+=dt;
+   const progress=clamp(f.age/f.duration,0,1);
+   f.light.scale.setScalar((2.7+progress*1.9)*(1-progress*.86));
+   f.ring.scale.setScalar(.4+progress*2.7);
+   if(progress>=1){f.group.parent?.remove(f.group);flashes.splice(i,1);}
+  }
+ }
+ function reset(){
+  meteors.forEach(release);
+  flashes.forEach(f=>f.group.parent?.remove(f.group));
+  meteors.length=0;flashes.length=0;
+  nextMeteor=rand(2.4,3.7);elapsed=0;
  }
  function dispose(){
   reset();
-  for(const g of [rockGeo,glowGeo,trailGeo,sparkGeo,ringGeo,craterGeo,flameGeo])g.dispose();
-  for(const m of [hot,halo,tailMat,emberMat,ringMat,scarMat,...fireMats])m.dispose();
+  for(const geo of [rockGeo,plasmaGeo,hotGeo,coneGeo,sparkGeo,ringGeo])geo.dispose();
+  smokeTexture.dispose();
+  for(const mat of [rockMat,plasmaMat,whiteHotMat,fireMat,fireCoreMat,sparkMat,flashMat,ringMat])mat.dispose();
  }
- return {update,reset,dispose,active:events};
+ return {update,reset,dispose,active:meteors};
 }
