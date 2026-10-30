@@ -155,6 +155,84 @@ export function createLavaRiverFactory(scene, obstacles) {
     }
    }
    const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));rg.setAttribute('color',new THREE.Float32BufferAttribute(rc,3));rg.setIndex(ri);rg.computeVertexNormals();rg.computeBoundingSphere();const rockMesh=new THREE.Mesh(rg,lavaRockMat);rockMesh.renderOrder=5;g.add(rockMesh);
+   // Raised obsidian / cooled-basalt banks along BOTH winding lava edges.
+   // One merged, faceted 3D mesh per river: no extra objects in the render loop.
+   // Keep its inner edge just over the molten surface, leaving the flowing core visible.
+   const basaltPositions=[],basaltColors=[];
+   const basaltShades=[
+    new THREE.Color(0x100e10),new THREE.Color(0x181516),
+    new THREE.Color(0x211d1e),new THREE.Color(0x2b2525),
+    new THREE.Color(0x36302e),new THREE.Color(0x433431)
+   ];
+   const basaltSeam=new THREE.Color(0x552116);
+   function basaltTriangle(a,b,c,tint){
+    const color=tint;
+    for(const p of [a,b,c]){
+     basaltPositions.push(p[0],p[1],p[2]);
+     basaltColors.push(color.r,color.g,color.b);
+    }
+   }
+   const basaltSteps=450,basaltOffsets=[-.09,.035,.19,.40,.68];
+   for(const side of [-1,1]){
+    let prior=null;
+    for(let i=0;i<=basaltSteps;i++){
+     const x=-110+220*i/basaltSteps;
+     const edge=center(x)+noise(x)+side*half(x);
+     const chip=.035*Math.sin(x*4.6+phase*1.7)+.018*Math.sin(x*10.3-phase);
+     const rough=.5+.5*Math.sin(x*13.1+side*2.6+phase);
+     const heights=[-.017,.055+rough*.025,.115+rough*.050,
+      .072+.025*Math.sin(x*7.9+phase*3),-.027];
+     const section=basaltOffsets.map((offset,j)=>[
+      x,heights[j],edge+side*(offset+chip*(j===0?.5:j===4?1.5:1))
+     ]);
+     if(prior){
+      for(let j=0;j<basaltOffsets.length-1;j++){
+       const a=prior[j],b=section[j],c=prior[j+1],d=section[j+1];
+       const shade=basaltShades[(i*7+j*3+Math.floor(rough*3))%basaltShades.length];
+       const nextShade=basaltShades[(i*5+j*2+2)%basaltShades.length];
+       basaltTriangle(a,b,c,shade);
+       basaltTriangle(b,d,c,nextShade);
+      }
+      // Visible vertical chipped faces, not just a flat dark outline.
+      for(const j of [0,basaltOffsets.length-1]){
+       const a=prior[j],b=section[j],dropY=-.058;
+       basaltTriangle(a,b,[a[0],dropY,a[2]],basaltShades[0]);
+       basaltTriangle(b,[b[0],dropY,b[2]],[a[0],dropY,a[2]],basaltShades[1]);
+      }
+     }
+     // Angular basalt plates stand proud of the bank in small uneven clusters.
+     if(i>2&&i<basaltSteps-2&&i%5===0){
+      const z=edge+side*(.20+chip*.35),baseY=.12+rough*.032;
+      const s=.10+.05*Math.sin(i*2.23+phase)**2;
+      const left=[x-s,baseY-.025,z-side*.075];
+      const right=[x+s,baseY-.022,z+side*.045];
+      const back=[x+.03,baseY-.035,z+side*.13];
+      const peak=[x-.015,baseY+.03+.045*rough,z];
+      const tone=basaltShades[(i+3)%basaltShades.length];
+      basaltTriangle(left,right,peak,tone);
+      basaltTriangle(right,back,peak,basaltShades[(i+4)%basaltShades.length]);
+      basaltTriangle(back,left,peak,basaltShades[(i+1)%basaltShades.length]);
+     }
+     // A few narrow rust-red fractures hint at heat under the black crust.
+     if(i>3&&i<basaltSteps-3&&i%19===0){
+      const z=edge+side*(.19+chip),y=heights[2]+.012;
+      basaltTriangle([x-.065,y,z-side*.025],[x+.095,y,z+side*.033],
+       [x+.155,y-.009,z+side*.045],basaltSeam);
+     }
+     prior=section;
+    }
+   }
+   const basaltGeo=new THREE.BufferGeometry();
+   basaltGeo.setAttribute('position',new THREE.Float32BufferAttribute(basaltPositions,3));
+   basaltGeo.setAttribute('color',new THREE.Float32BufferAttribute(basaltColors,3));
+   basaltGeo.computeVertexNormals();
+   basaltGeo.computeBoundingSphere();
+   const basaltMat=new THREE.MeshStandardMaterial({
+    vertexColors:true,roughness:.99,metalness:.02,flatShading:true,
+    side:THREE.DoubleSide
+   });
+   const basaltBank=new THREE.Mesh(basaltGeo,basaltMat);
+   basaltBank.renderOrder=5.4;g.add(basaltBank);
    // The hot lava scorches the pine decking only where each riverbank touches it.
    // The charred strips and small flames are attached to the river, not the road's long outer edges.
    const burnPos=[],burnCol=[],burnIdx=[],burnColors=[0xff4b10,0xc43a12,0x74301d,0x3b211a,0x241714],burnSteps=64,burnRows=burnColors.length;
