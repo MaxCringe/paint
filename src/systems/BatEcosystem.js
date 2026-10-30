@@ -4,6 +4,7 @@ import * as THREE from 'three';
 // Colonies sit near the forest's recycled pines and are spaced along the route.
 export function createBatEcosystem(scene, options={}) {
  const mobile=options.mobile ?? (typeof window!=='undefined'&&window.innerWidth<720);
+ const onFlee=typeof options.onFlee==='function'?options.onFlee:null;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const rand=(a,b)=>a+Math.random()*(b-a);
  const habitats=[
@@ -86,7 +87,7 @@ export function createBatEcosystem(scene, options={}) {
   b.escapeBack=rand(1.8,4);
  }
  function resetColony(g,z=g.homeZ){
-  g.z=z;g.alarmed=false;g.alertAge=0;
+  g.z=z;g.alarmed=false;g.alertAge=0;g.fleeSoundPlayed=false;
   g.bats.forEach(resetBat);
  }
  for(const h of habitats){
@@ -141,6 +142,11 @@ export function createBatEcosystem(scene, options={}) {
   for(const b of bats){
    const g=b.colony;
    const departing=g.alarmed&&g.alertAge>b.fearDelay;
+   // Play one short wing-flutter burst when the first startled bat actually lifts off.
+   if(playing&&departing&&g.kind==='forest'&&!g.fleeSoundPlayed){
+    g.fleeSoundPlayed=true;
+    onFlee?.({x:g.x,z:g.z,count:g.bats.length});
+   }
    // Independent daily routines. Only frightened bats share the flock's alarm.
    if(!g.alarmed&&g.kind==='forest'){
     b.actionTime-=dt;
