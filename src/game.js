@@ -263,23 +263,33 @@ function frame(t){requestAnimationFrame(frame);
    hats.splice(i,1);
   }
   for(const c of coins){
-   c.g.position.z+=speed*dt;
-   // Only souls in Fiona's current lane can move; adjacent lanes stay untouched.
-   const nearZ=runner.position.z-c.g.position.z;
-   if(magnetTime>0&&c.lane===lane&&
-      Math.abs(runner.position.x-(lane-1)*2.55)<.85&&
-      nearZ>-.35&&nearZ<5.4){
-    const pull=1-Math.exp(-dt*6.5);
-    c.g.position.z+=(runner.position.z-c.g.position.z)*pull;
-    c.g.position.x+=(runner.position.x-c.g.position.x)*pull;
-    c.magnetBlend=Math.min(1,(c.magnetBlend||0)+dt*9);
-   }else c.magnetBlend=Math.max(0,(c.magnetBlend||0)-dt*9);
    const phase=c.phase||c.z*.2;
+   // While the hat is worn, attract souls from ALL three lanes.
+   // Once a soul begins flying it completes its journey even if the timer runs out.
+   const ahead=runner.position.z-c.g.position.z;
+   if(magnetTime>0&&!c.magnetFlight&&ahead>-.9&&ahead<11.5){
+    c.magnetFlight=true;
+    c.magnetProgress=0;
+   }
+   if(c.magnetFlight){
+    // Detach the collected flame from the scrolling road so it can glide inward
+    // rather than rushing past Fiona before completing its sideways flight.
+    c.magnetProgress=Math.min(1,(c.magnetProgress||0)+dt*1.55);
+    const arc=Math.sin(Math.PI*c.magnetProgress);
+    const easing=1-Math.exp(-dt*(3.4+c.magnetProgress*3.5));
+    const sway=Math.sin(t*.006+phase)*.23*arc;
+    c.g.position.x+=(runner.position.x+sway-c.g.position.x)*easing;
+    c.g.position.z+=(runner.position.z+.08-c.g.position.z)*easing;
+    c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.11+arc*.85;
+   }else{
+    c.g.position.z+=speed*dt;
+    c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14;
+   }
    c.g.rotation.y=Math.sin(t*.0018+phase)*.62;
    c.g.rotation.z=Math.sin(t*.003+phase)*.07;
    const soulPulse=1+Math.sin(t*.006+phase)*.045;
    c.g.scale.set(soulPulse,soulPulse,soulPulse);
-   c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14+(c.magnetBlend||0)*.22;
+
    for(let i=0;i<c.flames.length;i++){
     const flame=c.flames[i];
     animateSoulFlame(flame,t,phase+i*1.7,i===1?.65:1);
@@ -292,7 +302,11 @@ function frame(t){requestAnimationFrame(frame);
     spark.mesh.rotation.x+=dt*2.3;
     spark.mesh.rotation.y+=dt*1.7;
    });
-   if(!c.g.userData.got&&c.g.position.z>1.0&&c.g.position.z<3.7&&c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1){
+   const closeToFiona=Math.hypot(c.g.position.x-runner.position.x,c.g.position.z-runner.position.z);
+   const magnetCaught=c.magnetFlight&&c.magnetProgress>.25&&closeToFiona<.65;
+   const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
+    c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
+   if(!c.g.userData.got&&(magnetCaught||normalCaught)){
     c.g.userData.got=true;coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
    }
   }
