@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 
 // Strengths in percent; disable WIND_ENABLED to return to static vegetation.
-// V2: visible canopy sway and directional low-frequency gusts with no new draw calls.
+// V3: restrained ambient movement to reduce visual discomfort during running.
 export const WIND_ENABLED=true;
 export const WIND_PERCENT=Object.freeze({
- steady:60,
- gusts:72,
- pines:75,
- ferns:75,
- grass:80,
- ash:35
+ steady:40,
+ gusts:30,
+ pines:35,
+ ferns:35,
+ grass:42,
+ ash:20
 });
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
 const pct=n=>clamp(n,0,100)/100;
@@ -17,7 +17,7 @@ const pct=n=>clamp(n,0,100)/100;
 // GPU bending affects the outer parts of each fern or grass blade; the roots stay planted.
 function attachWindShader(material,kind,uniforms){
  if(!material)return;
- const amplitude=kind==='grass'?.35*pct(WIND_PERCENT.grass):.75*pct(WIND_PERCENT.ferns);
+ const amplitude=kind==='grass'?.30*pct(WIND_PERCENT.grass):.65*pct(WIND_PERCENT.ferns);
  const weight=kind==='grass'
   ?'pow(clamp(position.y / .35, 0.0, 1.0), 1.6)'
   :'pow(clamp(length(position.xz) / 1.05, 0.0, 1.0), 1.7)';
@@ -30,10 +30,10 @@ function attachWindShader(material,kind,uniforms){
    'vec3 kpWorld=(modelMatrix*vec4(position,1.0)).xyz;',
    'vec3 kpDirection=vec3(kpWindDirection.x,0.0,kpWindDirection.y);',
    'vec2 kpLocalDirection=normalize(vec2(dot(modelMatrix[0].xyz,kpDirection),dot(modelMatrix[2].xyz,kpDirection)));',
-   'float kpWave=sin(kpWindTime*1.15+kpWorld.z*.085+kpWorld.x*.21);',
+   'float kpWave=sin(kpWindTime*.80+kpWorld.z*.085+kpWorld.x*.21);',
    'float kpGust=pow(max(0.0,sin(kpWindTime*.43+kpWorld.z*.048-kpWorld.x*.08)),2.0);',
    'float kpWeight='+weight+';',
-   'float kpBend=kpWindStrength*'+amplitude.toFixed(3)+'*kpWeight*(.08+.68*kpWave+.24*kpGust);',
+   'float kpBend=kpWindStrength*'+amplitude.toFixed(3)+'*kpWeight*(.12+.55*kpWave+.20*kpGust);',
    'transformed.x+=kpLocalDirection.x*kpBend;',
    'transformed.z+=kpLocalDirection.y*kpBend;'
   ].join('\n'));
@@ -92,14 +92,14 @@ export function createWindSystem(roadsideVegetation){
   uniforms.kpWindTime.value=time;
   uniforms.kpWindStrength.value=force;
   // Heavy trees follow a damped spring instead of the quick blade motion.
-  const spring=26,damping=Math.exp(-7*dt);
+  const spring=20,damping=Math.exp(-9*dt);
   for(const pine of pines){
    const {plant,phase,flexibility}=pine;
    const travelling=Math.max(0,Math.sin(time*.60+phase+plant.position.z*.024));
    const localForce=steady+gusts*(.18+.82*travelling*travelling);
    // Lean downwind and rebound past the neutral position, without exceeding 10 degrees.
-   const sway=.45+.55*Math.sin(time*.88+phase*.55);
-   const bend=clamp(.28*pct(p.pines)*flexibility*localForce*sway,-.18,.18);
+   const sway=.55+.45*Math.sin(time*.58+phase*.55);
+   const bend=clamp(.22*pct(p.pines)*flexibility*localForce*sway,-.07,.07);
    const targetX=pine.baseX+direction.y*bend;
    const targetZ=pine.baseZ-direction.x*bend;
    pine.velocityX=(pine.velocityX+(targetX-plant.rotation.x)*spring*dt)*damping;
