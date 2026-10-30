@@ -1,5 +1,6 @@
-// CC0 sample-based sound effects. One replaceable .ogg file per game event.
-// No oscillator/chiptune generation. Adjust per-event volume/filters below.
+// Sample-based game SFX. Most clips are locally bundled CC0 OGG recordings.
+// Soul collection uses the Mixkit #883 clip from its official CDN under the Mixkit SFX license.
+// Do not redistribute the Mixkit audio as a standalone asset or source file.
 const VOLUME_KEY = 'knottyPineSfxVolume';
 const MUTE_KEY = 'knottyPineSfxMuted';
 const clamp = value => Math.max(0, Math.min(1, Number(value) || 0));
@@ -8,7 +9,7 @@ const EFFECTS = {
   move:     {file:'move.ogg',gain:.25,rate:1.05,cutoff:3800,gap:95,jitter:.06},
   jump:     {file:'jump.ogg',gain:.43,rate:.83,cutoff:4400,gap:180},
   slide:    {file:'slide.ogg',gain:.35,rate:.85,cutoff:2200,gap:180},
-  soul:     {file:'soul.ogg',gain:.30,rate:1.1,cutoff:4700,gap:85,echo:.10},
+  soul:     {remote:'https://assets.mixkit.co/active_storage/sfx/883/883-preview.mp3',gain:.74,gap:250},
   ultimate: {file:'ultimate.ogg',gain:.43,rate:.84,cutoff:2900,gap:1000,echo:.16},
   slip:     {file:'slip.ogg',gain:.38,rate:.72,cutoff:2400,gap:300},
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
@@ -28,6 +29,40 @@ export function createGameAudio() {
   const cache = new Map();
   const lastPlayed = new Map();
   let preloaded = false;
+  const soulVoices = [];
+  let soulVoiceIndex = 0;
+  function prepareSoulVoices() {
+    if (soulVoices.length || !window.Audio) return;
+    for (let i=0;i<2;i++) {
+      const voice = new Audio(EFFECTS.soul.remote);
+      voice.preload = 'auto';
+      voice.volume = muted ? 0 : Math.min(1,volume * EFFECTS.soul.gain);
+      soulVoices.push(voice);
+    }
+  }
+  function syncSoulVolume() {
+    const v = muted ? 0 : Math.min(1,volume * EFFECTS.soul.gain);
+    for (const voice of soulVoices) voice.volume = v;
+  }
+  function playSoul() {
+    prepareSoulVoices();
+    if (!soulVoices.length) return;
+    const voice = soulVoices[soulVoiceIndex++ % soulVoices.length];
+    const serial = (voice._knottySerial || 0) + 1;
+    voice._knottySerial = serial;
+    voice.pause();
+    try { voice.currentTime = 0; } catch {}
+    voice.playbackRate = 1;
+    voice.volume = Math.min(1,volume * EFFECTS.soul.gain);
+    // The recording's audible part is about a second; omit its long silent tail.
+    const playback = voice.play();
+    if (playback && typeof playback.catch === 'function') playback.catch(()=>{});
+    setTimeout(() => {
+      if (serial !== voice._knottySerial) return;
+      voice.pause();
+      try { voice.currentTime = 0; } catch {}
+    }, 1200);
+  }
 
   function read(file) {
     if (!context) return Promise.resolve(null);
@@ -60,7 +95,8 @@ export function createGameAudio() {
     if (!preloaded) {
       preloaded = true;
       // Start loading after the player's first gesture (also works on iPhone).
-      for (const {file} of Object.values(EFFECTS)) read(file);
+      for (const {file} of Object.values(EFFECTS)) if(file) read(file);
+      prepareSoulVoices();
     }
     return context;
   }
@@ -71,6 +107,7 @@ export function createGameAudio() {
     const stamp = performance.now();
     if (stamp - (lastPlayed.get(name) ?? -Infinity) < fx.gap) return;
     lastPlayed.set(name, stamp);
+    if (name === 'soul') { playSoul(); return; }
     read(fx.file).then(buffer => {
       if (!buffer || !context || !master || muted || volume <= 0) return;
       try {
@@ -113,11 +150,13 @@ export function createGameAudio() {
     try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch {}
     if (!muted) unlock();
     if (context && master) master.gain.setTargetAtTime(muted ? 0 : volume, context.currentTime, .015);
+    syncSoulVolume();
   }
   function setVolume(next) {
     volume = clamp(next);
     try { localStorage.setItem(VOLUME_KEY, String(volume)); } catch {}
     if (context && master) master.gain.setTargetAtTime(muted ? 0 : volume, context.currentTime, .015);
+    syncSoulVolume();
   }
   return { play, unlock, setMuted, setVolume, getMuted: () => muted, getVolume: () => volume };
 }
