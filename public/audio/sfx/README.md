@@ -15,7 +15,8 @@
 | `ultimate.ogg` | Ульта | Kenney Music Jingles — jingles_STEEL14.ogg |
 | `slip.ogg` | Скольжение по луже | Kenney RPG Audio — footstep09.ogg |
 | `hat.ogg` | Ведьмина шляпа | Kenney Interface Sounds — confirmation_001.ogg |
-| `death.ogg` | Поражение | Kenney Impact Sounds — impactMetal_heavy_001.ogg |
+| `death.ogg` | Поражение на других препятствиях | Kenney Impact Sounds — impactMetal_heavy_001.ogg |
+| `pine-body-impact-courtneyeck.mp3` | Удар Фионы телом о сучковатую сосну (≈2,05 с) | courtneyeck, Freesound 673424, Falling body hits the floor, CC0 |
 | `step.ogg` | Тихие шаги при беге | Kenney RPG Audio — footstep06.ogg |
 | `land.ogg` | Приземление | Kenney Impact Sounds — impactMining_002.ogg |
 | `rat-squeak-breviceps.mp3` | Писк крыс при испуге, один раз на стаю | Breviceps — Cartoon - Bat / Mouse Squeak (Freesound #445958), CC0 |
@@ -31,6 +32,7 @@
 - https://kenney.nl/assets/music-jingles
 - https://opengameart.org/content/80-cc0-rpg-sfx
 - https://creativecommons.org/publicdomain/zero/1.0/
+- https://freesound.org/people/courtneyeck/sounds/673424/
 - https://freesound.org/people/Breviceps/sounds/445958/
 - https://freesound.org/people/DigPro120/sounds/432639/
 - https://freesound.org/people/Cerise_Virtuelle/sounds/759529/

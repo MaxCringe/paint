@@ -14,6 +14,7 @@ const EFFECTS = {
   slip:     {file:'slip.ogg',gain:.38,rate:.72,cutoff:2400,gap:300},
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
+  treeHit:  {file:'pine-body-impact-courtneyeck.mp3',gain:1,rate:1,cutoff:5500,gap:500},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
   bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800},
