@@ -4,6 +4,7 @@ import { buildSoulFlameGeometry } from './souls/buildSoulFlameGeometry.js';
 import { animateSoulFlame } from './souls/animateSoulFlame.js';
 import { SOULS_PER_ULT, ULT_DURATION } from './config.js';
 import { createLavaRiverFactory } from './obstacles/LavaRiver.js';
+import { createFishFactory } from './obstacles/Fish.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createWorld } from './world/World.js';
@@ -86,7 +87,7 @@ function makePuddle(lane,z){
 
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
-function makeFish(lane,z){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);g.rotation.y=0;scene.add(g);const fishMat=new THREE.MeshStandardMaterial({color:0x777f89,roughness:.42,metalness:.22});const bellyMat=new THREE.MeshStandardMaterial({color:0xd0cec4,roughness:.58});const finMat=new THREE.MeshStandardMaterial({color:0x626b76,roughness:.55});const body=new THREE.Mesh(new THREE.SphereGeometry(.52,16,10),fishMat);body.scale.set(.78,.48,1.75);body.position.y=.19;body.rotation.x=-.04;g.add(body);const belly=new THREE.Mesh(new THREE.SphereGeometry(.39,14,8),bellyMat);belly.scale.set(.78,.24,1.48);belly.position.set(0,.075,-.04);g.add(belly);const tail=new THREE.Mesh(new THREE.ConeGeometry(.34,.66,5),fishMat);tail.rotation.x=Math.PI/2;tail.position.set(0,.19,1.02);g.add(tail);for(const side of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(.19,.43,4),finMat);fin.rotation.z=side*.8;fin.position.set(side*.34,.19,.13);g.add(fin);const eye=new THREE.Mesh(new THREE.SphereGeometry(.065,8,6),new THREE.MeshBasicMaterial({color:0x090b0e}));eye.position.set(side*.28,.32,-.55);g.add(eye)}obstacles.push({g,lane,type:'fish',z,passed:false})}
+const {makeFish,animateFishOdor}=createFishFactory(scene,obstacles);
 // Procedural 3D soul-flame geometry. No face, eyes, or coin-like ring.
 
 const makeSoul = createSoulFactory(scene, coins);
@@ -205,6 +206,7 @@ function frame(t){requestAnimationFrame(frame);
    o.g.position.z+=speed*dt;
    // During ultimate flight Fiona can pass over lava rivers and all ground hazards.
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
+   if(o.type==='fish')animateFishOdor(o.g,t);
    if(o.type==='lava'){
     if(!ultActive&&!o.passed){
      const half=o.g.userData.halfDepth||.88;
