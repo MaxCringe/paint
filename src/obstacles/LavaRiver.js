@@ -84,23 +84,12 @@ export function createLavaRiverFactory(scene, obstacles) {
   });
   const fireCardGeometry=new THREE.PlaneGeometry(1,1);
   function addLivingFlame(parent,x,groundY,z,width,height,phase){
-   const flame=new THREE.Mesh(fireCardGeometry,fireCardMaterial);
-   flame.scale.set(width,height,1);
-   flame.position.set(x,groundY+height*.48,z);
-   flame.rotation.y=Math.sin(phase)*.32;
-   flame.renderOrder=8;
-   flame.onBeforeRender=()=>{
-    const t=performance.now()*.001;
-    const flicker=.88+.11*Math.sin(t*8.6+phase)+.065*Math.sin(t*13.9+phase*1.7);
-    flame.scale.set(width*(.93+.07*Math.sin(t*6.7+phase)),height*flicker,1);
-    flame.position.x=x+.035*Math.sin(t*4.5+phase);
-    flame.position.y=groundY+flame.scale.y*.48;
-    flame.rotation.z=.08*Math.sin(t*5.5+phase);
-   };
-   parent.add(flame);
+   // Collect identical flame cards instead of creating a separate GPU draw for each.
+   parent.userData.fireCards.push({x,groundY,z,width,height,phase});
   }
   function makeLavaRiver(z){
-   const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;g.userData.bubbles=[];scene.add(g);
+   const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;
+   g.userData.bubbles=[];g.userData.fireCards=[];g.userData.treeSparkSources=[];scene.add(g);
    const phase=Math.random()*6.28,steps=720;
    const center=x=>.28*Math.sin(x*.58+phase)+.16*Math.sin(x*1.37-phase*.7)+.07*Math.sin(x*2.65+phase*1.8);
    const half=x=>2.32+.24*Math.sin(x*.72+phase)+.13*Math.sin(x*2.05-phase);
@@ -312,6 +301,7 @@ export function createLavaRiverFactory(scene, obstacles) {
      if(burningTrees>=7)continue;
      burningTrees++;
      const sx=plant.scale.x,sy=plant.scale.y;
+     g.userData.treeSparkSources.push({x,z:plantZ+.25,minY:.6*sy,maxY:4.0*sy});
      // Flames climb from the trunk up through each tier to the pine's crown.
      const heights=[.16,.88,1.7,2.44,3.16,3.84];
      for(let level=0;level<heights.length;level++){
@@ -365,6 +355,7 @@ export function createLavaRiverFactory(scene, obstacles) {
     }
     g.add(tree);
     if(stillBurning){
+     g.userData.treeSparkSources.push({x,z:z+.22,minY:.5,maxY:h});
      // Several flame levels, including the high branches and blackened crown.
      for(let j=0;j<4;j++){
       addLivingFlame(g,x+Math.sin(seed+j*2.1)*.18,h*(.13+j*.23),
@@ -402,8 +393,58 @@ export function createLavaRiverFactory(scene, obstacles) {
       .44+Math.random()*.46,phase+j*1.73+side,j%3===0);
     }
    }
-   // A tiny reusable particle pool: rare bursts from cracking pine, not constant snowfall.
-   const sparkCount=12,sparkPositions=new Float32Array(sparkCount*3),sparkColors=new Float32Array(sparkCount*3);
+   // Merge charred pine trunks and branches into a few GPU batches.
+   const charParts=[
+    {geometry:deadTrunkGeometry,material:charwood,matrices:[]},
+    {geometry:deadBranchGeometry,material:charwood,matrices:[]},
+    {geometry:deadBranchGeometry,material:charwoodTip,matrices:[]}
+   ];
+   g.updateMatrixWorld(true);
+   const inverseRiver=new THREE.Matrix4().copy(g.matrixWorld).invert();
+   const oldWoodMeshes=[];
+   g.traverse(obj=>{
+    if(!obj.isMesh)return;
+    const batch=charParts.find(part=>part.geometry===obj.geometry&&part.material===obj.material);
+    if(!batch)return;
+    batch.matrices.push(new THREE.Matrix4().multiplyMatrices(inverseRiver,obj.matrixWorld));
+    oldWoodMeshes.push(obj);
+   });
+   for(const mesh of oldWoodMeshes)mesh.parent.remove(mesh);
+   for(const part of charParts){
+    if(!part.matrices.length)continue;
+    const batch=new THREE.InstancedMesh(part.geometry,part.material,part.matrices.length);
+    part.matrices.forEach((matrix,i)=>batch.setMatrixAt(i,matrix));
+    batch.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    batch.computeBoundingSphere();
+    g.add(batch);
+   }
+
+   // All soft flame cards for this river now render in ONE instanced draw call.
+   const cards=g.userData.fireCards;
+   const fireBatch=new THREE.InstancedMesh(fireCardGeometry,fireCardMaterial,cards.length);
+   const flamePivot=new THREE.Object3D();
+   function animateCards(t){
+    for(let i=0;i<cards.length;i++){
+     const f=cards[i];
+     const flicker=.88+.11*Math.sin(t*8.6+f.phase)+.065*Math.sin(t*13.9+f.phase*1.7);
+     const w=f.width*(.93+.07*Math.sin(t*6.7+f.phase)),h=f.height*flicker;
+     flamePivot.position.set(f.x+.035*Math.sin(t*4.5+f.phase),f.groundY+h*.48,f.z);
+     flamePivot.rotation.set(0,Math.sin(f.phase)*.32,.08*Math.sin(t*5.5+f.phase));
+     flamePivot.scale.set(w,h,1);
+     flamePivot.updateMatrix();
+     fireBatch.setMatrixAt(i,flamePivot.matrix);
+    }
+    fireBatch.instanceMatrix.needsUpdate=true;
+   }
+   animateCards(performance.now()*.001);
+   fireBatch.computeBoundingSphere();
+   fireBatch.renderOrder=8;
+   fireBatch.onBeforeRender=()=>animateCards(performance.now()*.001);
+   g.add(fireBatch);
+   delete g.userData.fireCards;
+
+   // Extra crackling sparks use ONE particle draw, even above entire burning pines.
+   const sparkCount=36,sparkPositions=new Float32Array(sparkCount*3),sparkColors=new Float32Array(sparkCount*3);
    const sparkGeo=new THREE.BufferGeometry();
    const sparkPositionAttr=new THREE.BufferAttribute(sparkPositions,3);
    const sparkColorAttr=new THREE.BufferAttribute(sparkColors,3);
@@ -411,7 +452,7 @@ export function createLavaRiverFactory(scene, obstacles) {
    sparkColorAttr.setUsage(THREE.DynamicDrawUsage);
    sparkGeo.setAttribute('position',sparkPositionAttr);
    sparkGeo.setAttribute('color',sparkColorAttr);
-   sparkGeo.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,.55,0),8);
+   sparkGeo.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,1.8,0),25);
    const sparkMat=new THREE.PointsMaterial({
     size:.085,sizeAttenuation:true,vertexColors:true,transparent:true,
     depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false
@@ -421,7 +462,18 @@ export function createLavaRiverFactory(scene, obstacles) {
    g.add(sparkPoints);
    const sparkPool=Array.from({length:sparkCount},()=>({start:-Infinity,life:0}));
    const sparkTint=new THREE.Color(0xffbb52);
-   let sparkCursor=0,nextCrackle=performance.now()*.001+.5+Math.random()*1.4;
+   let sparkCursor=0,nextCrackle=performance.now()*.001+.25+Math.random()*.5;
+   let nextTreeCrackle=performance.now()*.001+.35+Math.random()*.55;
+   function launchSpark(x,y,z,fromTree=false){
+    const s=sparkPool[sparkCursor++%sparkCount];
+    s.start=performance.now()*.001;
+    s.life=(fromTree?.65:.45)+Math.random()*(fromTree?.75:.55);
+    s.x=x+(Math.random()-.5)*.16;s.y=y;s.z=z+(Math.random()-.5)*.14;
+    s.vx=(Math.random()-.5)*(fromTree?.9:.45);
+    s.vy=(fromTree?.75:.43)+Math.random()*(fromTree?.9:.65);
+    s.vz=(Math.random()-.5)*(fromTree?.65:.35);
+    s.phase=Math.random()*6.28;
+   }
    const flameVertices=flameGeo.getAttribute('position');
    bankFlames.onBeforeRender=()=>{
     const now=performance.now()*.001;
@@ -433,18 +485,20 @@ export function createLavaRiverFactory(scene, obstacles) {
     }
     flameVertices.needsUpdate=true;
     if(now>=nextCrackle){
-     nextCrackle=now+.75+Math.random()*1.9;
+     nextCrackle=now+.35+Math.random()*.9;
      const x=-4.05+Math.random()*8.1,side=Math.random()<.5?-1:1;
      const z=center(x)+noise(x)+side*(half(x)+.07);
-     const count=1+Math.floor(Math.random()*3);
-     for(let k=0;k<count;k++){
-      const s=sparkPool[sparkCursor++%sparkCount];
-      s.start=now;s.life=.45+Math.random()*.55;
-      s.x=x+(Math.random()-.5)*.13;s.y=.075+Math.random()*.1;
-      s.z=z+side*Math.random()*.06;
-      s.vx=(Math.random()-.5)*.24;s.vy=.43+Math.random()*.58;
-      s.vz=(Math.random()-.5)*.19;s.phase=Math.random()*6.28;
-     }
+     for(let k=0,n=2+Math.floor(Math.random()*4);k<n;k++)
+      launchSpark(x,.07+Math.random()*.17,z+side*.06);
+    }
+    // Distinct, intermittent crackling bursts at the branches AND crowns.
+    const sources=g.userData.treeSparkSources;
+    if(sources.length&&now>=nextTreeCrackle){
+     nextTreeCrackle=now+.25+Math.random()*.75;
+     const source=sources[(Math.random()*sources.length)|0];
+     const height=source.minY+Math.random()*(source.maxY-source.minY);
+     for(let k=0,n=3+Math.floor(Math.random()*5);k<n;k++)
+      launchSpark(source.x,height,source.z,true);
     }
     for(let i=0;i<sparkCount;i++){
      const s=sparkPool[i],age=now-s.start;
@@ -461,6 +515,17 @@ export function createLavaRiverFactory(scene, obstacles) {
     sparkColorAttr.needsUpdate=true;
    };
    for(let i=0;i<8;i++){const x=-105+Math.random()*210,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
+   // Each river owns its own generated buffers; free them when the river leaves play.
+   // Factory-wide textures, fire cards and bubble geometry remain shared and reusable.
+   g.userData.dispose=()=>{
+    const owned=new Set();
+    g.traverse(obj=>{
+     if(obj.geometry&&obj.geometry!==fireCardGeometry&&obj.geometry!==lavaBubbleGeo)
+      owned.add(obj.geometry);
+    });
+    for(const geo of owned)geo.dispose();
+    for(const material of [basaltMat,charwood,charwoodTip,sparkMat])material.dispose();
+   };
    obstacles.push({g,lane:-1,type:'lava',z,passed:false});
   }
   return makeLavaRiver;
