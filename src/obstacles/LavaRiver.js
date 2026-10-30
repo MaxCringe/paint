@@ -113,10 +113,13 @@ export function createLavaRiverFactory(scene, obstacles) {
    }
    const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;g.add(charMesh);
    // Short irregular flames lick the scorched boards on both sides of the molten crossing.
-   const flamePos=[],flameCol=[];
+   // Each flame tip flickers independently; the base stays anchored in burnt wood.
+   const flamePos=[],flameCol=[],flameTips=[];
    const emberRed=new THREE.Color(0xff3007),emberOrange=new THREE.Color(0xff710b),emberGold=new THREE.Color(0xffb21a),emberYellow=new THREE.Color(0xffff8a);
    function addFireTri(a,b,c,ca,cb,cc){
+    const tipIndex=flamePos.length/3+2;
     for(const [p,col] of [[a,ca],[b,cb],[c,cc]]){flamePos.push(p[0],p[1],p[2]);flameCol.push(col.r,col.g,col.b)}
+    flameTips.push({index:tipIndex,x:c[0],y:c[1],z:c[2],phase:Math.random()*6.28});
    }
    for(const side of [-1,1]){
     for(let i=0;i<42;i++){
@@ -127,11 +130,75 @@ export function createLavaRiverFactory(scene, obstacles) {
      addFireTri(l,r,tip,emberRed,emberOrange,emberGold);
      const il=[x-w*.30,-.009,z+side*.012],ir=[x+w*.22,-.009,z+side*.016],it=[x+lean*.55,-.012+h*.60,z+side*.035];
      addFireTri(il,ir,it,emberOrange,emberYellow,emberGold);
+     // Occasional shorter tongues make the bank fire less evenly comb-shaped.
+     if(Math.random()<.42){
+      const offset=(Math.random()-.5)*w*.6,smallH=h*(.38+Math.random()*.32);
+      addFireTri([x-w*.5,-.01,z],[x+w*.46,-.01,z+side*.012],
+       [x+offset,-.01+smallH,z+side*.025],emberRed,emberOrange,emberGold);
+     }
     }
    }
    const flameGeo=new THREE.BufferGeometry();flameGeo.setAttribute('position',new THREE.Float32BufferAttribute(flamePos,3));flameGeo.setAttribute('color',new THREE.Float32BufferAttribute(flameCol,3));flameGeo.computeVertexNormals();flameGeo.computeBoundingSphere();
    const bankFlames=new THREE.Mesh(flameGeo,lavaBankFlameMat);bankFlames.renderOrder=7;g.add(bankFlames);
    g.userData.bankFlames=bankFlames;g.userData.bankFlamePhase=phase;
+   // A tiny reusable particle pool: rare bursts from cracking pine, not constant snowfall.
+   const sparkCount=12,sparkPositions=new Float32Array(sparkCount*3),sparkColors=new Float32Array(sparkCount*3);
+   const sparkGeo=new THREE.BufferGeometry();
+   const sparkPositionAttr=new THREE.BufferAttribute(sparkPositions,3);
+   const sparkColorAttr=new THREE.BufferAttribute(sparkColors,3);
+   sparkPositionAttr.setUsage(THREE.DynamicDrawUsage);
+   sparkColorAttr.setUsage(THREE.DynamicDrawUsage);
+   sparkGeo.setAttribute('position',sparkPositionAttr);
+   sparkGeo.setAttribute('color',sparkColorAttr);
+   sparkGeo.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,.55,0),8);
+   const sparkMat=new THREE.PointsMaterial({
+    size:.085,sizeAttenuation:true,vertexColors:true,transparent:true,
+    depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false
+   });
+   const sparkPoints=new THREE.Points(sparkGeo,sparkMat);
+   sparkPoints.renderOrder=8;
+   g.add(sparkPoints);
+   const sparkPool=Array.from({length:sparkCount},()=>({start:-Infinity,life:0}));
+   const sparkTint=new THREE.Color(0xffbb52);
+   let sparkCursor=0,nextCrackle=performance.now()*.001+.5+Math.random()*1.4;
+   const flameVertices=flameGeo.getAttribute('position');
+   bankFlames.onBeforeRender=()=>{
+    const now=performance.now()*.001;
+    // The existing game-loop breathing stays; this only gives individual tips motion.
+    for(const tip of flameTips){
+     const flutter=.88+.12*Math.sin(now*9.1+tip.phase)+.07*Math.sin(now*15.7+tip.phase*.63);
+     flameVertices.setXYZ(tip.index,tip.x+.018*Math.sin(now*7.4+tip.phase),
+      -.012+(tip.y+.012)*flutter,tip.z+.01*Math.sin(now*5.3+tip.phase));
+    }
+    flameVertices.needsUpdate=true;
+    if(now>=nextCrackle){
+     nextCrackle=now+.75+Math.random()*1.9;
+     const x=-4.05+Math.random()*8.1,side=Math.random()<.5?-1:1;
+     const z=center(x)+noise(x)+side*(half(x)+.07);
+     const count=1+Math.floor(Math.random()*3);
+     for(let k=0;k<count;k++){
+      const s=sparkPool[sparkCursor++%sparkCount];
+      s.start=now;s.life=.45+Math.random()*.55;
+      s.x=x+(Math.random()-.5)*.13;s.y=.075+Math.random()*.1;
+      s.z=z+side*Math.random()*.06;
+      s.vx=(Math.random()-.5)*.24;s.vy=.43+Math.random()*.58;
+      s.vz=(Math.random()-.5)*.19;s.phase=Math.random()*6.28;
+     }
+    }
+    for(let i=0;i<sparkCount;i++){
+     const s=sparkPool[i],age=now-s.start;
+     if(age>=0&&age<s.life){
+      const p=age/s.life,glow=Math.sin(Math.PI*p)*(.6+.4*Math.sin(s.phase+9*p)**2);
+      sparkPositionAttr.setXYZ(i,s.x+s.vx*age+.018*Math.sin(now*7+s.phase),
+       s.y+s.vy*age-.12*age*age,s.z+s.vz*age);
+      sparkColorAttr.setXYZ(i,sparkTint.r*glow,sparkTint.g*glow,sparkTint.b*glow);
+     }else{
+      sparkColorAttr.setXYZ(i,0,0,0);
+     }
+    }
+    sparkPositionAttr.needsUpdate=true;
+    sparkColorAttr.needsUpdate=true;
+   };
    for(let i=0;i<8;i++){const x=-105+Math.random()*210,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
    obstacles.push({g,lane:-1,type:'lava',z,passed:false});
   }
