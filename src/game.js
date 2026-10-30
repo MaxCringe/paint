@@ -121,7 +121,28 @@ window.addEventListener('keydown',actionKey);
 $('start').addEventListener('click',start);$('left').addEventListener('click',()=>move(-1));$('right').addEventListener('click',()=>move(1));$('jump').addEventListener('click',jump);$('slide').addEventListener('click',slide);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 function resetDecor(){for(const d of fixedDecor){if(d.position.z>16)d.position.z-=120}}
-function frame(t){requestAnimationFrame(frame);const dt=Math.min((t-last)/1000||0,.04);last=t;
+// Temporary lightweight FPS overlay for performance profiling; remove after optimization.
+const fpsDisplay=document.createElement('div');
+fpsDisplay.id='knotty-fps-counter';
+fpsDisplay.textContent='FPS: --';
+fpsDisplay.setAttribute('aria-label','Частота кадров игры');
+fpsDisplay.style.cssText='position:fixed;right:12px;bottom:12px;z-index:50;padding:7px 10px;background:rgba(8,12,15,.78);border:1px solid rgba(255,255,255,.3);border-radius:9px;font:700 15px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#a7ff9b;pointer-events:none;text-shadow:0 1px 4px #000;min-width:86px;text-align:center';
+document.body.appendChild(fpsDisplay);
+const fpsSmallScreenStyle=document.createElement('style');
+fpsSmallScreenStyle.textContent='@media(max-width:700px){#knotty-fps-counter{bottom:84px!important}}';
+document.head.appendChild(fpsSmallScreenStyle);
+let fpsSampleStart=null,fpsFrames=0;
+function frame(t){requestAnimationFrame(frame);
+ if(fpsSampleStart===null)fpsSampleStart=t;
+ fpsFrames++;
+ const fpsInterval=t-fpsSampleStart;
+ if(fpsInterval>=500){
+  const fps=Math.round(fpsFrames*1000/fpsInterval);
+  fpsDisplay.textContent='FPS: '+fps;
+  fpsDisplay.style.color=fps>=50?'#a7ff9b':fps>=30?'#ffd27b':'#ff8989';
+  fpsSampleStart=t;fpsFrames=0;
+ }
+ const dt=Math.min((t-last)/1000||0,.04);last=t;
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
 
