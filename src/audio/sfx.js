@@ -16,7 +16,7 @@ const EFFECTS = {
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
-  bats:     {files:['bats-flap_1.ogg','bats-flap_2.ogg','bats-flap_3.ogg'],gain:.90,rate:1.0,cutoff:7500,gap:950}
+  bats:     {files:['bats-flap_1.ogg','bats-flap_2.ogg','bats-flap_3.ogg'],gain:.72,rate:1.0,cutoff:6500,gap:2800}
 };
 const base = import.meta.env.BASE_URL + 'audio/sfx/';
 function stored(key, fallback) {
@@ -138,52 +138,66 @@ export function createGameAudio() {
     batProfiles.set(buffer, profile);
     return profile;
   }
-  function playBatFlight(fx) {
-    // The first sound is audible immediately; each subsequent wing beat decays.
+  function playBatFlight(fx, details = {}) {
+    // A complete 3.8-second flyaway: dense takeoff, loose wing beats, distant tail.
+    // Foley recordings only. Each beat is a different portion of the three CC0 files.
     Promise.all(fx.files.map(read)).then(buffers => {
-      if (!context || !master || muted || volume <= 0) return;
-      if (context.state === 'suspended') return;
-      const startTime = context.currentTime + .012;
-      buffers.forEach((buffer, i) => {
-        if (!buffer) return;
+      if (!context || !master || muted || volume <= 0 || context.state === 'suspended') return;
+      const ready = buffers.filter(Boolean);
+      if (!ready.length) return;
+      const startTime = context.currentTime + .015;
+      const side = details.pan === undefined ? (Math.random() > .5 ? 1 : -1) : Math.sign(details.pan) || 1;
+      const timings = [0, .27, .62, .98, 1.38, 1.82, 2.27, 2.76, 3.27];
+      const levels = [1, .91, .88, .72, .61, .48, .38, .26, .14];
+      timings.forEach((offset, i) => {
+        const buffer = ready[i % ready.length];
         try {
           const {onset, normalize} = getBatProfile(buffer);
-          const rate = fx.rate * (.95 + Math.random() * .10);
-          const duration = Math.min(.76, (buffer.duration - onset) / rate);
+          const rate = fx.rate * (.90 + Math.random() * .17);
+          const duration = Math.min(.69, (buffer.duration - onset) / rate);
           if (duration <= .06) return;
-          const at = startTime + i * .18;
+          const at = startTime + offset;
           const source = context.createBufferSource();
           const filter = context.createBiquadFilter();
           const gain = context.createGain();
+          const panner = context.createStereoPanner ? context.createStereoPanner() : null;
           source.buffer = buffer;
           source.playbackRate.value = rate;
           filter.type = 'lowpass';
-          filter.frequency.value = fx.cutoff;
-          filter.Q.value = .45;
-          const level = Math.min(1.8, normalize * fx.gain) * [1, .77, .63][i];
+          // High frequencies fade as the flock flies away into the pines.
+          filter.frequency.value = Math.max(1250, fx.cutoff - offset * 1250);
+          filter.Q.value = .4;
+          const level = Math.min(.95, normalize * fx.gain * levels[i]);
           gain.gain.setValueAtTime(.0001, at);
-          gain.gain.linearRampToValueAtTime(level, at + .018);
-          gain.gain.setValueAtTime(level, at + Math.max(.035, duration - .11));
+          gain.gain.linearRampToValueAtTime(level, at + .02);
+          gain.gain.setValueAtTime(level, at + Math.max(.035, duration - .13));
           gain.gain.exponentialRampToValueAtTime(.0001, at + duration);
           source.connect(filter);
           filter.connect(gain);
-          gain.connect(master);
+          if (panner) {
+            panner.pan.value = side * Math.min(.8, .1 + offset * .18);
+            gain.connect(panner);
+            panner.connect(master);
+          } else gain.connect(master);
           source.start(at, onset, duration);
-          source.stop(at + duration + .004);
-          source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+          source.stop(at + duration + .005);
+          source.onended = () => {
+            source.disconnect(); filter.disconnect(); gain.disconnect();
+            if (panner) panner.disconnect();
+          };
         } catch (err) { console.warn('Bat wing sound failed', err); }
       });
     }).catch(err => console.warn('Bat wing samples unavailable', err));
   }
 
-  function play(name) {
+  function play(name, details = {}) {
     const fx = EFFECTS[name];
     if (!fx || !unlock()) return;
     const stamp = performance.now();
     if (stamp - (lastPlayed.get(name) ?? -Infinity) < fx.gap) return;
     lastPlayed.set(name, stamp);
     if (name === 'soul') { playSoul(); return; }
-    if (name === 'bats') { playBatFlight(fx); return; }
+    if (name === 'bats') { playBatFlight(fx, details); return; }
     read(fx.file).then(buffer => {
       if (!buffer || !context || !master || muted || volume <= 0) return;
       try {
