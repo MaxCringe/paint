@@ -7,10 +7,11 @@ export function createBatEcosystem(scene, options={}) {
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const rand=(a,b)=>a+Math.random()*(b-a);
  const habitats=[
-  {x:-5.9,z:-30,baseY:3.65,spread:2.3,count:mobile?3:6},
-  {x:9.1,z:-89,baseY:4.5,spread:3.8,count:mobile?3:5},
-  {x:-14.3,z:-154,baseY:4.1,spread:4.6,count:mobile?3:5},
-  {x:6.3,z:-228,baseY:3.9,spread:2.7,count:mobile?4:7}
+  // Forest nests well away from the road, with long gaps between encounters.
+  {kind:'forest',x:-12.5,z:-110,baseY:4.2,spread:2.6,count:mobile?3:4},
+  {kind:'forest',x:17,z:-350,baseY:4.7,spread:3.8,count:mobile?2:4},
+  // Just a couple of distant bats over the treeline.
+  {kind:'sky',x:-23,z:-150,baseY:18.5,spread:3.5,count:mobile?1:2}
  ];
  const colonies=[],bats=[];
  const bodyGeo=new THREE.BufferGeometry();
@@ -30,10 +31,28 @@ export function createBatEcosystem(scene, options={}) {
   [0,.06,0],[.25,.22,0],[.59,.4,-.02],[1.31,.19,0],
   [.99,-.17,.01],[.75,-.07,.03],[.46,-.31,.01],[.24,-.08,.02]
  ];
- const wingPositions=[];
- for(let j=1;j<contour.length-1;j++)
-  wingPositions.push(...contour[0],...contour[j],...contour[j+1]);
+ // Draw a thin charcoal silhouette edge and near-black membrane in one wing mesh.
+ const wingPositions=[],wingColors=[];
+ const wingBlack=new THREE.Color(0x0b0a0e);
+ const wingEdge=new THREE.Color(0x514650);
+ const cx=contour.reduce((v,p)=>v+p[0],0)/contour.length;
+ const cy=contour.reduce((v,p)=>v+p[1],0)/contour.length;
+ const inner=contour.map(p=>[cx+(p[0]-cx)*.88,cy+(p[1]-cy)*.88,p[2]+.003]);
+ function wingTriangle(points,colors){
+  for(let j=0;j<3;j++){
+   wingPositions.push(...points[j]);
+   wingColors.push(colors[j].r,colors[j].g,colors[j].b);
+  }
+ }
+ for(let j=0;j<contour.length;j++){
+  const k=(j+1)%contour.length;
+  wingTriangle([contour[j],contour[k],inner[j]],[wingEdge,wingEdge,wingBlack]);
+  wingTriangle([contour[k],inner[k],inner[j]],[wingEdge,wingBlack,wingBlack]);
+ }
+ for(let j=1;j<inner.length-1;j++)
+  wingTriangle([inner[0],inner[j],inner[j+1]],[wingBlack,wingBlack,wingBlack]);
  wingGeo.setAttribute('position',new THREE.Float32BufferAttribute(wingPositions,3));
+ wingGeo.setAttribute('color',new THREE.Float32BufferAttribute(wingColors,3));
  wingGeo.computeVertexNormals();
  const eyeGeo=new THREE.BufferGeometry();
  eyeGeo.setAttribute('position',new THREE.Float32BufferAttribute([
@@ -41,10 +60,10 @@ export function createBatEcosystem(scene, options={}) {
    .055,.1,.19,.11,.1,.19,.085,.048,.19
  ],3));
  eyeGeo.computeVertexNormals();
- // Slightly lighter than the night sky: readable silhouettes without a realistic look.
- const bodyMat=new THREE.MeshBasicMaterial({color:0x3b2630,side:THREE.DoubleSide,fog:false});
- const wingMat=new THREE.MeshBasicMaterial({color:0x432934,side:THREE.DoubleSide,fog:false});
- const eyeMat=new THREE.MeshBasicMaterial({color:0xff4730,side:THREE.DoubleSide,fog:false});
+ // Classic near-black silhouettes with subtle charcoal outlines.
+ const bodyMat=new THREE.MeshBasicMaterial({color:0x151116,side:THREE.DoubleSide,fog:false,toneMapped:false});
+ const wingMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:false,toneMapped:false});
+ const eyeMat=new THREE.MeshBasicMaterial({color:0x61212a,side:THREE.DoubleSide,fog:false,toneMapped:false});
  const count=habitats.reduce((n,h)=>n+h.count,0);
  const bodies=new THREE.InstancedMesh(bodyGeo,bodyMat,count);
  const wings=new THREE.InstancedMesh(wingGeo,wingMat,count*2);
@@ -58,7 +77,7 @@ export function createBatEcosystem(scene, options={}) {
   const g=b.colony;
   b.x=g.x+b.slotX;b.y=g.baseY+b.slotY;b.z=g.z+b.slotZ;
   b.vx=0;b.vy=0;b.vz=0;
-  b.mode=Math.random()<.7?'perched':'patrol';
+  b.mode=g.kind==='sky'?'patrol':Math.random()<.82?'perched':'patrol';
   b.actionTime=rand(2.2,8.5);
   b.flap=rand(0,Math.PI*2);
   b.fearDelay=rand(.05,.82);
@@ -79,7 +98,7 @@ export function createBatEcosystem(scene, options={}) {
     wingSpeed:rand(6,11.5),size:rand(.82,1.38),
     orbitRadius:rand(1.8,4.8),orbitSpeed:rand(.34,.85),
     orbitSign:Math.random()<.5?-1:1,wobble:rand(.1,.9),
-    hasEyes:Math.random()<.43};
+    hasEyes:h.kind==='forest'&&Math.random()<.18};
    g.bats.push(b);bats.push(b);
   }
   resetColony(g);
@@ -95,14 +114,17 @@ export function createBatEcosystem(scene, options={}) {
   time+=dt;
   for(const g of colonies){
    if(playing){
-    const movement=speed*dt;
-    g.z+=movement;
-    for(const b of g.bats)b.z+=movement;
-    // Recycle only after the entire colony has passed behind the camera.
-    if(g.z>23){resetColony(g,g.homeZ-5-rand(0,26));continue;}
-    const dx=g.x-runnerX,dz=g.z-runnerZ;
-    const near=Math.hypot(dx*.78,dz);
-    if(!g.alarmed&&(near<16.8||(ultimate&&!previousUltimate&&near<24))){
+    const movement=speed*dt*(g.kind==='sky'?.38:1);
+     g.z+=movement;
+     for(const b of g.bats)b.z+=movement;
+     // Repeat far away, leaving substantial quiet gaps between forest colonies.
+     if(g.z>(g.kind==='sky'?-23:23)){
+      resetColony(g,g.homeZ-(g.kind==='sky'?170:470)-rand(0,g.kind==='sky'?90:100));
+      continue;
+     }
+     const dx=g.x-runnerX,dz=g.z-runnerZ;
+     const near=Math.hypot(dx*.58,dz);
+     if(g.kind==='forest'&&!g.alarmed&&(near<21||(ultimate&&!previousUltimate&&near<27))){
      g.alarmed=true;g.alertAge=0;
      // Each bat starts a little later, instead of one synchronized take-off.
      for(const b of g.bats){
@@ -120,7 +142,7 @@ export function createBatEcosystem(scene, options={}) {
    const g=b.colony;
    const departing=g.alarmed&&g.alertAge>b.fearDelay;
    // Independent daily routines. Only frightened bats share the flock's alarm.
-   if(!g.alarmed){
+   if(!g.alarmed&&g.kind==='forest'){
     b.actionTime-=dt;
     if(b.actionTime<=0){
      b.mode=b.mode==='perched'?'patrol':(Math.random()<.68?'perched':'patrol');
@@ -129,7 +151,12 @@ export function createBatEcosystem(scene, options={}) {
    }
    const perchX=g.x+b.slotX,perchY=g.baseY+b.slotY,perchZ=g.z+b.slotZ;
    let tx=perchX,ty=perchY,tz=perchZ;
-   if(departing){
+   if(g.kind==='sky'){
+    const a=time*b.orbitSpeed*.72*b.orbitSign+b.wingPhase;
+    tx=perchX+Math.sin(a)*b.orbitRadius*1.4;
+    ty=perchY+Math.cos(a*1.2)*1.4;
+    tz=perchZ+Math.cos(a*.85)*3.6;
+   }else if(departing){
     const t=g.alertAge-b.fearDelay;
     // Flee out toward the treetops, climb, and break formation asymmetrically.
     tx=perchX+b.escapeSide*Math.min(t*.9,3.7)+Math.sin(t*2.7+b.wingPhase)*.7;
@@ -162,7 +189,7 @@ export function createBatEcosystem(scene, options={}) {
    b.vx+=clamp((tx-b.x)*responsiveness+sepX*5-b.vx*2.5,-32,32)*dt;
    b.vy+=clamp((ty-b.y)*responsiveness+sepY*5-b.vy*2.5,-32,32)*dt;
    b.vz+=clamp((tz-b.z)*responsiveness+sepZ*5-b.vz*2.5,-32,32)*dt;
-   const top=departing?15:b.mode==='perched'?4.5:7.5;
+   const top=departing?15:b.mode==='perched'?4.5:g.kind==='sky'?5:7.5;
    const v=Math.hypot(b.vx,b.vy,b.vz);
    if(v>top){const k=top/v;b.vx*=k;b.vy*=k;b.vz*=k;}
    b.x+=b.vx*dt;b.y+=b.vy*dt;b.z+=b.vz*dt;
