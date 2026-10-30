@@ -7,9 +7,11 @@ import { createLavaRiverFactory } from './obstacles/LavaRiver.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createWorld } from './world/World.js';
+import { createBatEcosystem } from './systems/BatEcosystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
+const batEcosystem=createBatEcosystem(scene);
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[];
@@ -158,6 +160,7 @@ function frame(t){requestAnimationFrame(frame);
   fpsSampleStart=t;fpsFrames=0;
  }
  const dt=Math.min((t-last)/1000||0,.04);last=t;
+ batEcosystem.update(dt,{playing:state==='playing',ultimate:ultTimer>0});
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
 
