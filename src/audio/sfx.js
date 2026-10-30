@@ -14,7 +14,6 @@ const EFFECTS = {
   slip:     {file:'slip.ogg',gain:.38,rate:.72,cutoff:2400,gap:300},
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
-  treeHit:  {files:['tree-wood-impact.ogg','tree-body-impact.ogg'],gain:1.0,gap:600},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
   bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800},
@@ -173,84 +172,6 @@ export function createGameAudio() {
     }).catch(e=>console.warn('Birds Wings unavailable',e));
   }
 
-  // Body-on-wood impact: accurately detect audible attack, never play leading silence.
-  // Two layered, preloaded CC0 foley recordings. Separate from the generic death cue.
-  const treeProfiles=new WeakMap();
-  function getTreeImpactProfile(buffer){
-    if(treeProfiles.has(buffer))return treeProfiles.get(buffer);
-    const samples=buffer.getChannelData(0),step=256,energies=[];
-    let peakRms=0,peak=0;
-    for(let i=0;i<samples.length;i+=step){
-      const stop=Math.min(i+step,samples.length);
-      let sum=0;
-      for(let k=i;k<stop;k++){
-        const value=samples[k];
-        sum+=value*value;
-        peak=Math.max(peak,Math.abs(value));
-      }
-      const rms=Math.sqrt(sum/(stop-i));
-      energies.push(rms);
-      peakRms=Math.max(peakRms,rms);
-    }
-    const threshold=Math.max(.0007,peakRms*.15);
-    let first=energies.findIndex(v=>v>=threshold);
-    const onset=Math.max(0,(first<0?0:first*step/buffer.sampleRate)-.017);
-    // Normalise the recordings by their actual signal peaks, not by arbitrary gain.
-    const normalize=Math.min(7,Math.max(.7,.68/Math.max(.03,peak)));
-    const profile={onset,normalize,peak};
-    treeProfiles.set(buffer,profile);
-    return profile;
-  }
-  function playTreeImpact(fx) {
-    const ready=unlock();
-    if(!ready)return;
-    const playDecoded=()=>{
-      Promise.all(fx.files.map(read)).then(buffers=>{
-        if(!context||!master||muted||volume<=0)return;
-        const audible=buffers.filter(Boolean).filter(b=>getTreeImpactProfile(b).peak>.0005);
-        if(!audible.length){
-          console.warn('Tree collision samples did not decode or are silent; playing fallback impact');
-          play('death');
-          return;
-        }
-        const startTime=context.currentTime+.012;
-        buffers.forEach((buffer,i)=>{
-          if(!buffer)return;
-          try{
-            const {onset,normalize,peak}=getTreeImpactProfile(buffer);
-            if(peak<.0005)return;
-            const rate=i===0?.93:.84;
-            const duration=Math.min(1.08,(buffer.duration-onset)/rate);
-            if(duration<.055)return;
-            const at=startTime+(i===0?0:.022);
-            const source=context.createBufferSource();
-            const filter=context.createBiquadFilter();
-            const gain=context.createGain();
-            source.buffer=buffer;
-            source.playbackRate.value=rate;
-            filter.type='lowpass';
-            filter.frequency.value=i===0?5100:2500;
-            filter.Q.value=.45;
-            const level=fx.gain*normalize*(i===0?1:.70);
-            gain.gain.setValueAtTime(.0001,at);
-            gain.gain.linearRampToValueAtTime(level,at+.009);
-            gain.gain.setValueAtTime(level,at+Math.max(.023,duration-.13));
-            gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
-            source.connect(filter);
-            filter.connect(gain);
-            gain.connect(master);
-            // A clip may have a long quiet lead-in; skip it and capture the full thud.
-            source.start(at,onset);
-            source.stop(at+duration+.004);
-            source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
-          }catch(error){console.warn('Tree collision audio failed',error);}
-        });
-      }).catch(error=>{console.warn('Cannot load tree impact',error);play('death');});
-    };
-    if(context.state==='suspended')context.resume().then(playDecoded).catch(()=>play('death'));
-    else playDecoded();
-  }
-
   function play(name, details = {}) {
     const fx = EFFECTS[name];
     if (!fx || !unlock()) return;
@@ -259,7 +180,6 @@ export function createGameAudio() {
     lastPlayed.set(name, stamp);
     if (name === 'soul') { playSoul(); return; }
     if (name === 'bats') { playBatFlight(fx, details); return; }
-    if (name === 'treeHit') { playTreeImpact(fx); return; }
     read(fx.file).then(buffer => {
       if (!buffer || !context || !master || muted || volume <= 0) return;
       try {

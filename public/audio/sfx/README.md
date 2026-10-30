@@ -16,8 +16,6 @@
 | `slip.ogg` | Скольжение по луже | Kenney RPG Audio — footstep09.ogg |
 | `hat.ogg` | Ведьмина шляпа | Kenney Interface Sounds — confirmation_001.ogg |
 | `death.ogg` | Поражение | Kenney Impact Sounds — impactMetal_heavy_001.ogg |
-| `tree-wood-impact.ogg` | Удар Фионы о сосну — треск дерева | Kenney Impact Sounds — impactWood_heavy_001.ogg (CC0) |
-| `tree-body-impact.ogg` | Удар Фионы о сосну — глухой удар тела | Kenney Impact Sounds — impactSoft_heavy_001.ogg (CC0) |
 | `step.ogg` | Тихие шаги при беге | Kenney RPG Audio — footstep06.ogg |
 | `land.ogg` | Приземление | Kenney Impact Sounds — impactMining_002.ogg |
 | `rat-squeak-breviceps.mp3` | Писк крыс при испуге, один раз на стаю | Breviceps — Cartoon - Bat / Mouse Squeak (Freesound #445958), CC0 |
@@ -41,4 +39,3 @@
 
 Звук загружается при первом взаимодействии с игрой, в настройке громкости остаётся прежнее значение 0–100%, кнопка отключения звука сохраняется.
 
-При столкновении с сучковатой сосной воспроизводится удар в два слоя. Для остальных смертельных препятствий сохранён прежний `death.ogg`. Источник: https://kenney.nl/assets/impact-sounds (CC0).
