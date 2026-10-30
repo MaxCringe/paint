@@ -19,7 +19,7 @@ const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture
 const batEcosystem=createBatEcosystem(scene);
 const ratEcosystem=createRatEcosystem(scene);
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
-const atmosphereEcosystem=createAtmosphereEcosystem(scene);
+const atmosphereEcosystem=createAtmosphereEcosystem(scene,{camera});
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[], hats=[];
