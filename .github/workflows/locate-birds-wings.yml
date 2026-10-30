@@ -25,6 +25,8 @@ jobs:
               with urllib.request.urlopen(req, timeout=16) as r:
                 body=r.read(2500000).decode('utf-8','replace')
                 print('STATUS',r.status,'SIZE',len(body),'TITLE_MATCH', 'Birds Wings' in body,'AUTHOR_MATCH','DigPro120' in body,flush=True)
+                for match in list(re.finditer('cdn.freesound.org/previews',body))[:5]:print('CDN_CONTEXT',repr(body[max(0,match.start()-180):match.start()+350]),flush=True)
+                for key in ['432639','preview-hq','preview-lq','432639_', 'freesound.org/data/previews']: print('MATCH_CONTEXT',key,repr(body[max(0,body.find(key)-100):body.find(key)+300]) if key in body else 'NONE',flush=True)
                 urls=re.findall(r'https?[^"\\\\\s<>]+?(?:\\.mp3|\\.ogg)(?:\\?[^"\\\\\s<>]*)?',body,re.I)
                 urls=list(dict.fromkeys(html.unescape(x).replace('\\/','/') for x in urls))
                 for media in urls[:10]:print('MEDIA',media[:450],flush=True)
