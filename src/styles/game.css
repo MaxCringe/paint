@@ -45,9 +45,11 @@
 
 /* Small, always available sound controls that do not cover the game buttons. */
 #audio-controls{position:absolute;left:18px;bottom:20px;z-index:6;display:flex;align-items:center;gap:7px;pointer-events:auto;background:#071520d9;border:1px solid #ffffff3a;border-radius:13px;padding:5px 9px;backdrop-filter:blur(8px)}
-#sound-toggle{display:grid;place-items:center;width:31px;height:31px;min-width:0;padding:0;background:transparent;box-shadow:none;border-radius:8px;color:#fff;font-size:18px}
-#sound-toggle:active{transform:none;box-shadow:none}
-#sound-toggle:focus-visible,#sound-volume:focus-visible{outline:2px solid #7cdaff;outline-offset:2px}
+#sound-toggle,#sound-bats-test{display:grid;place-items:center;width:31px;height:31px;min-width:0;padding:0;background:transparent;box-shadow:none;border-radius:8px;color:#fff;font-size:18px}
+#sound-toggle:active,#sound-bats-test:active{transform:none;box-shadow:none}
+#sound-bats-test{font-size:17px;opacity:.93}
+#sound-bats-test:hover{opacity:1;background:#20445b}
+#sound-toggle:focus-visible,#sound-bats-test:focus-visible,#sound-volume:focus-visible{outline:2px solid #7cdaff;outline-offset:2px}
 #sound-volume{width:74px;min-width:0;accent-color:#61c9ff;cursor:pointer;touch-action:pan-x}
 #sound-volume-value{color:#bdeaff;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;min-width:29px;text-align:right}
-@media(max-width:700px){#audio-controls{left:10px;bottom:84px;gap:5px;padding:3px 6px}#sound-toggle{width:29px;height:29px}#sound-volume{width:64px}#sound-volume-value{font-size:10px}}
+@media(max-width:700px){#audio-controls{left:10px;bottom:84px;gap:5px;padding:3px 6px}#sound-toggle,#sound-bats-test{width:29px;height:29px}#sound-volume{width:64px}#sound-volume-value{font-size:10px}}
