@@ -192,7 +192,7 @@ export function createWorld() {
    const g=new THREE.Group();g.position.set(x,0,z);
    // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
    g.scale.set(scale*(.84+Math.random()*.30),scale*(.76+Math.random()*.48),scale*(.84+Math.random()*.30));
-   g.userData.recycleLength=recycleLength;scene.add(g);
+   g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);
    const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);
    trunk.position.set((Math.random()-.5)*.09,1.15,0);
    trunk.rotation.z=(Math.random()-.5)*.035;
@@ -222,7 +222,7 @@ export function createWorld() {
    g.position.set(x,-.095,z);
    g.rotation.y=Math.random()*Math.PI*2;
    g.scale.set(scale*(.88+Math.random()*.22),scale,scale*(.88+Math.random()*.22));
-   g.userData.recycleLength=recycleLength;
+   g.userData.recycleLength=recycleLength;g.userData.windKind='fern';
    const leaves=new THREE.Mesh(fernGeometry,fernMaterial);
    leaves.castShadow=false;leaves.receiveShadow=true;g.add(leaves);scene.add(g);
    return g;
@@ -261,7 +261,7 @@ export function createWorld() {
    const g=new THREE.Group();g.position.set(x,-.105,z);
    g.rotation.y=Math.random()*Math.PI*2;
    g.scale.set(scale*(.8+Math.random()*.4),scale,scale*(.8+Math.random()*.4));
-   g.userData.recycleLength=recycleLength;
+   g.userData.recycleLength=recycleLength;g.userData.windKind='grass';
    const blades=new THREE.Mesh(grassGeometry,grassTuftMaterial);
    blades.castShadow=false;blades.receiveShadow=true;g.add(blades);scene.add(g);return g;
   }

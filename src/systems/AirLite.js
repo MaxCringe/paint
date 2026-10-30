@@ -176,13 +176,17 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    geometry.attributes.position.needsUpdate=true;
   }
  }
- function update(dt,{playing=false,speed=0}={}){
+ function update(dt,{playing=false,speed=0,wind=null}={}){
   if(!playing||dt<=0)return;
   dt=Math.min(dt,.04);time+=dt;
   for(const item of particles){
    const {band,seeds,positions,geometry}=item;
    for(let i=0;i<seeds.length;i++){
     const s=seeds[i];
+    // Existing ash follows the same lateral breeze as the plants.
+    s.x+=(wind?.x||0)*dt;
+    if(s.x>band.xSpread)s.x-=2*band.xSpread;
+    else if(s.x< -band.xSpread)s.x+=2*band.xSpread;
     s.z+=dt*(speed*(.76+.24*pct(p.motionParallax))*band.rate+s.rate*.3);
     if(s.z>9){
      s.z=rand(band.zMin,band.zMin+10);
