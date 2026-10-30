@@ -26,8 +26,8 @@ jobs:
           raw = Path('/tmp/birds-wings-original.mp3').read_bytes()
           if not (60000 < len(raw) < 1000000):
             raise SystemExit(f'Unexpected Freesound preview size: {len(raw)}')
-          if not (raw.startswith(b'ID3') or raw[:1] == b'\\xff'):
-            raise SystemExit('Not an MP3 preview')
+          if not (raw.startswith(b'ID3') or raw[0] == 255):
+            raise SystemExit('Not an MP3 preview: ' + raw[:20].hex())
           target=Path('public/audio/sfx/bats-flock-digpro120.mp3')
           target.write_bytes(raw)
           print('Imported verified MP3 bytes:',len(raw))
