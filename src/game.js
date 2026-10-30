@@ -10,12 +10,14 @@ import { createFiona } from './player/Fiona.js';
 import { createWorld } from './world/World.js';
 import { createBatEcosystem } from './systems/BatEcosystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
+import { createWitchHatFactory } from './powerups/WitchHat.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
 const batEcosystem=createBatEcosystem(scene);
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
-const obstacles=[], coins=[], segments=[];
+const obstacles=[], coins=[], segments=[], hats=[];
+const {makeHat,animateHat,animateWearable}=createWitchHatFactory(scene,hats,runner);
 function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
 let puddleVariantCounter=0;
 function makePuddle(lane,z){
@@ -98,10 +100,14 @@ const makeSegment = createSegmentGenerator({
   makeFish,
   makePuddle,
   makeObstacle,
-  makeSoul
+  makeSoul,
+  makeHat
 });
-let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
+let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
 const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;
+const magnetHud=document.createElement('div');
+magnetHud.style.cssText='display:none;margin-top:5px;font-size:9px;color:#e6ca9c;letter-spacing:.07em;font-weight:900;text-align:center;white-space:nowrap';
+$('soul-meter-wrap').appendChild(magnetHud);
 function updateHud(){
  $('distance').textContent=Math.floor(distance)+' m';
  $('coins').textContent=coinCount;
@@ -111,10 +117,12 @@ function updateHud(){
  $('soul-meter-wrap').classList.toggle('active',active);
  $('soul-state').textContent=active?'УЛЬТА — ПОЛЁТ':'ПЛАМЯ ДУШ';
  $('soul-count').textContent=active?Math.ceil(ultTimer)+' с':soulCharge+'/'+SOULS_PER_ULT;
+ magnetHud.style.display=magnetTime>0?'block':'none';
+ if(magnetTime>0)magnetHud.textContent='🎩 МАГНИТ '+magnetTime.toFixed(1)+' с';
 }
 function popToast(t){if(t==='+ 1 ДУША'||t==='+1 ДУША'||t==='+ COIN')return;$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.85}
 function activateUltimate(){soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
-function start(){for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
+function start(){for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
 function end(){state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
 function move(d){if(state!=='playing'||slipT>0)return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0)jumpT=.72}
@@ -173,6 +181,8 @@ function frame(t){requestAnimationFrame(frame);
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
   if(spawnZ<-150)spawnZ= -50;
   if(ultTimer>0)ultTimer=Math.max(0,ultTimer-dt);
+  if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
+  animateWearable(t,magnetTime>0);
   if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT)activateUltimate();
   const ultActive=ultTimer>0;
   jumpT=Math.max(0,jumpT-dt);slideT=Math.max(0,slideT-dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);
@@ -234,14 +244,42 @@ function frame(t){requestAnimationFrame(frame);
    }
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)}
+  // Floating hat is collected without changing obstacle collisions.
+  for(const h of hats){
+   h.g.position.z+=speed*dt;
+   if(!h.collected)animateHat(h,t);
+   if(!h.passed&&h.g.position.z>1.2){
+    h.passed=true;
+    if(h.lane===lane&&Math.abs(runner.position.x-(lane-1)*2.55)<1.05){
+     h.collected=true;magnetTime=10;
+     scene.remove(h.g);
+     animateWearable(t,true);
+     popToast('ВЕДЬМИНА ШЛЯПА — МАГНИТ 10 СЕКУНД');
+    }
+   }
+  }
+  for(let i=hats.length-1;i>=0;i--)if(hats[i].collected||hats[i].g.position.z>13){
+   if(hats[i].g.parent)scene.remove(hats[i].g);
+   hats.splice(i,1);
+  }
   for(const c of coins){
    c.g.position.z+=speed*dt;
+   // Only souls in Fiona's current lane can move; adjacent lanes stay untouched.
+   const nearZ=runner.position.z-c.g.position.z;
+   if(magnetTime>0&&c.lane===lane&&
+      Math.abs(runner.position.x-(lane-1)*2.55)<.85&&
+      nearZ>-.35&&nearZ<5.4){
+    const pull=1-Math.exp(-dt*6.5);
+    c.g.position.z+=(runner.position.z-c.g.position.z)*pull;
+    c.g.position.x+=(runner.position.x-c.g.position.x)*pull;
+    c.magnetBlend=Math.min(1,(c.magnetBlend||0)+dt*9);
+   }else c.magnetBlend=Math.max(0,(c.magnetBlend||0)-dt*9);
    const phase=c.phase||c.z*.2;
    c.g.rotation.y=Math.sin(t*.0018+phase)*.62;
    c.g.rotation.z=Math.sin(t*.003+phase)*.07;
    const soulPulse=1+Math.sin(t*.006+phase)*.045;
    c.g.scale.set(soulPulse,soulPulse,soulPulse);
-   c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14;
+   c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14+(c.magnetBlend||0)*.22;
    for(let i=0;i<c.flames.length;i++){
     const flame=c.flames[i];
     animateSoulFlame(flame,t,phase+i*1.7,i===1?.65:1);
