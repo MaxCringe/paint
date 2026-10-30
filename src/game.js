@@ -229,6 +229,8 @@ function frame(t){requestAnimationFrame(frame);
   fpsSampleStart=t;fpsFrames=0;
  }
  const dt=Math.min((t-last)/1000||0,.04);last=t;
+ // Wind is visible on the start and game-over screens; pause still freezes the scene.
+ windSystem.update(dt);
  batEcosystem.update(dt,{playing:state==='playing',ultimate:ultTimer>0,speed,runnerX:runner.position.x,runnerZ:runner.position.z});
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
@@ -382,7 +384,6 @@ function frame(t){requestAnimationFrame(frame);
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed});
-  windSystem.update(dt);
   airLite.update(dt,{playing:state==='playing',speed,wind:windSystem.current});
   updateHud();
  }
