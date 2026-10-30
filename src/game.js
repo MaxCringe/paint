@@ -12,6 +12,7 @@ import { createGameAudio } from './audio/sfx.js';
 import { createBatEcosystem } from './systems/BatEcosystem.js';
 import { createRatEcosystem } from './systems/RatEcosystem.js';
 import { createMeteorEcosystem } from './systems/MeteorEcosystem.js';
+import { createAirLite } from './systems/AirLite.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 
@@ -20,6 +21,7 @@ const audio=createGameAudio();
 const batEcosystem=createBatEcosystem(scene,{onFlee:({x})=>audio.play('bats',{pan:x<0?-1:1})});
 const ratEcosystem=createRatEcosystem(scene);
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
+const airLite=createAirLite(scene);
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[], hats=[];
@@ -154,7 +156,7 @@ function updateHud(){
 }
 function popToast(t){if(t==='+ 1 ДУША'||t==='+1 ДУША'||t==='+ COIN')return;$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.85}
 function activateUltimate(){audio.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
-function start(){audio.unlock();audio.play('start');meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
+function start(){audio.unlock();audio.play('start');airLite.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
 function end(){audio.play('death');state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0){jumpT=.72;audio.play('jump')}}
@@ -355,6 +357,7 @@ function frame(t){requestAnimationFrame(frame);
   for(const d of fixedDecor){d.position.z+=speed*dt;if(d.position.z>16)d.position.z-=120}
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed});
+  airLite.update(dt,{playing:state==='playing',speed});
   updateHud();
  }
  // Camera follows gently; maintain forward view
