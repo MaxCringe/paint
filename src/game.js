@@ -22,7 +22,7 @@ const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture
 const audio=createGameAudio();
 const music=createGameMusic();
 const batEcosystem=createBatEcosystem(scene,{onFlee:({x})=>audio.play('bats',{pan:x<0?-1:1})});
-const ratEcosystem=createRatEcosystem(scene);
+const ratEcosystem=createRatEcosystem(scene,{onFlee:({x})=>audio.play('rat',{pan:Math.max(-.65,Math.min(.65,x/10))})});
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 

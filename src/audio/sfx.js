@@ -16,7 +16,8 @@ const EFFECTS = {
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
-  bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800}
+  bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800},
+  rat:      {file:'rat-squeak-breviceps.mp3',gain:.88,rate:1,cutoff:7500,gap:550}
 };
 const base = import.meta.env.BASE_URL + 'audio/sfx/';
 function stored(key, fallback) {
@@ -193,7 +194,13 @@ export function createGameAudio() {
         gain.gain.value = fx.gain;
         source.connect(filter);
         filter.connect(gain);
-        gain.connect(master);
+        let panNode=null;
+        if(name==='rat' && context.createStereoPanner){
+          panNode=context.createStereoPanner();
+          panNode.pan.value=Math.max(-.65,Math.min(.65,Number(details.pan)||0));
+          gain.connect(panNode);
+          panNode.connect(master);
+        }else gain.connect(master);
         let delay = null;
         let wet = null;
         if (fx.echo) {
@@ -210,6 +217,7 @@ export function createGameAudio() {
           source.disconnect();
           filter.disconnect();
           gain.disconnect();
+          if (panNode) panNode.disconnect();
           if (delay) { delay.disconnect(); wet.disconnect(); }
         };
       } catch (err) { console.warn('Unable to play sound', name, err); }

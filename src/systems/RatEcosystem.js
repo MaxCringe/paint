@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Independent decorative ecosystem. Change to false to disable all rats.
 export const RAT_ECOSYSTEM_ENABLED=true;
-export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
+export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED,onFlee=null}={}){
  if(!enabled)return {considerFish(){},update(){},reset(){},dispose(){},encounters:[]};
  const rand=(a,b)=>a+Math.random()*(b-a);
  const encounters=[],mobile=typeof window!=='undefined'&&window.innerWidth<720;
@@ -134,6 +134,8 @@ export function createRatEcosystem(scene,{enabled=RAT_ECOSYSTEM_ENABLED}={}){
    const distance=Math.hypot((fishX-runnerX)*.7,fishZ-runnerZ);
    if(!e.alarmed&&(distance<19||(ultimate&&distance<24))){
     e.alarmed=true;e.alarmTime=0;
+    // Play one real squeak only when a group is startled, never on each frame.
+    if(typeof onFlee==='function')onFlee({x:fishX,z:fishZ,count:e.rats.length});
     // Keep current world position, then run independently toward the trees.
     e.container.position.copy(fish.g.position);
     fish.g.remove(e.container);
