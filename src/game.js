@@ -129,6 +129,12 @@ function updateSoundControls(){
  soundVolumeValue.textContent=percent+'%';
 }
 soundToggle.addEventListener('click',()=>{audio.setMuted(!audio.getMuted());updateSoundControls();});
+$('sound-bats-test')?.addEventListener('click',()=>{
+ if(audio.getMuted())audio.setMuted(false);
+ if(audio.getVolume()<.25)audio.setVolume(.35);
+ updateSoundControls();
+ audio.play('bats');
+});
 soundVolume.addEventListener('input',()=>{audio.setVolume(Number(soundVolume.value)/100);updateSoundControls();});
 updateSoundControls();let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;
 const magnetHud=document.createElement('div');
