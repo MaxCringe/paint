@@ -125,7 +125,7 @@ export function createBatEcosystem(scene, options={}) {
      }
      const dx=g.x-runnerX,dz=g.z-runnerZ;
      const near=Math.hypot(dx*.58,dz);
-     if(g.kind==='forest'&&!g.alarmed&&(near<21||(ultimate&&!previousUltimate&&near<27))){
+     if(g.kind==='forest'&&!g.alarmed&&(near<14||(ultimate&&!previousUltimate&&near<19))){
      g.alarmed=true;g.alertAge=0;
      // Each bat starts a little later, instead of one synchronized take-off.
      for(const b of g.bats){
