@@ -37,7 +37,7 @@ export function createFishFactory(scene,obstacles){
   part(root,strokeGeo,ink,0,.095,-.92).scale.set(1,.46,1);
   const tailRoot=new THREE.Group();tailRoot.position.set(0,.17,.57);tailRoot.rotation.y=bend;root.add(tailRoot);
   const tail=part(tailRoot,tailGeo,fin);
-  tail.rotation.x=-Math.PI/2;tail.rotation.y=battered?.24:0;
+  tail.rotation.x=Math.PI/2;tail.rotation.y=battered?.24:0;
   for(const side of [-1,1]){
    part(root,eyeGeo,white,side*.27,.31,-.49).scale.set(1,.88,.87);
    // Cartoon dead-fish X pupils on both cheeks.
