@@ -116,7 +116,7 @@ function end(){state='over';best=Math.max(best,Math.floor(distance));bestSouls=M
 function move(d){if(state!=='playing'||slipT>0)return;lane=Math.max(0,Math.min(2,lane+d))}
 function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0)jumpT=.72}
 function slide(){if(state==='playing'&&ultTimer<=0&&slideT<=0&&jumpT<=0)slideT=.68}
-function actionKey(e){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state!=='playing'){if(e.code==='Enter'||e.code==='Space')start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
+function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat)togglePause();return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;if(state!=='playing'){if(e.code==='Enter'||e.code==='Space')start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
 window.addEventListener('keydown',actionKey);
 $('start').addEventListener('click',start);$('left').addEventListener('click',()=>move(-1));$('right').addEventListener('click',()=>move(1));$('jump').addEventListener('click',jump);$('slide').addEventListener('click',slide);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
@@ -132,7 +132,22 @@ const fpsSmallScreenStyle=document.createElement('style');
 fpsSmallScreenStyle.textContent='@media(max-width:700px){#knotty-fps-counter{bottom:84px!important}}';
 document.head.appendChild(fpsSmallScreenStyle);
 let fpsSampleStart=null,fpsFrames=0;
+// Temporary pause screen; Escape toggles it without resetting the current run.
+const pauseOverlay=document.createElement('div');
+pauseOverlay.id='knotty-pause-overlay';
+pauseOverlay.style.cssText='position:fixed;inset:0;z-index:45;display:none;align-items:center;justify-content:center;background:rgba(5,8,12,.62);pointer-events:none;text-align:center;color:#fff;text-shadow:0 3px 14px #000;font-family:Arial,sans-serif';
+pauseOverlay.innerHTML='<div><div style="font-size:clamp(32px,7vw,64px);font-weight:900;letter-spacing:.14em">ПАУЗА</div><div style="font-size:clamp(14px,2vw,20px);margin-top:15px;color:#e6d7ce">Нажми Esc, чтобы продолжить</div></div>';
+document.body.appendChild(pauseOverlay);
+function togglePause(){
+ if(state!=='playing'&&state!=='paused')return;
+ const paused=state==='playing';
+ state=paused?'paused':'playing';
+ pauseOverlay.style.display=paused?'flex':'none';
+ if(paused){fpsDisplay.textContent='FPS: --';fpsSampleStart=null;fpsFrames=0;}
+}
 function frame(t){requestAnimationFrame(frame);
+ // Keep the final rendered frame completely still, including lava and fire animations.
+ if(state==='paused'){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  if(fpsSampleStart===null)fpsSampleStart=t;
  fpsFrames++;
  const fpsInterval=t-fpsSampleStart;
