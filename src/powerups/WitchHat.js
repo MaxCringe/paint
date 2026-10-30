@@ -94,7 +94,7 @@ export function createWitchHatFactory(scene,hats,runner) {
  }
  function animateHat(h,t){
   h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10;
-  h.visual.rotation.y=Math.sin(t*.0013+h.phase)*.32;
+  h.visual.rotation.y=t*.0018+h.phase;
   h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065;
  }
  function animateWearable(t,active){
