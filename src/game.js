@@ -8,6 +8,7 @@ import { createFishFactory } from './obstacles/Fish.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createWorld } from './world/World.js';
+import { createGameAudio } from './audio/sfx.js';
 import { createBatEcosystem } from './systems/BatEcosystem.js';
 import { createRatEcosystem } from './systems/RatEcosystem.js';
 import { createMeteorEcosystem } from './systems/MeteorEcosystem.js';
@@ -15,6 +16,7 @@ import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
+const audio=createGameAudio();
 const batEcosystem=createBatEcosystem(scene);
 const ratEcosystem=createRatEcosystem(scene);
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
@@ -112,7 +114,22 @@ const makeSegment = createSegmentGenerator({
   makeHat
 });
 let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, jumpT=0, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
-const $=id=>document.getElementById(id);let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;
+const $=id=>document.getElementById(id);
+const soundToggle=$('sound-toggle');
+const soundVolume=$('sound-volume');
+const soundVolumeValue=$('sound-volume-value');
+function updateSoundControls(){
+ const percent=Math.round(audio.getVolume()*100);
+ const silent=audio.getMuted()||percent===0;
+ soundToggle.textContent=silent?'🔇':'🔊';
+ soundToggle.setAttribute('aria-label',audio.getMuted()?'Включить звук':'Выключить звук');
+ soundToggle.setAttribute('aria-pressed',String(!audio.getMuted()));
+ soundVolume.value=String(percent);
+ soundVolumeValue.textContent=percent+'%';
+}
+soundToggle.addEventListener('click',()=>{audio.setMuted(!audio.getMuted());updateSoundControls();});
+soundVolume.addEventListener('input',()=>{audio.setVolume(Number(soundVolume.value)/100);updateSoundControls();});
+updateSoundControls();let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;
 const magnetHud=document.createElement('div');
 magnetHud.style.cssText='display:none;margin-top:5px;font-size:9px;color:#e6ca9c;letter-spacing:.07em;font-weight:900;text-align:center;white-space:nowrap';
 $('soul-meter-wrap').appendChild(magnetHud);
@@ -129,12 +146,12 @@ function updateHud(){
  if(magnetTime>0)magnetHud.textContent='🎩 МАГНИТ '+magnetTime.toFixed(1)+' с';
 }
 function popToast(t){if(t==='+ 1 ДУША'||t==='+1 ДУША'||t==='+ COIN')return;$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.85}
-function activateUltimate(){soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
-function start(){meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
-function end(){state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
-function move(d){if(state!=='playing'||slipT>0)return;lane=Math.max(0,Math.min(2,lane+d))}
-function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0)jumpT=.72}
-function slide(){if(state==='playing'&&ultTimer<=0&&slideT<=0&&jumpT<=0)slideT=.68}
+function activateUltimate(){audio.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
+function start(){audio.unlock();audio.play('start');meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);for(const c of coins)scene.remove(c.g);obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;jumpT=0;slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);flightAura.visible=false;batEcosystem.reset();state='playing';$('center').classList.add('hidden');updateHud()}
+function end(){audio.play('death');state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрал <b>'+coinCount+' душ</b>.';$('start').textContent='ЕЩЁ ОДИН ЗАБЕГ';$('center').classList.remove('hidden')}
+function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
+function jump(){if(state==='playing'&&ultTimer<=0&&jumpT<=0&&slideT<=0){jumpT=.72;audio.play('jump')}}
+function slide(){if(state==='playing'&&ultTimer<=0&&slideT<=0&&jumpT<=0){slideT=.68;audio.play('slide')}}
 function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat)togglePause();return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;if(state!=='playing'){if(e.code==='Enter'||e.code==='Space')start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
 window.addEventListener('keydown',actionKey);
 $('start').addEventListener('click',start);$('left').addEventListener('click',()=>move(-1));$('right').addEventListener('click',()=>move(1));$('jump').addEventListener('click',jump);$('slide').addEventListener('click',slide);
@@ -246,7 +263,7 @@ function frame(t){requestAnimationFrame(frame);
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
-     if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
+     if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
      else{const safe=jumping;if(!safe){end();break}else{invuln=.22}}
     }
    }
@@ -260,7 +277,7 @@ function frame(t){requestAnimationFrame(frame);
    if(!h.passed&&h.g.position.z>1.2){
     h.passed=true;
     if(h.lane===lane&&Math.abs(runner.position.x-(lane-1)*2.55)<1.05){
-     h.collected=true;magnetTime=10;
+     h.collected=true;magnetTime=10;audio.play('hat');
      scene.remove(h.g);
      animateWearable(t,true);
      popToast('ВЕДЬМИНА ШЛЯПА — МАГНИТ 10 СЕКУНД');
@@ -316,7 +333,7 @@ function frame(t){requestAnimationFrame(frame);
    const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
     c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
    if(!c.g.userData.got&&(magnetCaught||normalCaught)){
-    c.g.userData.got=true;coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
+    c.g.userData.got=true;audio.play('soul');coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins.splice(i,1)}
