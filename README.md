@@ -52,3 +52,9 @@ This is the first behavior-preserving architecture pass. Collision, HUD, forest 
 - Collectible blue soul flames
 - Ultimate flight activates after collecting 100 souls
 - Distance, soul counter, and best-run HUD
+
+## Music and sound licenses
+
+- **Background soundtrack:** [Creepy](https://opengameart.org/content/creepy) (file `CrEEP.mp3`) by **TokyoGeisha**, licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The artist explicitly permits use without attribution. Bundled in `public/audio/music/creepy-tokyogeisha.mp3` without modifying the recording.
+- The soundtrack begins with a run, loops while running, pauses with Escape, and stops on defeat. Music has independent mute and volume preferences (`src/audio/music.js`) separate from SFX (`src/audio/sfx.js`).
+- Existing sound effect attribution and the separate Mixkit sound license are described in [the SFX credits](public/audio/sfx/README.md).
