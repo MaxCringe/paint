@@ -8,8 +8,8 @@ export function createBatEcosystem(scene, options={}) {
  const rand=(a,b)=>a+Math.random()*(b-a);
  const habitats=[
   // Forest nests well away from the road, with long gaps between encounters.
-  {kind:'forest',x:-12.5,z:-110,baseY:4.2,spread:2.6,count:mobile?3:4},
-  {kind:'forest',x:17,z:-350,baseY:4.7,spread:3.8,count:mobile?2:4},
+  {kind:'forest',x:-9.7,z:-110,baseY:4.2,spread:2.6,count:mobile?3:4},
+  {kind:'forest',x:13,z:-350,baseY:4.7,spread:3.8,count:mobile?2:4},
   // Just a couple of distant bats over the treeline.
   {kind:'sky',x:-23,z:-150,baseY:18.5,spread:3.5,count:mobile?1:2}
  ];
@@ -56,14 +56,14 @@ export function createBatEcosystem(scene, options={}) {
  wingGeo.computeVertexNormals();
  const eyeGeo=new THREE.BufferGeometry();
  eyeGeo.setAttribute('position',new THREE.Float32BufferAttribute([
-  -.11,.1,.19,-.055,.1,.19,-.085,.048,.19,
-   .055,.1,.19,.11,.1,.19,.085,.048,.19
+  -.145,.135,.23,-.065,.135,.23,-.11,.05,.23,
+   .065,.135,.23,.145,.135,.23,.11,.05,.23
  ],3));
  eyeGeo.computeVertexNormals();
  // Classic near-black silhouettes with subtle charcoal outlines.
  const bodyMat=new THREE.MeshBasicMaterial({color:0x151116,side:THREE.DoubleSide,fog:false,toneMapped:false});
  const wingMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:false,toneMapped:false});
- const eyeMat=new THREE.MeshBasicMaterial({color:0x61212a,side:THREE.DoubleSide,fog:false,toneMapped:false});
+ const eyeMat=new THREE.MeshBasicMaterial({color:0xff3428,side:THREE.DoubleSide,fog:false,toneMapped:false});
  const count=habitats.reduce((n,h)=>n+h.count,0);
  const bodies=new THREE.InstancedMesh(bodyGeo,bodyMat,count);
  const wings=new THREE.InstancedMesh(wingGeo,wingMat,count*2);
@@ -98,7 +98,7 @@ export function createBatEcosystem(scene, options={}) {
     wingSpeed:rand(6,11.5),size:rand(.82,1.38),
     orbitRadius:rand(1.8,4.8),orbitSpeed:rand(.34,.85),
     orbitSign:Math.random()<.5?-1:1,wobble:rand(.1,.9),
-    hasEyes:h.kind==='forest'&&Math.random()<.18};
+    hasEyes:h.kind==='forest'};
    g.bats.push(b);bats.push(b);
   }
   resetColony(g);
@@ -207,7 +207,7 @@ export function createBatEcosystem(scene, options={}) {
    dummy.scale.setScalar(b.size);
    dummy.updateMatrix();
    bodies.setMatrixAt(i,dummy.matrix);
-   eyes.setMatrixAt(i,b.hasEyes&&flying?dummy.matrix:zero);
+   eyes.setMatrixAt(i,b.hasEyes?dummy.matrix:zero);
    const wingAmplitude=departing?.66:flying?.39:.055;
    const wingAngle=(flying?.03:1.05)+Math.sin(b.flap+b.wingPhase)*wingAmplitude;
    rotation.makeRotationZ(wingAngle);
