@@ -186,35 +186,36 @@ export function createWorld() {
   // Decorative background only: stop well before Fiona's active road and do not
   // enter the obstacle registry or change any lava collision/jump mechanics.
   const volcanicChannels=[
-   [[30,-71.6],[28,-69.3],[26,-66.5],[23,-63.3],[20.7,-59.9],[17.1,-56.1],[13.5,-52.7],[10.5,-49.8]],
-   [[26,-66.5],[29,-63.7],[32,-60.8],[32.8,-57.2],[35.6,-54.7],[38.4,-52.2]],
-   [[20.7,-59.9],[17.3,-59.0],[14,-56.8],[11.8,-54.7],[8.9,-52.6],[7.2,-50.8]]
+   // Main glowing stream follows the valley toward the forest beside the road.
+   [[30,-71.6],[28,-69.3],[25,-65],[22,-61],[19,-56.5],[16,-51],[13.4,-46.1],[11,-40],[9.3,-33],[7.8,-27],[7.2,-22]],
+   [[25,-65],[29,-62],[32,-58],[34,-53],[37,-48],[39,-43]],
+   [[19,-56.5],[16,-57.7],[13,-55.1],[10.8,-51],[9.8,-46],[9.1,-42]]
   ];
   const flowPos=[],flowCol=[],flowIndex=[];
   const crossOffsets=[-1.23,-1.02,-.79,-.48,-.20,0,.20,.48,.79,1.02,1.23];
   const cooledMagmaColors=[
-   0x130f13,0x2b1b19,0x67200f,0xc83809,0xff790d,0xffbd38,
-   0xff790d,0xc83809,0x67200f,0x2b1b19,0x130f13
+   0x160f12,0x2c1817,0x912b10,0xf04b08,0xff9418,0xffffa8,
+   0xff9418,0xf04b08,0x912b10,0x2c1817,0x160f12
   ].map(color=>new THREE.Color(color));
   for(let branch=0;branch<volcanicChannels.length;branch++){
    const path=new THREE.CatmullRomCurve3(volcanicChannels[branch].map(
     ([x,z])=>new THREE.Vector3(x,0,z)
    ));
-   const slices=branch===0?100:65,base=flowPos.length/3;
+   const slices=branch===0?145:80,base=flowPos.length/3;
    for(let i=0;i<=slices;i++){
     const t=i/slices,p=path.getPoint(t),dir=path.getTangent(t);
     const invLength=1/Math.hypot(dir.x,dir.z);
     const nx=-dir.z*invLength,nz=dir.x*invLength;
     const wiggle=.055*Math.sin(t*79+branch*2.4)+.028*Math.sin(t*166+branch);
-    // Stream narrows slightly at its distant ends rather than stopping as a hard line.
-    const taper=.6+.4*Math.sin(Math.PI*t);
-    const width=(branch===0?1.45:branch===1?.88:.95)*taper;
+    // Readable distant channel, gently narrowing near the roadside.
+    const taper=(.82+.18*Math.sin(Math.PI*t))*(branch===0&&t>.82?1-.55*(t-.82)/.18:1);
+    const width=(branch===0?2.65:branch===1?1.42:1.55)*taper;
     for(let j=0;j<crossOffsets.length;j++){
      const q=crossOffsets[j],aq=Math.abs(q);
      const x=p.x+nx*q*width*(1+wiggle);
      const z=p.z+nz*q*width*(1+wiggle);
      // Raised, dark cooled-rock sides surround the bright molten center.
-     const y=aq>1.1?-.104:aq>.78?-.042+wiggle*.11:-.085;
+     const y=aq>1.1?-.085:aq>.78?.025+wiggle*.11:.012;
      flowPos.push(x,y,z);
      const hot=.90+.10*Math.sin(t*35+branch*2.7+j*.6);
      const color=cooledMagmaColors[j];
