@@ -12,6 +12,32 @@ export function createLavaRiverFactory(scene, obstacles) {
   const lavaCharredWoodMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
   const lavaBankFlameMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.94,depthWrite:false,toneMapped:false});
   const lavaBubbleMats=[new THREE.MeshBasicMaterial({color:0xffd76a,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xff8610,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xffffad,toneMapped:false})];
+  // A subtle moving highlight layer. The original vivid lava materials are untouched.
+  // Use Three.js' regular textured material (no custom shader) to prevent grey/black lava.
+  const currentCanvas=document.createElement('canvas');
+  currentCanvas.width=256;currentCanvas.height=64;
+  const currentCtx=currentCanvas.getContext('2d');
+  for(let i=0;i<46;i++){
+   const x=Math.random()*256,y=6+Math.random()*52,length=18+Math.random()*60;
+   const bend=(Math.random()-.5)*9;
+   const brightness=155+Math.floor(Math.random()*95);
+   currentCtx.lineWidth=.8+Math.random()*2.4;
+   currentCtx.strokeStyle='rgba(255,'+brightness+',55,'+(.18+Math.random()*.27)+')';
+   // Repeated copies keep the texture seamless as it scrolls across the river.
+   for(const wrap of [-256,0,256]){
+    currentCtx.beginPath();
+    currentCtx.moveTo(x+wrap,y);
+    currentCtx.bezierCurveTo(x+wrap+length*.32,y+bend,x+wrap+length*.68,y-bend*.55,x+wrap+length,y+bend*.18);
+    currentCtx.stroke();
+   }
+  }
+  const currentTexture=new THREE.CanvasTexture(currentCanvas);
+  currentTexture.colorSpace=THREE.SRGBColorSpace;
+  currentTexture.wrapS=THREE.RepeatWrapping;
+  const currentMat=new THREE.MeshBasicMaterial({
+   map:currentTexture,transparent:true,opacity:.54,depthWrite:false,
+   side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false
+  });
   function makeLavaRiver(z){
    const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;g.userData.bubbles=[];scene.add(g);
    const phase=Math.random()*6.28,steps=720;
@@ -45,6 +71,18 @@ export function createLavaRiverFactory(scene, obstacles) {
    ribbon([-1,-.86,-.70,-.53,-.36,-.20,-.08,.07,.23,.41,.60,.78,.91,1],-.024,
     [0x211614,0x321813,0x501b11,0x7d210e,0xb82e0a,0xf04708,0xff8b12,0xffc344,0xffa321,0xff700d,0xdd3908,0x812611,0x3a1b14,0x211613],lavaSurfaceMat);
    ribbon([-.26,-.13,-.025,.08,.20,.29],-.008,[0xff4b07,0xff9b18,0xffff9a,0xffffc7,0xffa21a,0xff5108],lavaCoreMat,.92);
+   // Flow travels along X, from the forest across the road, without moving the obstacle.
+   // Draw above the existing lava surface; preserve the old bright core beneath it.
+   const currentMesh=ribbon([-0.87,0.87],.006,null,currentMat,.98);
+   const currentUv=[];
+   for(let i=0;i<=steps;i++){
+    const u=(-110+220*i/steps)/14;
+    currentUv.push(u,0,u,1);
+   }
+   currentMesh.geometry.setAttribute('uv',new THREE.Float32BufferAttribute(currentUv,2));
+   currentMesh.onBeforeRender=()=>{
+    currentTexture.offset.x=-(performance.now()*.000075)%1;
+   };
    // Broken dark crust fragments make both riverbanks uneven rather than ruler-straight.
    const rp=[],rc=[],ri=[];
    function tri(a,b,c,color){const base=rp.length/3,v=new THREE.Color(color);for(const p of [a,b,c]){rp.push(p[0],p[1],p[2]);rc.push(v.r,v.g,v.b)}ri.push(base,base+1,base+2)}
