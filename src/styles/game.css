@@ -43,18 +43,85 @@
 }
 
 
-/* Small, always available sound controls that do not cover the game buttons. */
-#audio-controls{position:absolute;left:18px;bottom:20px;z-index:6;display:flex;flex-direction:column;align-items:stretch;gap:3px;pointer-events:auto;background:#071520d9;border:1px solid #ffffff3a;border-radius:13px;padding:5px 9px;backdrop-filter:blur(8px)}
-#sound-toggle,#music-toggle{display:grid;place-items:center;width:31px;height:31px;min-width:0;padding:0;background:transparent;box-shadow:none;border-radius:8px;color:#fff;font-size:18px}
-#sound-toggle:active:active,#music-toggle:active{transform:none;box-shadow:none}
-#sound-toggle:focus-visible:focus-visible:focus-visible,#sound-volume:focus-visible,#music-toggle:focus-visible,#music-volume:focus-visible{outline:2px solid #7cdaff;outline-offset:2px}
-#sound-volume,#music-volume{width:74px;min-width:0;accent-color:#61c9ff;cursor:pointer;touch-action:pan-x}
-#sound-volume-value,#music-volume-value{color:#bdeaff;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;min-width:29px;text-align:right}
-@media(max-width:700px){#audio-controls{left:10px;bottom:84px;gap:5px;padding:3px 6px}#sound-toggle,#music-toggle{width:29px;height:29px}#sound-volume,#music-volume{width:64px}#sound-volume-value,#music-volume-value{font-size:10px}}
-
-.audio-control-row{display:flex;align-items:center;gap:7px;justify-content:space-between;min-height:30px}
-.audio-row-label{color:#bdeaff;font:800 10px/1 Arial,sans-serif;letter-spacing:.04em;min-width:31px;text-align:center}
-#music-toggle{font-size:16px}
-#music-toggle:hover{background:#20445b}
-@media(max-width:700px){.audio-control-row{gap:5px;min-height:29px}.audio-row-label{font-size:9px;min-width:30px}}
-
+/* Compact aligned sound controls; both rows have the same four columns. */
+#audio-controls{
+ position:absolute;
+ left:18px;
+ bottom:20px;
+ z-index:6;
+ width:268px;
+ max-width:calc(100vw - 20px);
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+ padding:9px 11px;
+ pointer-events:auto;
+ background:#071520e8;
+ border:1px solid #ffffff3a;
+ border-radius:13px;
+ backdrop-filter:blur(8px);
+ box-shadow:0 6px 25px #0005;
+}
+.audio-control-row{
+ display:grid;
+ grid-template-columns:28px 58px minmax(0,1fr) 36px;
+ align-items:center;
+ column-gap:7px;
+ min-height:32px;
+}
+#sound-toggle,#music-toggle{
+ display:grid;
+ place-items:center;
+ width:28px;
+ height:30px;
+ min-width:0;
+ padding:0;
+ border-radius:8px;
+ background:transparent;
+ box-shadow:none;
+ color:#fff;
+ font-size:18px;
+ line-height:1;
+}
+#music-toggle{font-size:17px}
+#sound-toggle:hover,#music-toggle:hover{background:#20445b}
+#sound-toggle:active,#music-toggle:active{transform:none;box-shadow:none}
+#sound-toggle:focus-visible,#music-toggle:focus-visible,
+#sound-volume:focus-visible,#music-volume:focus-visible{
+ outline:2px solid #7cdaff;
+ outline-offset:2px;
+}
+.audio-row-label{
+ color:#bdeaff;
+ font:800 10px/1.2 Inter,system-ui,sans-serif;
+ letter-spacing:.035em;
+ white-space:nowrap;
+ text-align:left;
+}
+#sound-volume,#music-volume{
+ display:block;
+ width:100%;
+ min-width:0;
+ margin:0;
+ accent-color:#61c9ff;
+ cursor:pointer;
+ touch-action:pan-x;
+}
+#sound-volume-value,#music-volume-value{
+ display:block;
+ width:36px;
+ min-width:0;
+ color:#bdeaff;
+ font-size:11px;
+ font-weight:800;
+ line-height:1;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap;
+ text-align:right;
+}
+@media(max-width:700px){
+ #audio-controls{left:10px;bottom:84px;width:250px;padding:7px 9px;gap:3px}
+ .audio-control-row{grid-template-columns:28px 58px minmax(0,1fr) 36px;column-gap:6px;min-height:30px}
+ .audio-row-label{font-size:9.5px}
+ #sound-volume-value,#music-volume-value{font-size:10px}
+}
