@@ -33,16 +33,51 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  const gripGeo = new THREE.CylinderGeometry(.047,.047,.20,8);
  const capGeo = new THREE.SphereGeometry(.055,8,6);
  const bristlePositions = [], bristleColors = [];
- const shades = [0x9c754a,0xba955f,0x80603f,0xc2a073];
- for(let i=0;i<18;i++){
-  const a = i/18*Math.PI*2, rad = .055+(i%3)*.015;
-  const tipR = .13+(i%4)*.023;
-  const base = [Math.cos(a)*rad,Math.sin(a)*rad,.76+(i%3)*.03];
-  const tip = [Math.cos(a)*tipR,Math.sin(a)*tipR,1.39+(i%5)*.065];
-  const next = [Math.cos(a+.13)*(rad+.03),Math.sin(a+.13)*(rad+.03),.82];
-  for(const v of [base,tip,next]) bristlePositions.push(...v);
-  const color = new THREE.Color(shades[i%shades.length]);
-  for(let j=0;j<3;j++) bristleColors.push(color.r,color.g,color.b);
+ const shades = [0x9c754a,0xba955f,0x80603f,0xc2a073,0xa98652,0x745035];
+ // A fuller broom head made of three staggered layers of crossed straw ribbons.
+ // One shared BufferGeometry for all road pickups and Fiona's mounted broom.
+ // No additional meshes or draw calls; tweak ring counts/spread to change fullness.
+ const bristleRings = [
+  {count:28,spread:.33,length:1.56},
+  {count:22,spread:.255,length:1.48},
+  {count:16,spread:.175,length:1.40}
+ ];
+ function emitStrawTriangle(a,b,c,color){
+  for(const v of [a,b,c]){
+   bristlePositions.push(...v);
+   bristleColors.push(color.r,color.g,color.b);
+  }
+ }
+ for(let ring=0;ring<bristleRings.length;ring++){
+  const {count,spread,length}=bristleRings[ring];
+  for(let i=0;i<count;i++){
+   const angle=(i+.36*ring)/count*Math.PI*2;
+   const variation=Math.sin(i*2.37+ring*1.61);
+   const tipAngle=angle+.075*Math.sin(i*1.91+ring);
+   const radius=[.058+.008*(i%3), spread*.54+variation*.014,
+    spread+Math.cos(i*2.13+ring)*.024];
+   const z=[.79+(i%3)*.012,1.14+(i%4)*.021,
+    length+(i%5)*.023];
+   const widths=[.024,.046,.020];
+   const color=new THREE.Color(shades[(i+ring*2)%shades.length]);
+   // Two thin crossed ribbons make each straw visible from multiple camera angles.
+   for(const cross of [0,Math.PI/2]){
+    const left=[],right=[];
+    for(let j=0;j<3;j++){
+     const a=angle+(tipAngle-angle)*j/2;
+     const centerX=Math.cos(a)*radius[j],centerY=Math.sin(a)*radius[j];
+     const widthAngle=a+cross;
+     const dx=Math.cos(widthAngle)*widths[j];
+     const dy=Math.sin(widthAngle)*widths[j];
+     left.push([centerX-dx,centerY-dy,z[j]]);
+     right.push([centerX+dx,centerY+dy,z[j]]);
+    }
+    for(let j=0;j<2;j++){
+     emitStrawTriangle(left[j],right[j],left[j+1],color);
+     emitStrawTriangle(right[j],right[j+1],left[j+1],color);
+    }
+   }
+  }
  }
  const bristlesGeo = new THREE.BufferGeometry();
  bristlesGeo.setAttribute('position',new THREE.Float32BufferAttribute(bristlePositions,3));
