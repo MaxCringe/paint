@@ -51,6 +51,13 @@ export function createSoulFactory(scene, coins) {
     sparks.push(s);
    }
   
+   // Soul flame geometry is unique to this pickup; materials and sparks are shared.
+   let disposed=false;
+   g.userData.dispose=()=>{
+    if(disposed)return;
+    disposed=true;
+    for(const mesh of [aura,outer,inner,side])mesh.geometry.dispose();
+   };
    coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
   }
   return makeSoul;
