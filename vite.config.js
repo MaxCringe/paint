@@ -39,8 +39,19 @@ self.addEventListener('fetch',event=>{
  if(request.method!=='GET'||new URL(request.url).origin!==self.location.origin)return;
  event.respondWith(caches.open(CACHE).then(async cache=>{
   if(request.mode==='navigate'){
-   const page=await cache.match(new URL('./index.html',self.registration.scope));
-   if(page)return page;
+   // Network-first keeps online players on the latest game version.
+   // Use the locally precached page only when the network is unavailable.
+   try{
+    const online=await fetch(request,{cache:'no-store'});
+    if(online.ok){
+     await cache.put(new URL('./index.html',self.registration.scope),online.clone());
+    }
+    return online;
+   }catch(error){
+    const offline=await cache.match(new URL('./index.html',self.registration.scope));
+    if(offline)return offline;
+    throw error;
+   }
   }
   const cached=await cache.match(request,{ignoreSearch:true});
   if(cached)return cached;
