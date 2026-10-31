@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { broomIgnoresHazard } from '../systems/HazardRules.js';
+import { createBroomTrail } from './BroomTrail.js';
 
 // Independent, reversible power-up. Disable here to remove every broom spawn/effect.
 export const BROOM_ENABLED = true;
@@ -118,6 +119,8 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  const mounted = model();
  mounted.position.y=.37;mounted.visible=false;
  runner.add(mounted);
+ // The flying broom casts a soft, copper-gold magic trail instead of a screen timer.
+ const trail=createBroomTrail(runner,glowTexture);
  let remaining=0,blend=0,time=0;
 
  function spawn(lane,z){
@@ -142,6 +145,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  function cancel(){
   remaining=0;blend=0;
   mounted.visible=false;torso.rotation.x=0;
+  trail.hide();
  }
  function reset(){
   cancel();
@@ -153,6 +157,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   remaining=Math.max(0,remaining-dt);
   blend=clamp(blend+(remaining>0?1:-1)*dt*4,0,1);
   mounted.visible=blend>.001;
+  trail.update(remaining,t);
   if(mounted.visible){
    mounted.position.y=.37+Math.sin(t*.0037)*.025;
    mounted.rotation.z=Math.sin(t*.0028)*.028;

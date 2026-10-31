@@ -1,6 +1,5 @@
-import {createBroomTimer} from './BroomTimer.js';
 // KNOTTY PINE interface only: no Three.js, no gameplay rules.
-export function createGameHud({soulGoal,ultimateDuration,broomDuration=9}){
+export function createGameHud({soulGoal,ultimateDuration}){
  const byId=id=>document.getElementById(id);
  const els={
   distance:byId('distance'),coins:byId('coins'),fill:byId('soul-fill'),
@@ -14,7 +13,6 @@ export function createGameHud({soulGoal,ultimateDuration,broomDuration=9}){
  magnet.className='hud-ability hud-ability-magnet';
  magnet.hidden=true;
  els.meter.append(magnet);
- const broomTimer=createBroomTimer({duration:broomDuration});
  const cache=new Map();
  let lastPaint=-Infinity,toastTime=0;
  function text(element,key,value){
@@ -23,7 +21,7 @@ export function createGameHud({soulGoal,ultimateDuration,broomDuration=9}){
   element.textContent=next;
   cache.set(key,next);
  }
- function update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive,broomRemaining,scarfHeld=false},force=false){
+ function update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld=false},force=false){
   const now=performance.now();
   if(!force&&now-lastPaint<100)return; // Ten HUD updates/sec, independent of FPS.
   lastPaint=now;
@@ -47,7 +45,6 @@ export function createGameHud({soulGoal,ultimateDuration,broomDuration=9}){
   const showMagnet=magnetTime>0;
   magnet.hidden=!showMagnet;
   if(showMagnet)text(magnet,'magnet','🎩 МАГНИТ '+magnetTime.toFixed(1)+' с');
-  broomTimer.update(broomRemaining,broomActive);
  }
  function setRecords(metres,souls){
   text(els.best,'record-metres',metres+' m');

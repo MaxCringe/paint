@@ -152,12 +152,12 @@ let footstepTimer=0;
 let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slideT=0, slipT=0, invuln=0, revivalShield=0, last=0, spawnTimer=0;
 const $=id=>document.getElementById(id);
 createAudioControls(audio,music);
-const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION,broomDuration:BROOM_CONFIG.duration});
+const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
 let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);hud.setRecords(best,bestSouls);
 const runRecords=createRunRecordTracker({storage:localStorage,bestMetres:best,bestSouls});
 function updateHud(force=false){
  hud.setRecordHighlights(runRecords.progress(distance,coinCount));
- hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining,scarfHeld:scarfPickup.canRevive},force);
+ hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld:scarfPickup.canRevive},force);
 }
 const popToast=message=>hud.toast(message);
 function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
