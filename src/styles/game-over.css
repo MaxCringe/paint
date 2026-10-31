@@ -1,0 +1,80 @@
+/* Dedicated defeat screen in the Ash & Copper theme; no effect on game HUD. */
+#game-over{
+ position:absolute;z-index:2;
+ top:50%;left:50%;transform:translate(-50%,-50%);
+ width:min(92vw,410px);max-height:calc(100dvh - 24px);
+ overflow-y:auto;overscroll-behavior:contain;
+ padding:27px 25px 25px;
+ border-radius:22px;
+ border:1px solid #99696b;
+ background:linear-gradient(150deg,rgba(55,36,46,.98),rgba(23,17,23,.99));
+ box-shadow:0 24px 84px #000b,inset 0 0 0 1px #e8b47713,0 0 25px #823c4230;
+ color:var(--kp-menu-text);
+ text-align:center;pointer-events:auto;
+ scrollbar-width:thin;scrollbar-color:#80565e transparent;
+}
+#game-over .game-over-eyebrow{
+ margin:0 0 7px;
+ font-size:10px;font-weight:900;letter-spacing:.2em;
+ color:var(--kp-menu-copper);
+}
+#game-over-title{
+ margin:0;
+ font-size:clamp(25px,6vw,35px);
+ font-weight:950;line-height:1.08;
+ letter-spacing:-.035em;
+ color:var(--kp-menu-text);
+ text-shadow:0 2px 8px #000a;
+}
+#game-over .game-over-description{
+ margin:13px auto 20px;
+ max-width:310px;color:var(--kp-menu-muted);
+ font-size:12px;line-height:1.55;
+}
+#game-over .game-over-stats{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;margin:0 0 21px;
+}
+#game-over .game-over-stat{
+ min-width:0;padding:14px 9px;
+ background:#1d141bcf;border:1px solid #80565e8c;
+ border-radius:13px;
+}
+#game-over .game-over-stat-label{
+ display:block;margin-bottom:6px;
+ color:var(--kp-menu-muted);
+ font-size:10px;font-weight:800;letter-spacing:.08em;
+}
+#game-over .game-over-stat-value{
+ display:block;overflow-wrap:anywhere;
+ color:var(--kp-menu-text);
+ font-size:clamp(21px,5vw,26px);font-weight:900;
+ font-variant-numeric:tabular-nums;line-height:1.1;
+}
+#game-over .game-over-actions{display:grid;gap:10px}
+#game-over .menu-action{width:100%;min-height:46px;margin:0}
+#game-over .menu-primary{
+ background:linear-gradient(115deg,#f0c794,#e8b477 56%,#d99f63);
+ color:var(--kp-menu-ink);box-shadow:0 4px 0 #805235;
+}
+#game-over .menu-primary:hover{background:linear-gradient(115deg,#f7d6a8,#edbc82 56%,#e4aa70)}
+#game-over .menu-secondary{
+ background:#3b2b32;color:var(--kp-menu-text);
+ border:1px solid var(--kp-menu-border);box-shadow:none;
+}
+#game-over .menu-secondary:hover{background:#513740;border-color:#a27670}
+#game-over .menu-action:focus-visible{
+ outline:2px solid var(--kp-menu-copper);outline-offset:3px;
+}
+@media(max-width:650px){
+ #game-over{width:min(94vw,390px);padding:19px 16px 19px}
+ #game-over .game-over-stats{gap:7px;margin-bottom:16px}
+ #game-over .game-over-stat{padding:11px 7px}
+ #game-over .game-over-actions{gap:8px}
+ #game-over .menu-action{min-height:44px}
+}
+@media(max-height:450px){
+ #game-over{padding-top:12px;padding-bottom:12px}
+ #game-over .game-over-description{margin:7px auto 9px}
+ #game-over .game-over-stats{margin-bottom:10px}
+}

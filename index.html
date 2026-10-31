@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/src/styles/menu.css">
 <link rel="stylesheet" href="/src/styles/theme.css">
 <link rel="stylesheet" href="/src/styles/hud.css">
+<link rel="stylesheet" href="/src/styles/game-over.css">
 
 </head>
 <body>
@@ -94,6 +95,25 @@
     <label class="menu-switch"><input id="vibration-toggle" type="checkbox" aria-label="Вибрация"><span></span></label>
    </div>
    <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
+  </div>
+ </section>
+ <section id="game-over" class="hidden" role="dialog" aria-modal="true" aria-labelledby="game-over-title" aria-describedby="game-over-description">
+  <p class="game-over-eyebrow">ЗАБЕГ ОКОНЧЕН</p>
+  <h2 id="game-over-title">Фиона не выбралась</h2>
+  <p id="game-over-description" class="game-over-description">Но адский лес ещё можно попытаться пройти.</p>
+  <div class="game-over-stats" aria-label="Результат забега">
+   <div class="game-over-stat">
+    <span class="game-over-stat-label">ПУТЬ ИЗ АДА</span>
+    <span class="game-over-stat-value" id="game-over-distance">0 м</span>
+   </div>
+   <div class="game-over-stat">
+    <span class="game-over-stat-label">ДУШИ</span>
+    <span class="game-over-stat-value" id="game-over-souls">0</span>
+   </div>
+  </div>
+  <div class="game-over-actions">
+   <button id="game-over-retry" class="menu-action menu-primary" type="button">ПОПРОБОВАТЬ СНОВА</button>
+   <button id="game-over-menu" class="menu-action menu-secondary" type="button">ГЛАВНОЕ МЕНЮ</button>
   </div>
  </section>
  <button id="pause-button" class="hidden" type="button" aria-label="Пауза, открыть меню" title="Пауза">⏸</button>

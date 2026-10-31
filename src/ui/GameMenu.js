@@ -1,5 +1,5 @@
-// KNOTTY PINE's single menu works for ready, paused and game-over states.
-// No separate pause overlay; only the Continue action changes with run state.
+// Shared start and pause menu; game-over results now have a dedicated panel.
+// Continue is visible only when a live run has been paused.
 export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
@@ -32,7 +32,7 @@ export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
  try{showFps=localStorage.getItem(storageKey)==='1';}catch{}
  const fpsToggle=$('fps-toggle');
  function syncFps(){
-  fpsDisplay.style.display=showFps&&root.classList.contains('hidden')?'block':'none';
+  fpsDisplay.style.display=showFps&&root.classList.contains('hidden')&&!document.body.classList.contains('game-over-open')?'block':'none';
   fpsToggle.checked=showFps;
  }
  fpsToggle.addEventListener('change',()=>{
@@ -66,20 +66,28 @@ export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
   resume.classList.toggle('hidden',mode!=='paused');
   start.textContent=mode==='ready'?'НАЧАТЬ ЗАБЕГ':mode==='paused'?'НАЧАТЬ ЗАНОВО':'НОВАЯ ИГРА';
   root.classList.remove('hidden');
+  document.body.classList.remove('game-over-open');
   document.body.classList.add('menu-open');
   pause.classList.add('hidden');
   syncFps();
  }
  function hide(){
   root.classList.add('hidden');
-  document.body.classList.remove('menu-open');
+  document.body.classList.remove('menu-open','game-over-open');
   pause.classList.remove('hidden');
   openPage('main');
+  syncFps();
+ }
+ function showGameOver(){
+  // Keep the same darkened 3D background, but not the title/pause menu.
+  root.classList.add('hidden');
+  pause.classList.add('hidden');
+  document.body.classList.add('menu-open','game-over-open');
   syncFps();
  }
  function escape(){
   if(page==='main')return false;
   openPage('main');return true;
  }
- return {show,hide,escape,isSubpageOpen:()=>page!=='main'};
+ return {show,hide,showGameOver,escape,isSubpageOpen:()=>page!=='main'};
 }

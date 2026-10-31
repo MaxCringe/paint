@@ -24,6 +24,7 @@ import { createGameHud } from './ui/GameHud.js';
 import { createRunRecordTracker } from './systems/RunRecords.js';
 import { createAudioControls } from './ui/AudioControls.js';
 import { createGameMenu } from './ui/GameMenu.js';
+import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
@@ -169,18 +170,30 @@ function start(){
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
  audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
-function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрано <b>'+coinCount+' душ</b>.';menu.show('over')}
+function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount})}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0)doubleJump.jump()}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0&&!doubleJump.airborne){slideT=.68;audio.play('slide')}}
 function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(state==='playing')togglePause();else if(!menu.escape()&&state==='paused')togglePause();}return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;
  // Holding jump must not consume the second jump through keyboard auto-repeat.
  if(e.repeat&&['ArrowUp','KeyW','Space'].includes(e.code))return;
- if(state!=='playing'){if(!menu.isSubpageOpen()&&(e.code==='Enter'||e.code==='Space'))start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
+ if(state==='over')return; if(state!=='playing'){if(!menu.isSubpageOpen()&&(e.code==='Enter'||e.code==='Space'))start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
 window.addEventListener('keydown',actionKey);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 const {fpsDisplay}=createOverlays();
 const menu=createGameMenu({onStart:start,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+const gameOver=createGameOver({
+ onRetry:()=>{
+  gameOver.hide();
+  start();
+ },
+ onMainMenu:()=>{
+  gameOver.hide();
+  state='ready';
+  $('message').textContent='Фиона — ведьма в аду. Беги сквозь сосновый лес, собирай души и избегай ловушек.';
+  menu.show('ready');
+ }
+});
 menu.show('ready');
 let fpsSampleStart=null,fpsFrames=0;
 function togglePause(){

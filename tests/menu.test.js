@@ -14,7 +14,8 @@ test('one main menu has start, conditional resume, help and settings',()=>{
  assert.match(html,/id="resume"[^>]+hidden/);
  assert.ok(menu.includes("mode!=='paused'"));
  assert.ok(game.includes("menu.show('paused')"));
- assert.ok(game.includes("menu.show('over')"));
+ assert.ok(game.includes("menu.showGameOver()"));
+ assert.ok(game.includes("gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount})"));
  assert.ok(game.includes("menu.hide()"));
 });
 
