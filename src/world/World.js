@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import { buildFernGeometry } from './buildFernGeometry.js';
-// Imported as a Vite asset to avoid fetching the texture from GitHub at runtime.
-import pineTextureUrl from '../../pictures/KNOTTY PINE/TEXTURE/knotty pine_1.jpg';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld() {
@@ -19,7 +17,7 @@ export function createWorld() {
   const sun=new THREE.DirectionalLight(0xff3927,2.8); sun.position.set(-8,35,8); sun.target.position.set(0,0,-12); scene.add(sun.target); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); sun.shadow.camera.left=-18; sun.shadow.camera.right=18; sun.shadow.camera.top=55; sun.shadow.camera.bottom=-55; sun.shadow.camera.near=.1; sun.shadow.camera.far=160; sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias=-0.00012; sun.shadow.normalBias=.025; sun.shadow.radius=2; scene.add(sun);
   const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
   const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x173b2a),mat(0x204832),mat(0x28513a),mat(0x142f24)], goldMat=mat(0xff4b36,.3,.2), trunkMat=mat(0x68472d);
-  const pineFloorTexture=new THREE.TextureLoader().load(pineTextureUrl,()=>{renderer.render(scene,camera)});
+  const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
   pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
   pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
   pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
@@ -187,16 +185,9 @@ export function createWorld() {
   // Decorative temple arches in the distance and along the trail
   const fixedDecor=[];
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-  // All roadside and far-forest pines share these rounded geometries.
-  // The former box trunks and five-sided crowns looked square from the runner's view.
-  // Keep three overlapping tiers and shared meshes for the existing draw-call budget.
-  const PINE_TRUNK_SIDES=12, PINE_CROWN_SIDES=16;
-  const treeTrunkGeometry=new THREE.CylinderGeometry(.17,.23,2.5,PINE_TRUNK_SIDES);
-  const treeConeGeometries=[
-   new THREE.ConeGeometry(1.15,1.8,PINE_CROWN_SIDES),
-   new THREE.ConeGeometry(.98,1.8,PINE_CROWN_SIDES),
-   new THREE.ConeGeometry(.81,1.8,PINE_CROWN_SIDES)
-  ];
+  // Reuse tree geometry across the whole forest and keep foliage out of the expensive shadow pass.
+  const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
+  const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
   function tree(x,z,scale=1,recycleLength=180){
    const g=new THREE.Group();g.position.set(x,0,z);
    // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
