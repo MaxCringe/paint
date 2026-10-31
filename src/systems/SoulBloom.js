@@ -65,7 +65,13 @@ export function createSoulBloom(scene, camera, renderer, {
    '}'
   ].join('\n')
  }));
- const finalComposer = new EffectComposer(renderer);
+ // Postprocessing renders into offscreen buffers: canvas antialiasing does not
+ // smooth these edges. Restore MSAA for the main scene without affecting the
+ // separate low-resolution soul-only bloom pass.
+ const finalTarget = new THREE.WebGLRenderTarget(1, 1, {
+  samples: mobile ? 2 : 4
+ });
+ const finalComposer = new EffectComposer(renderer, finalTarget);
  finalComposer.addPass(new RenderPass(scene, camera));
  finalComposer.addPass(composite);
  finalComposer.addPass(new OutputPass());
