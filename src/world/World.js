@@ -16,7 +16,7 @@ export function createWorld() {
   scene.add(new THREE.HemisphereLight(0xff8b76,0x120308,1.45));
   const sun=new THREE.DirectionalLight(0xff3927,2.8); sun.position.set(-8,35,8); sun.target.position.set(0,0,-12); scene.add(sun.target); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); sun.shadow.camera.left=-18; sun.shadow.camera.right=18; sun.shadow.camera.top=55; sun.shadow.camera.bottom=-55; sun.shadow.camera.near=.1; sun.shadow.camera.far=160; sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias=-0.00012; sun.shadow.normalBias=.025; sun.shadow.radius=2; scene.add(sun);
   const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-  const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), stoneMat=mat(0x807e69), darkStone=mat(0x454c40), leafMats=[mat(0x173b2a),mat(0x204832),mat(0x28513a),mat(0x142f24)], goldMat=mat(0xff4b36,.3,.2), trunkMat=mat(0x68472d);
+  const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), darkStone=mat(0x454c40), leafMats=[mat(0x173b2a),mat(0x204832),mat(0x28513a),mat(0x142f24)], trunkMat=mat(0x68472d);
   const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
   pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
   pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
