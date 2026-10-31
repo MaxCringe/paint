@@ -26,8 +26,10 @@ test('visible smoke uses standard instanced Three.js materials instead of custom
  assert.match(trail,/THREE\.NormalBlending/);
  assert.match(trail,/THREE\.AdditiveBlending/);
  assert.match(trail,/depthTest:true/);
- assert.match(trail,/SMOKE_COUNT=14,SPARK_COUNT=16/);
- assert.ok(trail.includes('smokeMaterial.opacity=.53'));
+ assert.ok(trail.includes('SMOKE_BASE=14,SMOKE_COUNT=28,SPARK_COUNT=16'));
+ assert.match(trail,/smoke\.count=/);
+ assert.ok(trail.includes('smokeMaterial.opacity=Math.min(1,.53'));
+ assert.match(trail,/settings\.opacity/);
  assert.doesNotMatch(trail,/depthTest:false/);
  assert.match(trail,/smoke\.setMatrixAt/);
  assert.match(trail,/sparks\.setMatrixAt/);
