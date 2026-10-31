@@ -9,7 +9,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 // These percentages map directly to UnrealBloomPass strength/radius/threshold.
 export const SOUL_BLOOM_ENABLED = true;
 export const SOUL_BLOOM_PERCENT = Object.freeze({
- strength: 70,
+ strength: 55,
  radius: 30,
  threshold: 78
 });
