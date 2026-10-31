@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createUltimateAura } from '../effects/UltimateAura.js';
 
 // Create Fiona's procedural model and return only the parts used by the animation loop.
 export function createFiona(scene, mat, box) {
@@ -220,29 +221,7 @@ export function createFiona(scene, mat, box) {
   }
   runner.position.set(0,0,2.3);
   
-  // Pale cyan flight aura used automatically when Fiona charges the soul meter.
-  const flightAura=new THREE.Group();
-  flightAura.visible=false;
-  runner.add(flightAura);
-  const auraOuterMaterial=new THREE.MeshBasicMaterial({color:0x8cefff,transparent:true,opacity:.105,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
-  const auraInnerMaterial=new THREE.MeshBasicMaterial({color:0x57dfff,transparent:true,opacity:.075,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
-  const auraOuter=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),auraOuterMaterial);
-  auraOuter.scale.set(.82,1.53,.67);auraOuter.position.y=1.28;auraOuter.renderOrder=3;flightAura.add(auraOuter);
-  const auraInner=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),auraInnerMaterial);
-  auraInner.scale.set(.64,1.30,.53);auraInner.position.y=1.30;auraInner.renderOrder=4;flightAura.add(auraInner);
-  const flightLight=new THREE.PointLight(0x79eaff,1.65,5.5,2);
-  flightLight.position.set(0,1.25,.12);flightAura.add(flightLight);
-  const flightParticleGeometry=new THREE.IcosahedronGeometry(.045,0);
-  const flightParticleMaterials=[
-   new THREE.MeshBasicMaterial({color:0xcafcff,transparent:true,opacity:.95}),
-   new THREE.MeshBasicMaterial({color:0x65dfff,transparent:true,opacity:.9}),
-   new THREE.MeshBasicMaterial({color:0x8298ff,transparent:true,opacity:.9})
-  ];
-  const flightParticles=[];
-  for(let i=0;i<9;i++){
-   const mesh=new THREE.Mesh(flightParticleGeometry,flightParticleMaterials[i%flightParticleMaterials.length]);
-   const particle={mesh,phase:i/9*Math.PI*2,height:.25+(i%5)*.48,radius:.52+(i%3)*.09};
-   mesh.visible=false;flightAura.add(mesh);flightParticles.push(particle);
-  }
-  return { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles };
+  // Procedural blue-fire glow replaces the former globe shells and nine balls.
+  const ultimateAura=createUltimateAura(runner);
+  return {runner,torso,armL,armR,legL,legR,ultimateAura};
 }
