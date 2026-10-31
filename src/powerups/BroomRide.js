@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { broomIgnoresHazard } from '../systems/HazardRules.js';
 
 // Independent, reversible power-up. Disable here to remove every broom spawn/effect.
 export const BROOM_ENABLED = true;
@@ -191,7 +192,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  }
  function immuneTo(type){
   // Flying low still requires dodging pine trunks.
-  return remaining>0&&(type==='pee'||type==='fish'||type==='lava');
+  return remaining>0&&broomIgnoresHazard(type);
  }
  return {
   spawn,advancePickups,tick,applyPose,reset,cancel,immuneTo,
