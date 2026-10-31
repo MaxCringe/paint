@@ -66,11 +66,13 @@ export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
   resume.classList.toggle('hidden',mode!=='paused');
   start.textContent=mode==='ready'?'НАЧАТЬ ЗАБЕГ':mode==='paused'?'НАЧАТЬ ЗАНОВО':'НОВАЯ ИГРА';
   root.classList.remove('hidden');
+  document.body.classList.add('menu-open');
   pause.classList.add('hidden');
   syncFps();
  }
  function hide(){
   root.classList.add('hidden');
+  document.body.classList.remove('menu-open');
   pause.classList.remove('hidden');
   openPage('main');
   syncFps();
