@@ -9,7 +9,8 @@
 }
 #distance-soul-group .small{color:var(--kp-menu-muted);opacity:1;text-shadow:0 1px 4px #11080d}
 #distance-soul-group .big{color:var(--kp-menu-text);text-shadow:0 1px 4px #11080d}
-#soul-meter-wrap{color:var(--kp-menu-text)}
+/* Keep the soul meter in the same stacking layer as metres and souls. */
+#soul-meter-wrap{color:var(--kp-menu-text);z-index:auto}
 #soul-meter-label{color:var(--kp-menu-text);text-shadow:0 1px 3px #11080d}
 #soul-count{color:var(--kp-menu-copper)}
 #soul-meter{background:#110f1a;border-color:rgba(232,180,119,.45)}
