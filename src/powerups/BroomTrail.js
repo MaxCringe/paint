@@ -17,23 +17,24 @@ export function broomTrailState(remaining){
 }
 
 export function createBroomTrail(runner,glowTexture){
- // Three tapered ribbons, batched into a single BufferGeometry / draw call.
+ // Three broad, feathered luminous ribbons in one GPU draw call.
+ // Warm colours alone disappear against the orange pine road; cool pearly edges separate the magic.
  const positions=[],uvs=[],indices=[],bands=[];
  const strips=[
-  {x:-.23,y:.37,z:1.06,width:.135},
-  {x:.04,y:.39,z:1.02,width:.16},
-  {x:.28,y:.35,z:1.10,width:.115}
+  {x:-.29,y:.46,z:1.26,width:.27},
+  {x:0,y:.50,z:1.21,width:.34},
+  {x:.29,y:.45,z:1.28,width:.27}
  ];
  const steps=18;
  for(let strip=0;strip<strips.length;strip++){
   const s=strips[strip],offset=positions.length/3;
   for(let i=0;i<=steps;i++){
    const v=i/steps;
-   const z=s.z+v*3.1;
+   const z=s.z+v*4.1;
    // Smooth tail taper and an initial flare emerging from the broom head.
-   const width=s.width*(1-.84*v);
+   const width=s.width*(1-.72*v);
    for(const side of [-1,1]){
-    positions.push(s.x+side*width,s.y+.13*v,z);
+    positions.push(s.x+side*width,s.y+.30*v,z);
     uvs.push((side+1)*.5,v);
     bands.push(strip);
    }
@@ -67,10 +68,10 @@ export function createBroomTrail(runner,glowTexture){
     vBand=aBand;
     vec3 p=position;
     float lengthAlong=uv.y;
-    p.x+=sin(lengthAlong*9.0-uTime*3.1+aBand*2.3)*(.025+.14*lengthAlong);
-    p.y+=sin(lengthAlong*11.0-uTime*4.2+aBand*2.1)*.065*lengthAlong;
+    p.x+=sin(lengthAlong*9.0-uTime*3.1+aBand*2.3)*(.045+.21*lengthAlong);
+    p.y+=sin(lengthAlong*11.0-uTime*4.2+aBand*2.1)*.10*lengthAlong;
     // Collapse the flowing ribbon toward the bristles as its magic runs out.
-    float origin=1.02+(aBand==0.0?.04:(aBand==2.0?.08:0.0));
+    float origin=1.21+(aBand==0.0?.05:(aBand==2.0?.07:0.0));
     p.z=origin+(p.z-origin)*uLength;
     gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
    }
@@ -84,17 +85,25 @@ export function createBroomTrail(runner,glowTexture){
    uniform float uInstability;
    void main(){
     float across=1.0-abs(vUv.x*2.0-1.0);
-    float glow=pow(max(across,0.0),1.4);
-    float fade=pow(1.0-vUv.y,1.55)*smoothstep(0.0,.08,vUv.y);
-    float ripple=.88+.12*sin(uTime*5.0-vUv.y*13.0+vBand*2.6);
-    // Irregular dying embers, not a full-screen flashing warning.
-    float sputter=1.0-uInstability*(.19+.17*sin(uTime*14.0+vBand*2.4));
-    float alpha=glow*fade*ripple*sputter*uStrength*.55;
-    vec3 copper=vec3(.83,.37,.17);
-    vec3 gold=vec3(1.,.73,.40);
-    vec3 color=mix(copper,gold,.54+.23*sin(vUv.y*5.0+vBand));
-    color=mix(color,vec3(1.,.88,.63),pow(across,4.0)*.20);
-    gl_FragColor=vec4(color,alpha);
+    // Broad soft ribbon plus a luminous inner core; fade from broom bristles to tail.
+    float halo=pow(max(across,0.0),.55);
+    float core=pow(max(across,0.0),5.0);
+    float fade=pow(1.0-vUv.y,.85)*smoothstep(0.0,.07,vUv.y);
+    float ripple=.92+.08*sin(uTime*5.0-vUv.y*13.0+vBand*2.6);
+    float spark=pow(max(sin(uTime*11.0-vUv.y*21.0+vBand*3.3),0.0),15.0);
+    // Magic stays visible over the orange road, without an opaque streak.
+    float alpha=(halo*.74+core*.20+spark*.10)*fade*ripple*uStrength;
+    float sputter=1.0-uInstability*(.18+.18*sin(uTime*14.0+vBand*2.4));
+    alpha*=sputter;
+    vec3 icy=vec3(.35,.73,1.0);
+    vec3 pearl=vec3(1.0,.97,.84);
+    vec3 lilac=vec3(.65,.52,1.0);
+    vec3 rim=vBand<.5?lilac:(vBand>1.5?icy:vec3(.58,.85,1.0));
+    vec3 color=mix(rim,pearl,.30+.70*core);
+    color+=vec3(.32,.26,.22)*spark*core;
+    // Last three seconds: cold flowing magic breaks into short copper embers.
+    color=mix(color,vec3(1.0,.42,.15),uInstability*.85);
+    gl_FragColor=vec4(color,clamp(alpha,0.0,.96));
    }
   `,
   side:THREE.DoubleSide,
@@ -109,12 +118,12 @@ export function createBroomTrail(runner,glowTexture){
  runner.add(ribbons);
 
  const headMaterial=new THREE.SpriteMaterial({
-  map:glowTexture,color:0xf4c482,transparent:true,opacity:.62,
+  map:glowTexture,color:0xd7f3ff,transparent:true,opacity:.95,
   depthWrite:false,blending:THREE.AdditiveBlending
  });
  const headGlow=new THREE.Sprite(headMaterial);
- headGlow.position.set(0,.37,1.02);
- headGlow.scale.set(.90,.85,1);
+ headGlow.position.set(0,.48,1.22);
+ headGlow.scale.set(1.85,1.62,1);
  headGlow.visible=false;
  runner.add(headGlow);
  function update(remaining,timeMs){
@@ -131,10 +140,10 @@ export function createBroomTrail(runner,glowTexture){
    ?1-state.instability*(.10+.18*(.5+.5*Math.sin(seconds*16)))
    :1;
   const energy=state.strength*sputter;
-  headMaterial.opacity=.55*energy;
-  headMaterial.color.setHex(state.warning?0xff9c60:0xf4c482);
-  const size=(.74+.10*Math.sin(seconds*6))*Math.max(.3,state.length);
-  headGlow.scale.set(size,size*.9,1);
+  headMaterial.opacity=Math.min(.98,.93*energy);
+  headMaterial.color.setHex(state.warning?0xffb675:0xd7f3ff);
+  const size=(1.68+.12*Math.sin(seconds*6))*Math.max(.3,state.length);
+  headGlow.scale.set(size,size*.88,1);
  }
  function hide(){
   ribbons.visible=false;
