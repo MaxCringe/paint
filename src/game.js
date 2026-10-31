@@ -17,6 +17,7 @@ import { createMeteorEcosystem } from './systems/MeteorEcosystem.js';
 import { createAirLite } from './systems/AirLite.js';
 import { createWindSystem } from './systems/WindSystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
+import { createSoulBloom } from './systems/SoulBloom.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation } = createWorld();
@@ -27,6 +28,7 @@ const ratEcosystem=createRatEcosystem(scene,{onFlee:({x})=>audio.play('rat',{pan
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
+const soulBloom=createSoulBloom(scene,camera,renderer);
 
 const { runner, torso, armL, armR, legL, legR, flightAura, auraOuter, auraInner, flightParticles } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], segments=[], hats=[];
@@ -109,7 +111,7 @@ function makeFish(lane,z){
 }
 // Procedural 3D soul-flame geometry. No face, eyes, or coin-like ring.
 
-const makeSoul = createSoulFactory(scene, coins);
+const makeSoul = createSoulFactory(scene, coins, soulBloom.registerSoul);
 
 const makeLavaRiver = createLavaRiverFactory(scene, obstacles);
 const makeSegment = createSegmentGenerator({
@@ -383,7 +385,7 @@ function frame(t){requestAnimationFrame(frame);
  }
  // Camera follows gently; maintain forward view
  camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);camera.lookAt(runner.position.x*.2,1.05,-5);
- renderer.render(scene,camera);
+ soulBloom.render();
 }
 requestAnimationFrame(frame);
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.2))});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.2));soulBloom.resize()});

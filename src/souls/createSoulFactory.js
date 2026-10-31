@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { buildSoulFlameGeometry } from './buildSoulFlameGeometry.js';
 
 // Create collectible soul flames. Their values are still added to the shared coin registry.
-export function createSoulFactory(scene, coins) {
+export function createSoulFactory(scene, coins, onSoulCreated = null) {
   const soulOuterMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.93,depthWrite:false});
   const soulInnerMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,opacity:.97,depthWrite:false});
   const soulAuraMaterial=new THREE.MeshBasicMaterial({color:0x4e58ff,transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide});
@@ -51,7 +51,8 @@ export function createSoulFactory(scene, coins) {
     sparks.push(s);
    }
   
-   coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
+   onSoulCreated?.(g);
+  coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
   }
   return makeSoul;
 }
