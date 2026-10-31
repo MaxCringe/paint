@@ -4,9 +4,9 @@ export function createBroomTimer({duration,root=document.getElementById('hud')})
  const panel=document.createElement('div');
  panel.id='broom-flight-status';
  panel.hidden=true;
- panel.setAttribute('role','timer');
- panel.setAttribute('aria-live','off');
- panel.setAttribute('aria-label','Время полёта на метле');
+ panel.setAttribute?.('role','timer');
+ panel.setAttribute?.('aria-live','off');
+ panel.setAttribute?.('aria-label','Время полёта на метле');
  const heading=document.createElement('span');
  heading.className='broom-flight-heading';
  const seconds=document.createElement('span');
