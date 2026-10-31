@@ -1,5 +1,6 @@
+import {createBroomTimer} from './BroomTimer.js';
 // KNOTTY PINE interface only: no Three.js, no gameplay rules.
-export function createGameHud({soulGoal,ultimateDuration}){
+export function createGameHud({soulGoal,ultimateDuration,broomDuration=9}){
  const byId=id=>document.getElementById(id);
  const els={
   distance:byId('distance'),coins:byId('coins'),fill:byId('soul-fill'),
@@ -12,10 +13,8 @@ export function createGameHud({soulGoal,ultimateDuration}){
  const magnet=document.createElement('div');
  magnet.className='hud-ability hud-ability-magnet';
  magnet.hidden=true;
- const broom=document.createElement('div');
- broom.className='hud-ability hud-ability-broom';
- broom.hidden=true;
- els.meter.append(magnet,broom);
+ els.meter.append(magnet);
+ const broomTimer=createBroomTimer({duration:broomDuration});
  const cache=new Map();
  let lastPaint=-Infinity,toastTime=0;
  function text(element,key,value){
@@ -48,8 +47,7 @@ export function createGameHud({soulGoal,ultimateDuration}){
   const showMagnet=magnetTime>0;
   magnet.hidden=!showMagnet;
   if(showMagnet)text(magnet,'magnet','🎩 МАГНИТ '+magnetTime.toFixed(1)+' с');
-  broom.hidden=!broomActive;
-  if(broomActive)text(broom,'broom','🧹 МЕТЛА '+broomRemaining.toFixed(1)+' с');
+  broomTimer.update(broomRemaining,broomActive);
  }
  function setRecords(metres,souls){
   text(els.best,'record-metres',metres+' m');
