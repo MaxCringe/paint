@@ -14,6 +14,7 @@ test('defeat view sets final metres and souls and provides two working actions',
    classList:{
     add(name){classes.add(name);},
     remove(name){classes.delete(name);},
+    toggle(name,enabled){if(enabled)classes.add(name);else classes.delete(name);},
     contains(name){return classes.has(name);}
    },
    addEventListener(name,fn){this.handlers[name]=fn;},
@@ -26,10 +27,22 @@ test('defeat view sets final metres and souls and provides two working actions',
  let retries=0,home=0;
  try{
   const over=createGameOver({onRetry:()=>retries++,onMainMenu:()=>home++});
-  over.show({metres:321.9,collectedSouls:57});
+  over.show({metres:321.9,collectedSouls:57,records:{metres:true,souls:false}});
   assert.equal(elements.get('game-over').classes.has('hidden'),false);
   assert.equal(elements.get('game-over-distance').textContent,'321 м');
   assert.equal(elements.get('game-over-souls').textContent,'57');
+  assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),true);
+  assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),false);
+  // Each achievement is independent, and a no-record result clears old glows.
+  over.show({metres:500,collectedSouls:80,records:{metres:false,souls:true}});
+  assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),false);
+  assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),true);
+  over.show({metres:501,collectedSouls:81,records:{metres:true,souls:true}});
+  assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),true);
+  assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),true);
+  over.show({metres:20,collectedSouls:1});
+  assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),false);
+  assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),false);
   assert.equal(elements.get('game-over-retry').focusCalled,true);
   elements.get('game-over-retry').handlers.click();
   elements.get('game-over-menu').handlers.click();
@@ -37,13 +50,15 @@ test('defeat view sets final metres and souls and provides two working actions',
   assert.equal(home,1);
   over.hide();
   assert.equal(elements.get('game-over').classes.has('hidden'),true);
+  assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),false);
+  assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),false);
  }finally{globalThis.document=previous;}
 });
 
 test('defeat panel is separate from main menu and matches Ash & Copper palette',()=>{
  const html=read('index.html'),game=read('src/game.js'),menu=read('src/ui/GameMenu.js');
  const css=read('src/styles/game-over.css');
- for(const id of ['game-over','game-over-title','game-over-distance','game-over-souls','game-over-retry','game-over-menu'])
+ for(const id of ['game-over','game-over-title','game-over-distance','game-over-souls','game-over-metres-card','game-over-souls-card','game-over-retry','game-over-menu'])
   assert.ok(html.includes('id="'+id+'"'),id);
  assert.match(html,/id="game-over" class="hidden"/);
  assert.ok(html.includes('ПОПРОБОВАТЬ СНОВА'));
@@ -52,6 +67,11 @@ test('defeat panel is separate from main menu and matches Ash & Copper palette',
  assert.ok(html.includes('/src/styles/game-over.css'));
  assert.ok(css.includes('var(--kp-menu-copper)'));
  assert.ok(css.includes('var(--kp-menu-ink)'));
+ assert.ok(css.includes('#game-over-metres-card.new-record'));
+ assert.ok(css.includes('#game-over-souls-card.new-record'));
+ assert.ok(css.includes('kp-violet-record'));
+ assert.ok(css.includes('kp-blue-record'));
+ assert.ok(game.includes('records:runRecords.status()'));
  assert.ok(game.includes("menu.showGameOver()"));
  assert.ok(game.includes("gameOver.hide();\n  start();"));
  assert.ok(game.includes("state='ready';"));

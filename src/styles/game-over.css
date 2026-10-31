@@ -78,3 +78,37 @@
  #game-over .game-over-description{margin:7px auto 9px}
  #game-over .game-over-stats{margin-bottom:10px}
 }
+
+/* Match the violet metres and blue soul-fire records in hud.css.
+   Existing kp-record-reveal, kp-violet-record, kp-blue-record and
+   kp-blue-wisp keyframes are shared; no duplicate animation logic. */
+#game-over .game-over-stat.new-record{
+ position:relative;
+ isolation:isolate;
+}
+#game-over #game-over-metres-card.new-record{
+ border-color:#bd8af6;
+ background:radial-gradient(ellipse at center,#352142 0%,#2c2026 80%);
+ animation:kp-record-reveal .95s ease-out,kp-violet-record 2.8s ease-in-out infinite;
+}
+#game-over #game-over-souls-card.new-record{
+ border-color:#5ec5ff;
+ background:radial-gradient(ellipse at center,#163752 0%,#2c2026 85%);
+ animation:kp-record-reveal .95s ease-out,kp-blue-record 2.5s ease-in-out infinite;
+}
+#game-over #game-over-souls-card.new-record::after{
+ content:"";
+ position:absolute;inset:-13px;border-radius:22px;
+ pointer-events:none;
+ background:
+  radial-gradient(ellipse 38% 76% at 22% 65%,#37a5ff82,transparent 88%),
+  radial-gradient(ellipse 43% 67% at 72% 38%,#55dfff72,transparent 90%),
+  radial-gradient(ellipse 27% 63% at 88% 80%,#2e6eff6b,transparent 90%);
+ filter:blur(10px);
+ opacity:.48;z-index:-1;
+ animation:kp-blue-wisp 2.1s ease-in-out infinite alternate;
+}
+@media(prefers-reduced-motion:reduce){
+ #game-over .game-over-stat.new-record,
+ #game-over #game-over-souls-card.new-record::after{animation:none}
+}

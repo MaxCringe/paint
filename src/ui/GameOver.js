@@ -3,17 +3,26 @@ export function createGameOver({onRetry,onMainMenu}){
  const root=document.getElementById('game-over');
  const distance=document.getElementById('game-over-distance');
  const souls=document.getElementById('game-over-souls');
+ const metresCard=document.getElementById('game-over-metres-card');
+ const soulsCard=document.getElementById('game-over-souls-card');
  const retry=document.getElementById('game-over-retry');
  const mainMenu=document.getElementById('game-over-menu');
  retry.addEventListener('click',onRetry);
  mainMenu.addEventListener('click',onMainMenu);
 
- function show({metres=0,collectedSouls=0}={}){
+ function show({metres=0,collectedSouls=0,records={}}={}){
   distance.textContent=Math.max(0,Math.floor(metres))+' м';
   souls.textContent=String(Math.max(0,Math.floor(collectedSouls)));
+  // Reuse exactly the in-run achievement flags; the first-ever run cannot glow.
+  metresCard.classList.toggle('new-record',Boolean(records.metres));
+  soulsCard.classList.toggle('new-record',Boolean(records.souls));
   root.classList.remove('hidden');
   retry.focus({preventScroll:true});
  }
- function hide(){root.classList.add('hidden');}
+ function hide(){
+  root.classList.add('hidden');
+  metresCard.classList.remove('new-record');
+  soulsCard.classList.remove('new-record');
+ }
  return {show,hide};
 }
