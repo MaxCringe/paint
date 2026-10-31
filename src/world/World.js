@@ -183,25 +183,34 @@ export function createWorld() {
   const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
   for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-  // Reuse tree geometry across the whole forest and keep foliage out of the expensive shadow pass.
+  // Batch all pine tiers into a handful of InstancedMesh draws.
+  // Each tree keeps a transform-only proxy: wind and recycling stay unchanged.
   const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
   const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
+  const pineGroups=[],pineBatches=[];
+  function pinePart(parent,geometry,material){
+   let batch=pineBatches.find(b=>b.geometry===geometry&&b.material===material);
+   if(!batch){batch={geometry,material,parts:[],mesh:null};pineBatches.push(batch);}
+   const node=new THREE.Object3D();
+   parent.add(node);batch.parts.push(node);
+   return node;
+  }
   function tree(x,z,scale=1,recycleLength=180){
    const g=new THREE.Group();g.position.set(x,0,z);
    // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
    g.scale.set(scale*(.84+Math.random()*.30),scale*(.76+Math.random()*.48),scale*(.84+Math.random()*.30));
-   g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);
-   const trunk=new THREE.Mesh(treeTrunkGeometry,trunkMat);
+   g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);pineGroups.push(g);
+   const trunk=pinePart(g,treeTrunkGeometry,trunkMat);
    trunk.position.set((Math.random()-.5)*.09,1.15,0);
    trunk.rotation.z=(Math.random()-.5)*.035;
-   trunk.castShadow=false;g.add(trunk);
+   // Transform-only placeholder, drawn by the matching instance batch.
    for(let i=0;i<3;i++){
-    const cone=new THREE.Mesh(treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);
+    const cone=pinePart(g,treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);
     cone.position.set((Math.random()-.5)*.12,2.05+i*.69+(Math.random()-.5)*.16,(Math.random()-.5)*.08);
     const width=.78+Math.random()*.40;
     cone.scale.set(width,.86+Math.random()*.28,width);
     cone.rotation.y=(Math.random()-.5)*.42;
-    cone.castShadow=false;g.add(cone);
+    // Drawn from the original shared five-sided cone geometry.
    }
    return g
   }
@@ -317,5 +326,26 @@ export function createWorld() {
     if(Math.random()<.48)roadsideVegetation.push(grassTuft(-side*(5.8+Math.random()*2.8),z-1.65+(Math.random()-.5)*1.0,.28+Math.random()*.36,grassLoop));
    }
   }
-  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation };
+  // Build once; updating only instance matrices preserves every tree's
+  // original random silhouette, wind rotation and independent recycle length.
+  for(const batch of pineBatches){
+   const instanced=new THREE.InstancedMesh(batch.geometry,batch.material,batch.parts.length);
+   instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   instanced.castShadow=false;
+   instanced.receiveShadow=false;
+   // The instances move during the run. Static bounds would incorrectly cull them.
+   instanced.frustumCulled=false;
+   batch.mesh=instanced;
+   scene.add(instanced);
+  }
+  function updateForestPines(){
+   for(const group of pineGroups)group.updateMatrixWorld(true);
+   for(const batch of pineBatches){
+    for(let i=0;i<batch.parts.length;i++)
+     batch.mesh.setMatrixAt(i,batch.parts[i].matrixWorld);
+    batch.mesh.instanceMatrix.needsUpdate=true;
+   }
+  }
+  updateForestPines();
+  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines };
 }
