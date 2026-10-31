@@ -8,6 +8,7 @@ Requires Node.js 20.19+ or 22.12+.
 
 ```bash
 npm install
+npm test
 npm run dev
 ```
 
@@ -35,8 +36,15 @@ Vite writes the production site to `dist/`. Wrangler runs the build before deplo
 - `src/souls/buildSoulFlameGeometry.js` — procedural soul-flame geometry.
 - `src/souls/animateSoulFlame.js` — animation of soul-flame meshes.
 - `src/styles/game.css` — HUD and page styles.
+- `src/powerups/BroomRide.js` and `src/powerups/WitchHat.js` — optional collectible abilities.
+- `src/effects/UltimateAura.js` — shader-only blue flame surrounding Fiona.
+- `src/systems/HazardRules.js` — pure collision and speed predicates, covered by tests.
+- `src/ui/GameOverlays.js` — FPS overlay and pause screen (FPS can be disabled there).
+- `tests/gameplay.test.js` — automated gameplay and protected asset checks.
 
-This is the first behavior-preserving architecture pass. Collision, HUD, forest construction, and the remaining run-state logic can be extracted individually in later passes.
+The forest uses shared instanced pine meshes; each tree retains its independent wind and recycling transform. Obstacles reuse shared pine geometry, while individually generated puddle and soul geometry is freed on pickup, expiry, or a restarted run. Faraway souls hidden by fog skip CPU deformation.
+
+Run `npm test` to check jump, broom, lava collision and speed rules plus the two intentionally unchanged external asset URLs. GitHub Actions also runs these tests automatically. Successful tests/builds are not a substitute for visual browser playtesting.
 
 ## Controls
 
@@ -58,3 +66,7 @@ This is the first behavior-preserving architecture pass. Collision, HUD, forest 
 - **Background soundtrack:** [Creepy](https://opengameart.org/content/creepy) (file `CrEEP.mp3`) by **TokyoGeisha**, licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). The artist explicitly permits use without attribution. Bundled in `public/audio/music/creepy-tokyogeisha.mp3` without modifying the recording.
 - The soundtrack begins with a run, loops while running, pauses with Escape, and stops on defeat. Music has independent mute and volume preferences (`src/audio/music.js`) separate from SFX (`src/audio/sfx.js`).
 - Existing sound effect attribution and the separate Mixkit sound license are described in [the SFX credits](public/audio/sfx/README.md).
+
+## Deliberately external assets
+
+At the owner's request, the soul pickup sound is still loaded from `assets.mixkit.co`, and the knotty pine road texture is still loaded from `raw.githubusercontent.com`. Do **not** remove or rewrite these URLs without explicit consent. A private GitHub repository may block the road texture URL for public visitors; the site is not completely offline-capable while this dependency remains.
