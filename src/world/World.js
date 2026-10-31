@@ -182,8 +182,6 @@ export function createWorld() {
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,220),grassMat); floor.rotation.x=-Math.PI/2; floor.position.set(0,-.12,-65); floor.receiveShadow=true; scene.add(floor);
   const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
   for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
-  // Decorative temple arches in the distance and along the trail
-  const fixedDecor=[];
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
   // Reuse tree geometry across the whole forest and keep foliage out of the expensive shadow pass.
   const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
@@ -319,5 +317,5 @@ export function createWorld() {
     if(Math.random()<.48)roadsideVegetation.push(grassTuft(-side*(5.8+Math.random()*2.8),z-1.65+(Math.random()-.5)*1.0,.28+Math.random()*.36,grassLoop));
    }
   }
-  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, fixedDecor, roadsideVegetation };
+  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation };
 }
