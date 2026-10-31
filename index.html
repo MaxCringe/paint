@@ -21,6 +21,13 @@
     <div id="soul-meter-label"><span id="soul-state">ПЛАМЯ ДУШ</span><span id="soul-count">0/100</span></div>
     <div id="soul-meter"><div id="soul-fill"></div></div>
    </div>
+   <div id="scarf-indicator" class="pill scarf-indicator" role="status" aria-live="off" aria-label="Платок Мисти: 0, отсутствует" title="Платок Мисти: 0">
+    <svg class="scarf-symbol" viewBox="0 0 40 36" aria-hidden="true" focusable="false">
+     <path d="M5 10 Q12 4 19 10 Q27 15 35 7 L35 15 Q27 22 20 17 L17 31 L10 33 L12 17 Q8 18 5 16 Z" fill="currentColor"/>
+     <path d="M9 12 Q18 9 24 14 M14 20 L13 29" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".52"/>
+    </svg>
+    <span id="scarf-count" class="scarf-count">0</span>
+   </div>
   </div>
  </div>
  <div id="toast">+ COIN</div>
@@ -113,7 +120,7 @@
    </div>
   </div>
   <div class="game-over-actions">
-   <button id="game-over-revive" class="menu-action menu-revive hidden" type="button">✧ ВОСКРЕСНУТЬ — ПЛАТОК МИСТИ</button>
+   <button id="game-over-revive" class="menu-action menu-revive" type="button" disabled aria-disabled="true">✧ ВОСКРЕСНУТЬ — ПЛАТОК МИСТИ</button>
     <button id="game-over-ad" class="menu-action menu-ad-disabled" type="button" disabled aria-disabled="true">▶ ВОСКРЕСНУТЬ ЗА РЕКЛАМУ · СКОРО</button>
     <button id="game-over-retry" class="menu-action menu-primary" type="button">ПОПРОБОВАТЬ СНОВА</button>
    <button id="game-over-menu" class="menu-action menu-secondary" type="button">ГЛАВНОЕ МЕНЮ</button>

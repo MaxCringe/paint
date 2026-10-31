@@ -18,15 +18,16 @@ test('defeat view sets final metres and souls and provides two working actions',
     contains(name){return classes.has(name);}
    },
    addEventListener(name,fn){this.handlers[name]=fn;},
+   attributes:{},setAttribute(name,value){this.attributes[name]=String(value);},
    focus(){this.focusCalled=true;}
   };
  }
  globalThis.document={
   getElementById(id){if(!elements.has(id))elements.set(id,make(id));return elements.get(id);}
  };
- let retries=0,home=0;
+ let retries=0,home=0,revived=0;
  try{
-  const over=createGameOver({onRetry:()=>retries++,onMainMenu:()=>home++});
+  const over=createGameOver({onRetry:()=>retries++,onMainMenu:()=>home++,onRevive:()=>revived++});
   over.show({metres:321.9,collectedSouls:57,records:{metres:true,souls:false}});
   assert.equal(elements.get('game-over').classes.has('hidden'),false);
   assert.equal(elements.get('game-over-distance').textContent,'321 м');
@@ -44,6 +45,16 @@ test('defeat view sets final metres and souls and provides two working actions',
   assert.equal(elements.get('game-over-metres-card').classes.has('new-record'),false);
   assert.equal(elements.get('game-over-souls-card').classes.has('new-record'),false);
   assert.equal(elements.get('game-over-retry').focusCalled,true);
+  assert.equal(elements.get('game-over-revive').classes.has('hidden'),false);
+  assert.equal(elements.get('game-over-revive').disabled,true);
+  over.show({metres:3020,canRevive:true});
+  assert.equal(elements.get('game-over-revive').disabled,false);
+  assert.equal(elements.get('game-over-revive').focusCalled,true);
+  elements.get('game-over-revive').handlers.click();
+  assert.equal(revived,1);
+  over.show({canRevive:false});
+  elements.get('game-over-revive').handlers.click();
+  assert.equal(revived,1);
   elements.get('game-over-retry').handlers.click();
   elements.get('game-over-menu').handlers.click();
   assert.equal(retries,1);

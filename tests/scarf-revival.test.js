@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createScarfRules,SCARF_INTERVAL_METRES,REVIVAL_PROTECTION_SECONDS} from '../src/systems/ScarfRules.js';
+import {createScarfRules,SCARF_INTERVAL_METRES,REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE,SCARF_TEST_SPAWN_CHANCE} from '../src/systems/ScarfRules.js';
 
 test('milestones at 3000, 6000 and 9000 metres, not continuously',()=>{
  const r=createScarfRules();
@@ -40,4 +40,17 @@ test('pickup, independent revival screen and disabled advertisements are wired',
  assert.match(html,/id="game-over-revive"/);
  assert.match(html,/id="game-over-ad"[^>]*disabled/);
  assert.match(game,/onRetry:\(\)=>\{/);
+});
+
+test('temporary abundant test pickups are per segment and rarity can be restored',()=>{
+ assert.equal(SCARF_TEST_MODE,true);
+ assert.ok(SCARF_TEST_SPAWN_CHANCE>=.075&&SCARF_TEST_SPAWN_CHANCE<=1);
+ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+ const game=read('src/game.js'),scarf=read('src/powerups/ScarfPickup.js');
+ assert.ok(game.includes('if(SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ'));
+ assert.ok(game.includes('if(!SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ'));
+ assert.ok(scarf.includes('firstTestOffer'));
+ assert.ok(read('index.html').includes('id="scarf-indicator"'));
+ assert.ok(read('index.html').includes('id="scarf-count"'));
+ assert.ok(read('src/styles/game-over.css').includes('menu-revive:disabled'));
 });

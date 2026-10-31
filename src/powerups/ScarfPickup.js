@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {createScarfRules} from '../systems/ScarfRules.js';
+import {createScarfRules,SCARF_TEST_MODE,SCARF_TEST_SPAWN_CHANCE} from '../systems/ScarfRules.js';
 
 // A low-cost procedural floating white scarf; separate from broom/hat/souls.
 export function createScarfPickup(scene){
@@ -18,7 +18,7 @@ export function createScarfPickup(scene){
  context.fillStyle=gradient;context.fillRect(0,0,64,64);
  const texture=new THREE.CanvasTexture(canvas);
  const aura=new THREE.SpriteMaterial({map:texture,color:0xffffff,transparent:true,opacity:.92,depthWrite:false,blending:THREE.AdditiveBlending});
- let pickup=null,burstEffect=null;
+ let pickup=null,burstEffect=null,firstTestOffer=true;
  function clearPickup(){if(pickup)scene.remove(pickup.group);pickup=null}
  function clearBurst(){if(burstEffect){scene.remove(burstEffect.sprite);burstEffect.material.dispose()}burstEffect=null}
  function burst(position){
@@ -28,9 +28,13 @@ export function createScarfPickup(scene){
   sprite.position.set(position.x,position.y+1.45,position.z);sprite.scale.set(2.5,2.5,1);
   scene.add(sprite);burstEffect={sprite,material,timer:.65};
  }
- function reset(){clearPickup();clearBurst();rules.reset()}
+ function reset(){clearPickup();clearBurst();rules.reset();firstTestOffer=true}
  function offer(distance,spawnZ,hazards=[],hats=[],souls=[]){
-  if(!rules.milestone(distance)||pickup)return;
+  if(pickup)return;
+  if(SCARF_TEST_MODE){
+   // Only one roll per generated section; first pickup is guaranteed for testing.
+   if(!rules.canSpawn||(!firstTestOffer&&Math.random()>=SCARF_TEST_SPAWN_CHANCE))return;
+  }else if(!rules.milestone(distance))return;
   // Prefer an open lane ahead of Fiona; avoid known obstacles and soul chains.
   for(let n=0;n<12;n++){
    const z=Math.min(-55,spawnZ-9)-n*12;
@@ -49,7 +53,8 @@ export function createScarfPickup(scene){
    }
    const halo=new THREE.Sprite(aura);halo.position.z=-.1;halo.scale.set(3.4,2.6,1);visual.add(halo);
    group.add(visual);scene.add(group);
-   pickup={group,visual,halo,lane,phase:Math.random()*6.28};return;
+   pickup={group,visual,halo,lane,phase:Math.random()*6.28};
+   firstTestOffer=false;return;
   }
  }
  function update(dt,t,speed,lane,runnerX,onCollect){

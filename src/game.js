@@ -18,7 +18,7 @@ import { createWindSystem } from './systems/WindSystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
-import { REVIVAL_PROTECTION_SECONDS } from './systems/ScarfRules.js';
+import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
 import { lavaJumpCleared, travelSpeedMultiplier } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
@@ -157,7 +157,7 @@ let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(
 const runRecords=createRunRecordTracker({storage:localStorage,bestMetres:best,bestSouls});
 function updateHud(force=false){
  hud.setRecordHighlights(runRecords.progress(distance,coinCount));
- hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining},force);
+ hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining,scarfHeld:scarfPickup.canRevive},force);
 }
 const popToast=message=>hud.toast(message);
 function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
@@ -253,8 +253,12 @@ function frame(t){requestAnimationFrame(frame);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
   distance+=travelSpeed*dt*.72;speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
-  scarfPickup.offer(distance,spawnZ,obstacles,hats,coins);
-  if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
+  if(!SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ,obstacles,hats,coins);
+  if(spawnTimer<=0){
+   makeSegment(spawnZ);
+   if(SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ,obstacles,hats,coins);
+   spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025);
+  }
   if(spawnZ<-150)spawnZ= -50;
   if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
   animateWearable(t,magnetTime>0);
@@ -315,7 +319,7 @@ function frame(t){requestAnimationFrame(frame);
   });
   if(state==='playing')scarfPickup.update(dt,t,travelSpeed,lane,runner.position.x,()=>{
    audio.play('hat');haptics.play('item');
-   popToast('ПЛАТОК МИСТИ — ОДНО ВОСКРЕШЕНИЕ');
+   popToast('ПЛАТОК МИСТИ — ОДНО ВОСКРЕШЕНИЕ');updateHud(true);
   });
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){

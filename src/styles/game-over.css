@@ -128,3 +128,9 @@
  50%{box-shadow:0 0 22px #ffffffe6,0 0 38px #ffffff88,inset 0 0 14px #fff}
 }
 @media(prefers-reduced-motion:reduce){#game-over .menu-revive{animation:none}}
+
+/* No scarf: the option is shown but cannot be pressed and has no glow. */
+#game-over .menu-revive:disabled{
+ background:#342e36;color:#9a909a;border-color:#5c505d;
+ box-shadow:none;animation:none;opacity:.66;cursor:not-allowed;transform:none;
+}

@@ -13,6 +13,7 @@ test('HUD writes changed values once, and supports forced gameplay updates',()=>
   _text:'',
   style:{},
   classList:{toggle(){},add(){},remove(){}},
+  attributes:{},setAttribute(name,value){this.attributes[name]=String(value);},
   append(){},
   set textContent(value){this._text=String(value);this.writes++;},
   get textContent(){return this._text;}
@@ -35,6 +36,12 @@ test('HUD writes changed values once, and supports forced gameplay updates',()=>
   hud.update({...frame,distance:22.9,ultTimer:4},true);
   assert.equal(distance.textContent,'22 m');
   assert.equal(nodes.get('soul-state').textContent,'УЛЬТА — ПОЛЁТ');
+  assert.equal(nodes.get('scarf-count').textContent,'0');
+  hud.update({...frame,scarfHeld:true},true);
+  assert.equal(nodes.get('scarf-count').textContent,'1');
+  assert.equal(nodes.get('scarf-indicator').attributes['aria-label'],'Платок Мисти: 1, готов к воскрешению');
+  hud.update({...frame,scarfHeld:false},true);
+  assert.equal(nodes.get('scarf-count').textContent,'0');
   hud.setRecords(450,99);
   assert.equal(nodes.get('best').textContent,'450 m');
   hud.toast('ТЕСТ');hud.tick(.9);

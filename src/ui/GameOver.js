@@ -19,13 +19,15 @@ export function createGameOver({onRetry,onMainMenu,onRevive=()=>{}}){
   metresCard.classList.toggle('new-record',Boolean(records.metres));
   soulsCard.classList.toggle('new-record',Boolean(records.souls));
   revive.disabled=!canRevive;
-  revive.classList.toggle('hidden',!canRevive);
+  revive.setAttribute('aria-disabled',String(!canRevive));
+  // Keep the revival choice visible, greyed out if the scarf was not collected.
+  revive.classList.remove('hidden');
   root.classList.remove('hidden');
-  retry.focus({preventScroll:true});
+  (canRevive?revive:retry).focus({preventScroll:true});
  }
  function hide(){
   root.classList.add('hidden');
-  revive.disabled=true;revive.classList.add('hidden');
+  revive.disabled=true;
   metresCard.classList.remove('new-record');
   soulsCard.classList.remove('new-record');
  }
