@@ -76,6 +76,26 @@ export function createLavaRiverFactory(scene, obstacles) {
   coreHeat.addColorStop(.48,'rgba(255,195,46,.75)');
   coreHeat.addColorStop(1,'rgba(255,246,147,.94)');
   fireCtx.fillStyle=coreHeat;fireCtx.fill();
+
+  // The textured flames on scorched pines and lava banks must not show
+  // rectangular billboard edges. Fade alpha completely at all four sides.
+  // Process the small shared texture once, not on each animation frame.
+  const firePixels=fireCtx.getImageData(0,0,fireCanvas.width,fireCanvas.height);
+  const fireData=firePixels.data;
+  const smoothEdge=(distance,width)=>{
+   const t=Math.max(0,Math.min(1,distance/width));
+   return t*t*(3-2*t);
+  };
+  const fw=fireCanvas.width,fh=fireCanvas.height;
+  for(let y=0;y<fh;y++){
+   const fadeY=smoothEdge(y,10)*smoothEdge(fh-1-y,21);
+   for(let x=0;x<fw;x++){
+    const fadeX=smoothEdge(x,20)*smoothEdge(fw-1-x,20);
+    const alpha=(y*fw+x)*4+3;
+    fireData[alpha]=Math.round(fireData[alpha]*fadeX*fadeY);
+   }
+  }
+  fireCtx.putImageData(firePixels,0,0);
   const fireTexture=new THREE.CanvasTexture(fireCanvas);
   fireTexture.colorSpace=THREE.SRGBColorSpace;
   const fireCardMaterial=new THREE.MeshBasicMaterial({
