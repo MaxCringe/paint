@@ -25,7 +25,7 @@ function stored(key, fallback) {
   try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
 }
 export function createGameAudio() {
-  let volume = clamp(stored(VOLUME_KEY, '.35'));
+  let volume = clamp(stored(VOLUME_KEY, '.30'));
   let muted = stored(MUTE_KEY, '0') === '1';
   let context = null;
   let master = null;

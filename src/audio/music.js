@@ -8,7 +8,7 @@ const loadSetting=(key, fallback)=>{try{return localStorage.getItem(key) ?? fall
 const saveSetting=(key,value)=>{try{localStorage.setItem(key,String(value));}catch{}};
 
 export function createGameMusic() {
-  let volume=clamp(loadSetting(VOLUME_KEY,'0.30'));
+  let volume=clamp(loadSetting(VOLUME_KEY,'0.20'));
   let muted=loadSetting(MUTE_KEY,'0')==='1';
   let track=null;
   let playing=false;
