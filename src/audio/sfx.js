@@ -1,6 +1,6 @@
 // Sample-based game SFX. Most clips are locally bundled CC0 OGG recordings.
-// Soul collection uses the Mixkit #883 clip from its official CDN under the Mixkit SFX license.
-// Do not redistribute the Mixkit audio as a standalone asset or source file.
+// All game effects are local; no requests to third-party audio servers.
+// The selected Mixkit impact clip is used only for collisions with pines.
 const VOLUME_KEY = 'knottyPineSfxVolume';
 const MUTE_KEY = 'knottyPineSfxMuted';
 const clamp = value => Math.max(0, Math.min(1, Number(value) || 0));
@@ -9,12 +9,12 @@ const EFFECTS = {
   move:     {file:'move.ogg',gain:.25,rate:1.05,cutoff:3800,gap:95,jitter:.06},
   jump:     {file:'jump.ogg',gain:.43,rate:.83,cutoff:4400,gap:180},
   slide:    {file:'slide.ogg',gain:.35,rate:.85,cutoff:2200,gap:180},
-  soul:     {remote:'https://assets.mixkit.co/active_storage/sfx/883/883-preview.mp3',gain:.74,gap:250},
+  soul:     {file:'soul.ogg',gain:.74,gap:250},
   ultimate: {file:'ultimate.ogg',gain:.43,rate:.84,cutoff:2900,gap:1000,echo:.16},
   slip:     {file:'slip.ogg',gain:.38,rate:.72,cutoff:2400,gap:300},
   hat:      {file:'hat.ogg',gain:.28,rate:.92,cutoff:3600,gap:250,echo:.10},
   death:    {file:'death.ogg',gain:.65,rate:.69,cutoff:1600,gap:500,echo:.12},
-  treeHit:  {file:'pine-body-impact-courtneyeck.mp3',gain:1,rate:1,cutoff:5500,gap:500},
+  treeHit:  {file:'mixkit-fast-impact-blow-2655.mp3',gain:1,rate:1,cutoff:5500,gap:500},
   step:     {file:'step.ogg',gain:.14,rate:.93,cutoff:2400,gap:175,jitter:.07},
   land:     {file:'land.ogg',gain:.15,rate:.72,cutoff:1350,gap:180},
   bats:     {file:'bats-flock-digpro120.mp3',gain:.72,rate:1,cutoff:7300,gap:2800},
@@ -37,7 +37,7 @@ export function createGameAudio() {
   function prepareSoulVoices() {
     if (soulVoices.length || !window.Audio) return;
     for (let i=0;i<2;i++) {
-      const voice = new Audio(EFFECTS.soul.remote);
+      const voice = new Audio(base + EFFECTS.soul.file);
       voice.preload = 'auto';
       voice.volume = muted ? 0 : Math.min(1,volume * EFFECTS.soul.gain);
       soulVoices.push(voice);
