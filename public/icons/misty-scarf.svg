@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Чёрный цветочный платок Мисти">
+ <defs>
+  <linearGradient id="silk" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0" stop-color="#30252d"/>
+   <stop offset=".42" stop-color="#141116"/>
+   <stop offset=".78" stop-color="#241820"/>
+   <stop offset="1" stop-color="#100f13"/>
+  </linearGradient>
+  <linearGradient id="petal" x1="0" y1="0" x2=".65" y2="1">
+   <stop stop-color="#ff977e"/>
+   <stop offset=".48" stop-color="#df3974"/>
+   <stop offset="1" stop-color="#98254f"/>
+  </linearGradient>
+  <g id="flower">
+   <g fill="url(#petal)" stroke="#ffad79" stroke-width=".7">
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z"/>
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z" transform="rotate(60)"/>
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z" transform="rotate(120)"/>
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z" transform="rotate(180)"/>
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z" transform="rotate(240)"/>
+    <path d="M0 -2 C-4 -6 -3 -11 0 -11 C3 -11 4 -6 0 -2Z" transform="rotate(300)"/>
+   </g>
+   <circle r="2.6" fill="#f6ba55"/><circle r="1.15" fill="#8d4e2d"/>
+  </g>
+  <g id="leaf"><path d="M0 0 Q3 -9 12 -7 Q11 1 0 0Z" fill="#85a848" stroke="#c9be68" stroke-width=".75"/><path d="M1 0 L11 -7" stroke="#c9cf73" stroke-width=".6"/></g>
+  <clipPath id="cloth"><path d="M9 13 Q16 10 24 13 Q36 17 48 13 Q57 10 64 13 L38 55 Q36 59 34 55Z"/></clipPath>
+ </defs>
+ <!-- Loose woven fringes cascading from both sides of the triangular shawl. -->
+ <g fill="none" stroke-linecap="round">
+  <g stroke="#32252b" stroke-width="2.1">
+   <path d="M10 18 Q9 26 6 31 M14 25 Q11 34 8 38 M18 32 Q14 41 11 46 M22 39 Q20 49 17 53 M26 46 Q23 56 21 60 M30 52 Q28 62 26 67 M35 56 L34 69"/>
+   <path d="M63 18 Q65 26 68 31 M59 25 Q62 34 65 38 M55 32 Q59 41 62 46 M51 39 Q53 49 56 53 M47 46 Q50 56 52 60 M43 52 Q45 62 47 67 M39 56 L40 69"/>
+  </g>
+  <g stroke="#72515c" stroke-width=".65">
+   <path d="M12 22 L9 34 M20 34 L17 47 M28 49 L24 63 M60 22 L64 35 M53 35 L57 48 M45 48 L49 62"/>
+  </g>
+ </g>
+ <path d="M9 13 Q16 10 24 13 Q36 17 48 13 Q57 10 64 13 L38 55 Q36 59 34 55Z" fill="url(#silk)" stroke="#71515e" stroke-width="1"/>
+ <g clip-path="url(#cloth)">
+  <path d="M9 13 Q36 24 64 13 M15 20 Q36 29 59 20" fill="none" stroke="#6d5260" stroke-width="1.5" opacity=".6"/>
+  <path d="M12 18 Q23 27 34 40 M60 17 Q52 27 39 43" fill="none" stroke="#35272f" stroke-width="2" opacity=".8"/>
+  <!-- Curved embroidered vines, leaves and three conspicuous pink flowers. -->
+  <path d="M13 23 Q23 16 34 32 Q46 13 60 22 M20 27 Q28 32 34 45 Q42 35 52 27" fill="none" stroke="#b7a65d" stroke-width="1.35" stroke-linecap="round"/>
+  <use href="#leaf" transform="translate(20 21) rotate(20) scale(.55)"/>
+  <use href="#leaf" transform="translate(30 29) rotate(135) scale(.58)"/>
+  <use href="#leaf" transform="translate(52 19) rotate(150) scale(.6)"/>
+  <use href="#leaf" transform="translate(43 29) rotate(32) scale(.55)"/>
+  <use href="#leaf" transform="translate(29 39) rotate(155) scale(.52)"/>
+  <use href="#flower" transform="translate(20 24) rotate(20) scale(.63)"/>
+  <use href="#flower" transform="translate(52 23) rotate(-10) scale(.6)"/>
+  <use href="#flower" transform="translate(36 37) rotate(14) scale(.76)"/>
+  <circle cx="30" cy="18" r="1.7" fill="#f18c50"/>
+  <circle cx="45" cy="18" r="1.8" fill="#fb9552"/>
+ </g>
+ <path d="M9 13 L34 55 Q36 59 38 55 L64 13" fill="none" stroke="#a78863" stroke-width="1" opacity=".9"/>
+</svg>

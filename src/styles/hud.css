@@ -115,7 +115,15 @@
  flex-direction:column;gap:0;padding:5px 6px;
  color:#8b858f;opacity:.78;transition:color .18s,opacity .18s,border-color .18s,box-shadow .18s;
 }
-#scarf-indicator .scarf-symbol{display:block;width:28px;height:27px;overflow:visible}
+#scarf-indicator .scarf-symbol{
+ display:block;width:36px;height:36px;object-fit:contain;
+ filter:grayscale(1) brightness(.8);opacity:.55;
+ transition:filter .2s ease,opacity .2s ease;
+}
+#scarf-indicator.is-ready .scarf-symbol{
+ filter:drop-shadow(0 0 5px rgba(255,255,255,.85));
+ opacity:1;
+}
 #scarf-indicator .scarf-count{font-size:14px;line-height:1;font-weight:900;font-variant-numeric:tabular-nums}
 #scarf-indicator.is-ready{
  color:#fff;opacity:1;border-color:rgba(255,255,255,.92);
@@ -123,10 +131,10 @@
 }
 @media(max-width:650px){
  #scarf-indicator{flex-basis:38px;padding:4px 3px;border-radius:12px}
- #scarf-indicator .scarf-symbol{width:22px;height:22px}
+ #scarf-indicator .scarf-symbol{width:27px;height:27px}
  #scarf-indicator .scarf-count{font-size:12px}
 }
 @media(max-width:390px){
  #scarf-indicator{flex-basis:33px;padding:3px 2px}
- #scarf-indicator .scarf-symbol{width:19px;height:19px}
+ #scarf-indicator .scarf-symbol{width:23px;height:23px}
 }
