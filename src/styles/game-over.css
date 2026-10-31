@@ -112,3 +112,19 @@
  #game-over .game-over-stat.new-record,
  #game-over #game-over-souls-card.new-record::after{animation:none}
 }
+
+/* White Vitalum Vitalis revival; advertising remains visibly disabled. */
+#game-over .menu-revive{
+ background:linear-gradient(115deg,#fbf9f4,#f4f1f8 58%,#e1e4f4);
+ color:#302633;border:1px solid #fff;
+ box-shadow:0 0 12px #ffffff99,0 0 28px #ffffff60,inset 0 0 9px #ffffffa8;
+ animation:kp-revive-glow 2.8s ease-in-out infinite;
+}
+#game-over .menu-ad-disabled,#game-over .menu-ad-disabled:disabled{
+ background:#352d35;color:#8d8187;border:1px solid #50424b;
+ box-shadow:none;opacity:.5;cursor:not-allowed;transform:none;
+}
+@keyframes kp-revive-glow{
+ 50%{box-shadow:0 0 22px #ffffffe6,0 0 38px #ffffff88,inset 0 0 14px #fff}
+}
+@media(prefers-reduced-motion:reduce){#game-over .menu-revive{animation:none}}
