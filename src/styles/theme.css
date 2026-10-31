@@ -1,0 +1,106 @@
+/* === menu-ash-copper: Witch's ash and copper. UI only; world and soul HUD untouched. === */
+:root{
+ --kp-menu-ash:#171117;
+ --kp-menu-surface:#2C2026;
+ --kp-menu-copper:#E8B477;
+ --kp-menu-ink:#25140F;
+ --kp-menu-text:#F5E8D8;
+ --kp-menu-muted:#C5ACA9;
+ --kp-menu-border:#80565E;
+ --kp-menu-raised:#3B2B32;
+}
+/* Darken the level only while a menu is visible, without obscuring it. */
+#hud::before{
+ content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+ background:rgba(11,5,13,.48);opacity:0;transition:opacity .18s ease;
+}
+body.menu-open #hud::before{opacity:1}
+#center{
+ z-index:2;
+ color:var(--kp-menu-text);
+ background:linear-gradient(155deg,rgba(49,34,43,.975),rgba(23,17,23,.985));
+ border:1px solid var(--kp-menu-border);
+ box-shadow:0 22px 82px rgba(0,0,0,.75),0 0 0 1px rgba(232,180,119,.11) inset,0 0 28px rgba(107,53,48,.16);
+ text-shadow:0 2px 6px rgba(0,0,0,.55);
+ scrollbar-color:var(--kp-menu-border) transparent;
+}
+#center h1{color:var(--kp-menu-text)}
+#center h1 em{color:var(--kp-menu-copper);text-shadow:0 0 20px rgba(232,180,119,.17)}
+#center h2{color:var(--kp-menu-text)}
+#center .desc{color:var(--kp-menu-muted)}
+#center .menu-eyebrow{color:var(--kp-menu-copper)}
+#center .menu-primary{
+ background:linear-gradient(115deg,#f0c794,var(--kp-menu-copper) 56%,#d99f63);
+ color:var(--kp-menu-ink);
+ box-shadow:0 4px 0 #805235,0 7px 17px rgba(188,106,48,.14);
+}
+#center .menu-primary:hover{background:linear-gradient(115deg,#f7d6a8,#edbc82 56%,#e4aa70)}
+#center .menu-primary:active{box-shadow:0 1px 0 #805235}
+#center .menu-secondary{
+ background:var(--kp-menu-raised);color:var(--kp-menu-text);
+ border:1px solid var(--kp-menu-border);box-shadow:none;
+}
+#center .menu-secondary:hover{background:#513740;border-color:#a27670}
+#center .menu-action:focus-visible,#center .menu-tab:focus-visible,
+#pause-button:focus-visible{outline:2px solid var(--kp-menu-copper);outline-offset:3px}
+#menu-records .pill{
+ background:#1d141bcf;border:1px solid #80565E70;
+ color:var(--kp-menu-text);
+}
+#menu-records .small{color:var(--kp-menu-muted);opacity:1}
+#menu-records .big{color:var(--kp-menu-text)}
+#center .menu-tab{
+ background:#34262f;color:var(--kp-menu-text);
+ border-color:var(--kp-menu-border);
+}
+#center .menu-tab:hover{background:#48333c}
+#center .menu-tab.selected{
+ background:var(--kp-menu-copper);color:var(--kp-menu-ink);
+ border-color:var(--kp-menu-copper);box-shadow:none;
+}
+#center .help-controls>div{
+ background:#261b23;border-color:#80565E66;color:var(--kp-menu-text)
+}
+#center .help-controls>div>span:last-child{color:var(--kp-menu-muted)}
+#center .help-controls .help-key-group{color:var(--kp-menu-text)}
+#center .help-controls kbd{
+ color:var(--kp-menu-text);
+ background:#4a343a;border-color:#946c6e;
+}
+#center .help-abilities{border-top-color:#80565E80}
+#center .help-abilities p{color:var(--kp-menu-muted)}
+#center .help-abilities strong{color:var(--kp-menu-copper)}
+#center .menu-settings-title{color:var(--kp-menu-copper)}
+#menu-settings #audio-controls{
+ background:#231921;border-color:#80565E99;
+}
+#menu-settings .audio-row-label,
+#menu-settings #sound-volume-value,
+#menu-settings #music-volume-value{color:var(--kp-menu-text)}
+#menu-settings #sound-toggle,
+#menu-settings #music-toggle{color:var(--kp-menu-text)}
+#menu-settings #sound-toggle:hover,
+#menu-settings #music-toggle:hover{background:#523941}
+#menu-settings #sound-volume,
+#menu-settings #music-volume{accent-color:var(--kp-menu-copper)}
+#menu-settings #sound-toggle:focus-visible,
+#menu-settings #music-toggle:focus-visible,
+#menu-settings #sound-volume:focus-visible,
+#menu-settings #music-volume:focus-visible{
+ outline-color:var(--kp-menu-copper)
+}
+#center .menu-toggle-row{
+ background:#271c24;border-color:#80565E73;
+ color:var(--kp-menu-text)
+}
+#center .menu-toggle-row small{color:var(--kp-menu-muted)}
+#center .menu-switch span{
+ background:#4d3c44;border-color:#80565E;
+}
+#center .menu-switch input:checked+span{background:#be8754}
+#center .menu-switch input:focus-visible+span{outline-color:var(--kp-menu-copper)}
+#pause-button{
+ background:#251a22d9;color:var(--kp-menu-copper);
+ border-color:#a97867;box-shadow:0 3px 15px #0007;
+}
+@media(prefers-reduced-motion:reduce){#hud::before{transition:none}}

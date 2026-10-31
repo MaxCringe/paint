@@ -20,6 +20,8 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
 import { lavaJumpCleared, travelSpeedMultiplier } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
+import { createGameHud } from './ui/GameHud.js';
+import { createAudioControls } from './ui/AudioControls.js';
 import { createGameMenu } from './ui/GameMenu.js';
 import { createGameHaptics } from './systems/Haptics.js';
 
@@ -142,63 +144,16 @@ const makeSegment = createSegmentGenerator({
 });
 const doubleJump=createDoubleJump({onJump:()=>audio.play('jump'),onLand:()=>audio.play('land')});
 let footstepTimer=0;
-let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0, toastTimer=0;
+let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slideT=0, slipT=0, invuln=0, last=0, spawnTimer=0;
 const $=id=>document.getElementById(id);
-const soundToggle=$('sound-toggle');
-const soundVolume=$('sound-volume');
-const soundVolumeValue=$('sound-volume-value');
-function updateSoundControls(){
- const percent=Math.round(audio.getVolume()*100);
- const silent=audio.getMuted()||percent===0;
- soundToggle.textContent=silent?'🔇':'🔊';
- soundToggle.setAttribute('aria-label',audio.getMuted()?'Включить звук':'Выключить звук');
- soundToggle.setAttribute('aria-pressed',String(!audio.getMuted()));
- soundVolume.value=String(percent);
- soundVolumeValue.textContent=percent+'%';
-}
-soundToggle.addEventListener('click',()=>{audio.setMuted(!audio.getMuted());updateSoundControls();});
-soundVolume.addEventListener('input',()=>{audio.setVolume(Number(soundVolume.value)/100);updateSoundControls();});
-updateSoundControls();
-const musicToggle=$('music-toggle');
-const musicVolume=$('music-volume');
-const musicVolumeValue=$('music-volume-value');
-function updateMusicControls(){
- const percent=Math.round(music.getVolume()*100);
- const silent=music.getMuted()||percent===0;
- musicToggle.textContent=silent?'🔇':'🎵';
- musicToggle.setAttribute('aria-label',music.getMuted()?'Включить музыку':'Выключить музыку');
- musicToggle.setAttribute('aria-pressed',String(!music.getMuted()));
- musicVolume.value=String(percent);
- musicVolumeValue.textContent=percent+'%';
-}
-musicToggle.addEventListener('click',()=>{music.setMuted(!music.getMuted());updateMusicControls();});
-musicVolume.addEventListener('input',()=>{music.setVolume(Number(musicVolume.value)/100);updateMusicControls();});
-updateMusicControls();
-let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;
-const magnetHud=document.createElement('div');
-magnetHud.style.cssText='display:none;margin-top:5px;font-size:9px;color:#e6ca9c;letter-spacing:.07em;font-weight:900;text-align:center;white-space:nowrap';
-$('soul-meter-wrap').appendChild(magnetHud);
-const broomHud=document.createElement('div');
-broomHud.style.cssText='display:none;margin-top:5px;font-size:10px;color:#e9b76b;letter-spacing:.06em;font-weight:900;text-align:center;white-space:nowrap';
-$('soul-meter-wrap').appendChild(broomHud);
-function updateHud(){
- $('distance').textContent=Math.floor(distance)+' m';
- $('coins').textContent=coinCount;
- const active=ultTimer>0;
- const amount=active?Math.max(0,ultTimer/ULT_DURATION*100):soulCharge/SOULS_PER_ULT*100;
- $('soul-fill').style.width=Math.max(0,Math.min(100,amount))+'%';
- $('soul-meter-wrap').classList.toggle('active',active);
- $('soul-state').textContent=active?'УЛЬТА — ПОЛЁТ':'ПЛАМЯ ДУШ';
- $('soul-count').textContent=active?Math.ceil(ultTimer)+' с':soulCharge+'/'+SOULS_PER_ULT;
- magnetHud.style.display=magnetTime>0?'block':'none';
- if(magnetTime>0)magnetHud.textContent='🎩 МАГНИТ '+magnetTime.toFixed(1)+' с';
- broomHud.style.display=broom.active?'block':'none';
- if(broom.active)broomHud.textContent='🧹 МЕТЛА '+broom.remaining.toFixed(1)+' с';
-}
-function popToast(t){if(t==='+ 1 ДУША'||t==='+1 ДУША'||t==='+ COIN')return;$('toast').textContent=t;$('toast').classList.add('show');toastTimer=.85}
-function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud()}
-function start(){audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();updateHud()}
-function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);$('best').textContent=best+' m';$('best-souls').textContent=bestSouls;$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрано <b>'+coinCount+' душ</b>.';menu.show('over')}
+createAudioControls(audio,music);
+const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
+let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);hud.setRecords(best,bestSouls);
+function updateHud(force=false){hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining},force);}
+const popToast=message=>hud.toast(message);
+function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
+function start(){audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрано <b>'+coinCount+' душ</b>.';menu.show('over')}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0)doubleJump.jump()}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0&&!doubleJump.airborne){slideT=.68;audio.play('slide')}}
@@ -235,7 +190,7 @@ function frame(t){requestAnimationFrame(frame);
  if(fpsInterval>=500){
   const fps=Math.round(fpsFrames*1000/fpsInterval);
   fpsDisplay.textContent='FPS: '+fps;
-  fpsDisplay.style.color=fps>=50?'#a7ff9b':fps>=30?'#ffd27b':'#ff8989';
+  fpsDisplay.dataset.status=fps>=50?'good':fps>=30?'medium':'low';
   fpsSampleStart=t;fpsFrames=0;
  }
  const dt=Math.min((t-last)/1000||0,.04);last=t;
@@ -245,7 +200,7 @@ function frame(t){requestAnimationFrame(frame);
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
 
- if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').classList.remove('show')}
+ hud.tick(dt);
  if(state==='playing'){
   // Scroll the road texture toward the camera so the boards stay fixed to the world as Fiona runs.
   if(ultTimer>0)ultTimer=Math.max(0,ultTimer-dt);
@@ -254,7 +209,7 @@ function frame(t){requestAnimationFrame(frame);
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
-  distance+=travelSpeed*dt*.72;updateHud();speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
+  distance+=travelSpeed*dt*.72;speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
   if(spawnZ<-150)spawnZ= -50;
   if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
@@ -312,7 +267,7 @@ function frame(t){requestAnimationFrame(frame);
   ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed:travelSpeed,obstacles});
   if(state==='playing')broom.advancePickups(dt,t,travelSpeed,lane,runner.position.x,{
    canCollect:!ultActive,
-   onCollect:()=>{doubleJump.reset();slideT=0;slipT=0;audio.play('hat');haptics.play('item');popToast('ВЕДЬМИНА МЕТЛА — ПОЛЁТ 9 СЕКУНД');updateHud();}
+   onCollect:()=>{doubleJump.reset();slideT=0;slipT=0;audio.play('hat');haptics.play('item');popToast('ВЕДЬМИНА МЕТЛА — ПОЛЁТ 9 СЕКУНД');updateHud(true);}
   });
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){
@@ -380,7 +335,7 @@ function frame(t){requestAnimationFrame(frame);
    const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
     c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
    if(!c.g.userData.got&&(magnetCaught||normalCaught)){
-    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);$('best-souls').textContent=bestSouls}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud()
+    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}

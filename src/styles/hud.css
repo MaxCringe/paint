@@ -1,0 +1,42 @@
+/* HUD theme: shared Ash & Copper surfaces, distinct blue soul magic. */
+#distance-soul-group .pill,
+#soul-meter-wrap{
+ background:rgba(44,32,38,.96);
+ border:1px solid rgba(176,119,93,.93);
+ box-shadow:0 7px 24px rgba(0,0,0,.38),inset 0 0 0 1px rgba(232,180,119,.075);
+ backdrop-filter:blur(8px);
+ border-radius:15px;
+}
+#distance-soul-group .small{color:var(--kp-menu-muted);opacity:1;text-shadow:0 1px 4px #11080d}
+#distance-soul-group .big{color:var(--kp-menu-text);text-shadow:0 1px 4px #11080d}
+#soul-meter-wrap{color:var(--kp-menu-text)}
+#soul-meter-label{color:var(--kp-menu-text);text-shadow:0 1px 3px #11080d}
+#soul-count{color:var(--kp-menu-copper)}
+#soul-meter{background:#110f1a;border-color:rgba(232,180,119,.45)}
+/* Soul energy and ultimate retain their original blue glow and fill. */
+#soul-meter-wrap.active{
+ border-color:rgba(232,180,119,.94);
+ box-shadow:0 0 18px rgba(65,153,234,.23),0 7px 24px rgba(0,0,0,.4);
+}
+.hud-ability{
+ margin-top:5px;font-size:9px;font-weight:900;text-align:center;
+ letter-spacing:.06em;white-space:nowrap;color:var(--kp-menu-copper);
+}
+.hud-ability[hidden]{display:none}
+#toast{color:var(--kp-menu-copper);text-shadow:0 2px 6px #09030a,0 0 15px #060203}
+#knotty-fps-counter{
+ position:fixed;right:14px;bottom:80px;z-index:50;
+ padding:8px 11px;min-width:88px;text-align:center;
+ background:rgba(44,32,38,.96);
+ border:1px solid rgba(176,119,93,.93);border-radius:12px;
+ box-shadow:0 7px 24px rgba(0,0,0,.38),inset 0 0 0 1px rgba(232,180,119,.075);
+ color:var(--kp-menu-copper);
+ font:700 14px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;
+ font-variant-numeric:tabular-nums;text-shadow:0 1px 4px #11080d;
+ pointer-events:none;
+}
+#knotty-fps-counter[data-status="medium"]{color:#e4ab73}
+#knotty-fps-counter[data-status="low"]{color:#f29985}
+@media(max-width:700px){
+ #knotty-fps-counter{right:12px;bottom:76px}
+}
