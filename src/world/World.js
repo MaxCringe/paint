@@ -187,9 +187,16 @@ export function createWorld() {
   // Decorative temple arches in the distance and along the trail
   const fixedDecor=[];
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-  // Reuse tree geometry across the whole forest and keep foliage out of the expensive shadow pass.
-  const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
-  const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
+  // All roadside and far-forest pines share these rounded geometries.
+  // The former box trunks and five-sided crowns looked square from the runner's view.
+  // Keep three overlapping tiers and shared meshes for the existing draw-call budget.
+  const PINE_TRUNK_SIDES=12, PINE_CROWN_SIDES=16;
+  const treeTrunkGeometry=new THREE.CylinderGeometry(.17,.23,2.5,PINE_TRUNK_SIDES);
+  const treeConeGeometries=[
+   new THREE.ConeGeometry(1.15,1.8,PINE_CROWN_SIDES),
+   new THREE.ConeGeometry(.98,1.8,PINE_CROWN_SIDES),
+   new THREE.ConeGeometry(.81,1.8,PINE_CROWN_SIDES)
+  ];
   function tree(x,z,scale=1,recycleLength=180){
    const g=new THREE.Group();g.position.set(x,0,z);
    // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
