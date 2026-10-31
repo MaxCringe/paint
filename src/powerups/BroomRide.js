@@ -14,7 +14,7 @@ export const BROOM_CONFIG = Object.freeze({
 });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR},effectSettings) {
+export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) {
  if (!BROOM_ENABLED) return {
   spawn(){}, advancePickups(){}, tick(){}, applyPose(){},
   reset(){}, cancel(){}, immuneTo(){return false;},
@@ -120,7 +120,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR},e
  mounted.position.y=.37;mounted.visible=false;
  runner.add(mounted);
  // The flying broom leaves a lavender smoke plume and dying magic sparks, no HUD timer.
- const trail=createBroomTrail(runner,glowTexture,effectSettings);
+ const trail=createBroomTrail(runner,glowTexture);
  let remaining=0,blend=0,time=0;
 
  function spawn(lane,z){

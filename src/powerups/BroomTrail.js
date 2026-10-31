@@ -56,9 +56,9 @@ function makeSparkTexture(){
  return texture;
 }
 
-export function createBroomTrail(runner,glowTexture,effectSettings){
- // Capacity is fixed at setup; changing density only updates instance count.
- const SMOKE_BASE=14,SMOKE_COUNT=28,SPARK_COUNT=16;
+export function createBroomTrail(runner,glowTexture){
+ // Sparse puffs instead of a screen-filling cloud.
+ const SMOKE_COUNT=14,SPARK_COUNT=16;
  const plane=new THREE.PlaneGeometry(1,1);
  const smokeMaterial=new THREE.MeshBasicMaterial({
   map:makeSmokeTexture(),side:THREE.DoubleSide,
@@ -108,17 +108,15 @@ export function createBroomTrail(runner,glowTexture,effectSettings){
  }
  function update(remaining,timeMs){
   const state=broomTrailState(remaining);
-  const settings=effectSettings?.get()||{density:100,opacity:100,size:100,length:100,sparks:100};
-  smoke.count=Math.min(SMOKE_COUNT,Math.round(SMOKE_BASE*settings.density/100));
-  smoke.visible=state.active&&smoke.count>0&&settings.opacity>0&&settings.size>0;
-  sparks.visible=state.warning&&settings.sparks>0;
-  headGlow.visible=state.active&&settings.opacity>0;
+  smoke.visible=state.active;
+  sparks.visible=state.warning;
+  headGlow.visible=state.active;
   if(!state.active)return;
   const t=timeMs*.001,inst=state.instability;
   // The stream begins at the broom's straw tip (local +Z), then lifts off
   // over the road rather than vanishing below the camera's lower edge.
-  for(let i=0;i<smoke.count;i++){
-   const seed=(i+.5)/Math.max(1,smoke.count);
+  for(let i=0;i<SMOKE_COUNT;i++){
+   const seed=(i+.5)/SMOKE_COUNT;
    const age=(seed+t*.23)%1;
    const phase=i*2.37+t*.74;
    const fade=(Math.min(1,age*10))*(Math.min(1,(1-age)*3));
@@ -126,11 +124,11 @@ export function createBroomTrail(runner,glowTexture,effectSettings){
    const choking=state.warning&&Math.sin(i*2.8+t*(8+inst*6))>.20;
    const gapFactor=choking?1-inst*.98:1;
    const radius=(.27+age*.27)*(.92+.11*Math.sin(i*3.1))
-               *state.strength*Math.max(.08,gapFactor)*Math.max(.09,fade)*settings.size/100;
+               *state.strength*Math.max(.08,gapFactor)*Math.max(.09,fade);
    dummy.position.set(
     .13+age*.42+Math.sin(phase+age*7)*(.055+age*.11),
     .54+age*.22+Math.sin(phase*.8)*.035,
-    1.58+age*2.35*state.length*settings.length/100
+    1.58+age*2.35*state.length
    );
    orient(t,Math.sin(t*.48+i*1.13)*.19);
    dummy.scale.set(radius*1.15,radius*.86,1);
@@ -138,12 +136,12 @@ export function createBroomTrail(runner,glowTexture,effectSettings){
    smoke.setMatrixAt(i,dummy.matrix);
   }
   smoke.instanceMatrix.needsUpdate=true;
-  smokeMaterial.opacity=Math.min(1,.53*Math.max(.15,state.strength)*settings.opacity/100);
+  smokeMaterial.opacity=.53*Math.max(.15,state.strength);
 
   if(state.warning){
    const effort=Math.min(1,inst*2.2);
    const gasp=1-.84*Math.max(0,(inst-.66)/.34);
-   sparkMaterial.opacity=Math.min(1,Math.max(.08,effort*gasp)*settings.sparks/100);
+   sparkMaterial.opacity=Math.max(.08,effort*gasp);
    for(let i=0;i<SPARK_COUNT;i++){
     const seed=(i+.25)/SPARK_COUNT;
     const age=(t*(1.0+(i%5)*.21)+seed*17.3)%1;
@@ -154,7 +152,7 @@ export function createBroomTrail(runner,glowTexture,effectSettings){
     dummy.position.set(
      .20+age*.44+Math.sin(phase)*(.10+.18*age),
      .54+age*.22+Math.cos(phase*1.3)*.09,
-     1.58+age*(1.5+.85*state.length*settings.length/100)
+     1.58+age*(1.5+.85*state.length)
     );
     orient(t,i*.38+t*.5);
     dummy.scale.setScalar(Math.max(.0001,size));
@@ -164,7 +162,7 @@ export function createBroomTrail(runner,glowTexture,effectSettings){
    sparks.instanceMatrix.needsUpdate=true;
   }
   const cough=state.warning?1-inst*(.13+.20*(.5+.5*Math.sin(t*12))):1;
-  headMaterial.opacity=Math.min(1,.48*state.strength*cough*settings.opacity/100);
+  headMaterial.opacity=.48*state.strength*cough;
   const scale=.82*Math.max(.28,state.length);
   headGlow.scale.set(scale,scale*.84,1);
  }
