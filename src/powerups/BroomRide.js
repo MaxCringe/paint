@@ -119,7 +119,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  const mounted = model();
  mounted.position.y=.37;mounted.visible=false;
  runner.add(mounted);
- // The flying broom casts a soft, copper-gold magic trail instead of a screen timer.
+ // The flying broom leaves a lavender smoke plume and dying magic sparks, no HUD timer.
  const trail=createBroomTrail(runner,glowTexture);
  let remaining=0,blend=0,time=0;
 
