@@ -1,13 +1,11 @@
 import * as THREE from 'three';
 import {createScarfRules,SCARF_TEST_MODE,SCARF_TEST_SPAWN_CHANCE} from '../systems/ScarfRules.js';
+import {createScarfModelFactory} from './ScarfModel.js';
 
-// A low-cost procedural floating white scarf; separate from broom/hat/souls.
+// Pickup logic and revival stay independent of the embroidered 3D model.
 export function createScarfPickup(scene){
  const rules=createScarfRules();
- const silk=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xdedede,emissiveIntensity:.56,roughness:.9,side:THREE.DoubleSide});
- const trim=new THREE.MeshBasicMaterial({color:0xd7d2d2,side:THREE.DoubleSide});
- const clothGeo=new THREE.PlaneGeometry(1.75,.62,8,4);
- const trimGeo=new THREE.BoxGeometry(1.75,.028,.015);
+ const {createModel}=createScarfModelFactory();
  const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
  const context=canvas.getContext('2d');
  const gradient=context.createRadialGradient(32,32,0,32,32,32);
@@ -17,7 +15,7 @@ export function createScarfPickup(scene){
  gradient.addColorStop(1,'rgba(255,255,255,0)');
  context.fillStyle=gradient;context.fillRect(0,0,64,64);
  const texture=new THREE.CanvasTexture(canvas);
- const aura=new THREE.SpriteMaterial({map:texture,color:0xffffff,transparent:true,opacity:.92,depthWrite:false,blending:THREE.AdditiveBlending});
+ const aura=new THREE.SpriteMaterial({map:texture,color:0xffffff,transparent:true,opacity:.65,depthWrite:false,blending:THREE.AdditiveBlending});
  let pickup=null,burstEffect=null,firstTestOffer=true;
  function clearPickup(){if(pickup)scene.remove(pickup.group);pickup=null}
  function clearBurst(){if(burstEffect){scene.remove(burstEffect.sprite);burstEffect.material.dispose()}burstEffect=null}
@@ -46,14 +44,13 @@ export function createScarfPickup(scene){
    if(!lanes.length)continue;
    const lane=lanes[Math.floor(Math.random()*lanes.length)];
    const group=new THREE.Group();group.position.set((lane-1)*2.55,0,z);
-   const visual=new THREE.Group();visual.position.y=1.4;
-   visual.add(new THREE.Mesh(clothGeo,silk));
-   for(const y of [-.3,.3]){
-    const hem=new THREE.Mesh(trimGeo,trim);hem.position.y=y;visual.add(hem);
-   }
-   const halo=new THREE.Sprite(aura);halo.position.z=-.1;halo.scale.set(3.4,2.6,1);visual.add(halo);
+   const visual=createModel();
+   visual.position.y=1.68;
+   const halo=new THREE.Sprite(aura);
+   halo.position.set(0,-.05,-.23);halo.scale.set(3.5,3.1,1);
+   visual.add(halo);
    group.add(visual);scene.add(group);
-   pickup={group,visual,halo,lane,phase:Math.random()*6.28};
+   pickup={group,visual,halo,lane,phase:Math.random()*Math.PI*2};
    firstTestOffer=false;return;
   }
  }
@@ -68,11 +65,13 @@ export function createScarfPickup(scene){
   if(!pickup)return;
   const p=pickup;
   p.group.position.z+=speed*dt;
-  p.visual.position.y=1.4+Math.sin(t*.0035+p.phase)*.14;
-  p.visual.rotation.y=Math.sin(t*.0018+p.phase)*.58;
-  p.visual.rotation.z=Math.sin(t*.003+p.phase)*.1;
-  const scale=1+Math.sin(t*.006+p.phase)*.09;
-  p.halo.scale.set(3.4*scale,2.6*scale,1);
+  p.visual.position.y=1.68+Math.sin(t*.0035+p.phase)*.14;
+  // A full, continuous 360-degree rotation, not the old back-and-forth sway.
+  p.visual.rotation.y=t*.0015+p.phase;
+  p.visual.rotation.x=Math.sin(t*.0017+p.phase)*.075;
+  p.visual.rotation.z=Math.sin(t*.0028+p.phase)*.065;
+  const scale=1+Math.sin(t*.006+p.phase)*.08;
+  p.halo.scale.set(3.5*scale,3.1*scale,1);
   if(p.group.position.z>=1&&p.group.position.z<=3.8&&p.lane===lane&&Math.abs(runnerX-(lane-1)*2.55)<1.05){
    if(rules.collect()){burst({x:p.group.position.x,y:0,z:p.group.position.z});onCollect?.()}
    clearPickup();
