@@ -21,6 +21,7 @@ import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRi
 import { lavaJumpCleared, travelSpeedMultiplier } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
+import { createRunRecordTracker } from './systems/RunRecords.js';
 import { createAudioControls } from './ui/AudioControls.js';
 import { createGameMenu } from './ui/GameMenu.js';
 import { createGameHaptics } from './systems/Haptics.js';
@@ -149,11 +150,26 @@ const $=id=>document.getElementById(id);
 createAudioControls(audio,music);
 const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
 let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);hud.setRecords(best,bestSouls);
-function updateHud(force=false){hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining},force);}
+const runRecords=createRunRecordTracker({storage:localStorage,bestMetres:best,bestSouls});
+function updateHud(force=false){
+ hud.setRecordHighlights(runRecords.progress(distance,coinCount));
+ hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,broomActive:broom.active,broomRemaining:broom.remaining},force);
+}
 const popToast=message=>hud.toast(message);
 function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
-function start(){audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
-function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрано <b>'+coinCount+' душ</b>.';menu.show('over')}
+function start(){
+ // A restart from pause is still a completed attempt for record purposes.
+ if(state==='paused'){
+  best=Math.max(best,Math.floor(distance));
+  bestSouls=Math.max(bestSouls,coinCount);
+  localStorage.setItem('knottyPineBest',best);
+  localStorage.setItem('knottyPineBestSouls',bestSouls);
+  hud.setRecords(best,bestSouls);
+ }
+ runRecords.start(best,bestSouls);
+ hud.setRecordHighlights({metres:false,souls:false});
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);$('message').innerHTML='Фиона не выбралась. Пройдено <b>'+Math.floor(distance)+' м</b> и собрано <b>'+coinCount+' душ</b>.';menu.show('over')}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0)doubleJump.jump()}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0&&!doubleJump.airborne){slideT=.68;audio.play('slide')}}

@@ -5,7 +5,8 @@ export function createGameHud({soulGoal,ultimateDuration}){
   distance:byId('distance'),coins:byId('coins'),fill:byId('soul-fill'),
   meter:byId('soul-meter-wrap'),state:byId('soul-state'),
   count:byId('soul-count'),best:byId('best'),
-  bestSouls:byId('best-souls'),toast:byId('toast')
+  bestSouls:byId('best-souls'),toast:byId('toast'),
+  distancePill:byId('distance-pill'),soulsPill:byId('souls-pill')
  };
  const magnet=document.createElement('div');
  magnet.className='hud-ability hud-ability-magnet';
@@ -48,6 +49,19 @@ export function createGameHud({soulGoal,ultimateDuration}){
   text(els.best,'record-metres',metres+' m');
   text(els.bestSouls,'record-souls',souls);
  }
+ // Persist the glow throughout the achievement run, not across restarts.
+ // Only touch the DOM when a flag actually changes.
+ const recordVisual={metres:false,souls:false};
+ function setRecordHighlights({metres=false,souls=false}={}){
+  if(recordVisual.metres!==metres){
+   els.distancePill.classList.toggle('new-record',metres);
+   recordVisual.metres=metres;
+  }
+  if(recordVisual.souls!==souls){
+   els.soulsPill.classList.toggle('new-record',souls);
+   recordVisual.souls=souls;
+  }
+ }
  function toast(message){
   if(message==='+ 1 ДУША'||message==='+1 ДУША'||message==='+ COIN')return;
   els.toast.textContent=message;
@@ -60,5 +74,5 @@ export function createGameHud({soulGoal,ultimateDuration}){
   if(toastTime<=0)els.toast.classList.remove('show');
  }
  function clearToast(){toastTime=0;els.toast.classList.remove('show');}
- return {update,setRecords,toast,tick,clearToast};
+ return {update,setRecords,setRecordHighlights,toast,tick,clearToast};
 }

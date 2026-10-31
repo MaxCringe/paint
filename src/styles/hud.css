@@ -41,3 +41,55 @@
 @media(max-width:700px){
  #knotty-fps-counter{right:12px;bottom:76px}
 }
+
+/* === New personal records: active only during the run that beats an old score. ===
+   Effects are lightweight CSS glows; nothing is added to the 3D scene.
+   Avoid z-index here: the pause menu's darkening overlay must cover both pills. */
+#distance-pill,#souls-pill{position:relative}
+#distance-pill.new-record{
+ border-color:#bd8af6;
+ background:radial-gradient(ellipse at center,#352142 0%,#2c2026 80%);
+ color:var(--kp-menu-text);
+ animation:kp-record-reveal .95s ease-out, kp-violet-record 2.8s ease-in-out infinite;
+}
+#souls-pill.new-record{
+ border-color:#5ec5ff;
+ background:radial-gradient(ellipse at center,#163752 0%,#2c2026 85%);
+ color:var(--kp-menu-text);
+ animation:kp-record-reveal .95s ease-out, kp-blue-record 2.5s ease-in-out infinite;
+}
+/* Soft, irregular blue flame: no squared sprite or extra particle meshes. */
+#souls-pill.new-record::after{
+ content:"";
+ position:absolute;
+ inset:-14px;
+ border-radius:24px;
+ pointer-events:none;
+ background:
+  radial-gradient(ellipse 38% 76% at 22% 65%,#37a5ff82,transparent 88%),
+  radial-gradient(ellipse 43% 67% at 72% 38%,#55dfff72,transparent 90%),
+  radial-gradient(ellipse 27% 63% at 88% 80%,#2e6eff6b,transparent 90%);
+ filter:blur(10px);
+ opacity:.48;
+ z-index:-1;
+ animation:kp-blue-wisp 2.1s ease-in-out infinite alternate;
+}
+@keyframes kp-record-reveal{
+ 0%{filter:brightness(1.85)}
+ 100%{filter:brightness(1)}
+}
+@keyframes kp-violet-record{
+ 0%,100%{box-shadow:0 0 12px #7c46d75c,0 0 23px #9864f82d,inset 0 0 12px #a472f526}
+ 50%{box-shadow:0 0 20px #9d67f0a6,0 0 34px #a66bfa55,inset 0 0 16px #aa7df344}
+}
+@keyframes kp-blue-record{
+ 0%,100%{box-shadow:0 0 11px #1d88ff85,0 0 25px #37bcff49,inset 0 0 12px #62c5ff35}
+ 50%{box-shadow:0 0 19px #2daaffbb,0 0 36px #5ddfff80,inset 0 0 16px #65dfff66}
+}
+@keyframes kp-blue-wisp{
+ from{opacity:.36;transform:translateY(2px) scale(.98,1)}
+ to{opacity:.70;transform:translateY(-3px) scale(1.03,1.07)}
+}
+@media(prefers-reduced-motion:reduce){
+ #distance-pill.new-record,#souls-pill.new-record,#souls-pill.new-record::after{animation:none}
+}
