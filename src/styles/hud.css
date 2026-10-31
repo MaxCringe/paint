@@ -15,9 +15,24 @@
 #soul-count{color:var(--kp-menu-copper)}
 #soul-meter{background:#110f1a;border-color:rgba(232,180,119,.45)}
 /* Soul energy and ultimate retain their original blue glow and fill. */
+/* When the ultimate is active, the WHOLE soul-meter card glows with
+   a steady blue magical aura (separate from the blue soul-record flame). */
 #soul-meter-wrap.active{
- border-color:rgba(232,180,119,.94);
- box-shadow:0 0 18px rgba(65,153,234,.23),0 7px 24px rgba(0,0,0,.4);
+ border-color:rgba(109,210,255,.94);
+ background:radial-gradient(ellipse at 52% 52%,rgba(23,67,117,.98) 0%,rgba(29,39,69,.97) 64%,rgba(44,32,38,.96) 100%);
+ box-shadow:0 0 14px rgba(42,150,255,.60),0 0 29px rgba(59,185,255,.32),inset 0 0 15px rgba(87,187,255,.22);
+ animation:kp-ultimate-card-glow 2.6s ease-in-out infinite;
+}
+@keyframes kp-ultimate-card-glow{
+ 0%,100%{
+  box-shadow:0 0 14px rgba(42,150,255,.60),0 0 29px rgba(59,185,255,.32),inset 0 0 15px rgba(87,187,255,.22);
+ }
+ 50%{
+  box-shadow:0 0 22px rgba(49,168,255,.85),0 0 43px rgba(83,205,255,.46),inset 0 0 21px rgba(105,212,255,.34);
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #soul-meter-wrap.active{animation:none}
 }
 .hud-ability{
  margin-top:5px;font-size:9px;font-weight:900;text-align:center;
