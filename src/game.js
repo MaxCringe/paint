@@ -32,7 +32,11 @@ const { runner, torso, armL, armR, legL, legR, ultimateAura } = createFiona(scen
 const obstacles=[], coins=[], hats=[];
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
 const {makeHat,animateHat,animateWearable}=createWitchHatFactory(scene,hats,runner);
-function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.36,.62,2.55,7),trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(new THREE.SphereGeometry(s,8,7),darkStone);knot.position.set(x,y,z);knot.scale.set(1,.82,.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(new THREE.ConeGeometry(.13,.9,5),trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
+// One geometry per pine component, reused by every upcoming pine obstacle.
+const knotTrunkGeometry=new THREE.CylinderGeometry(.36,.62,2.55,7);
+const knotNodeGeometry=new THREE.SphereGeometry(1,8,7);
+const knotBranchGeometry=new THREE.ConeGeometry(.13,.9,5);
+function makeObstacle(lane,z,type='knot'){const g=new THREE.Group();g.position.set((lane-1)*2.55,0,z);scene.add(g);const trunk=new THREE.Mesh(knotTrunkGeometry,trunkMat);trunk.position.y=1.25;trunk.castShadow=true;g.add(trunk);for(const [x,y,z,s] of [[-.16,.72,.34,.19],[.2,1.32,.33,.16],[-.08,1.88,.28,.14]]){const knot=new THREE.Mesh(knotNodeGeometry,darkStone);knot.position.set(x,y,z);knot.scale.set(s,s*.82,s*.42);knot.castShadow=true;g.add(knot)}for(const x of [-.38,.38]){const branch=new THREE.Mesh(knotBranchGeometry,trunkMat);branch.position.set(x,1.72,0);branch.rotation.z=x<0?.8:-.8;g.add(branch)}obstacles.push({g,lane,type:'knot',z,passed:false})}
 let puddleVariantCounter=0;
 function makePuddle(lane,z){
  const g=new THREE.Group();
@@ -101,6 +105,14 @@ function makePuddle(lane,z){
  addBlob(.17,.16,2,phase+2.0,.90,peeMat,.001).position.set(cfg.rx*.80,.001,cfg.rz*.30);
  addBlob(.16,.10,0,phase+2.8,.90,peeMat,.001).position.set(-cfg.rx*.46,.001,cfg.rz*.82);
 
+ // Generated puddle buffers and materials are owned by this one obstacle.
+ let disposed=false;
+ g.userData.dispose=()=>{
+  if(disposed)return;
+  disposed=true;
+  g.traverse(mesh=>{if(mesh.isMesh)mesh.geometry.dispose();});
+  for(const material of [outlineMat,rimMat,peeMat,deepMat,shineMat])material.dispose();
+ };
  obstacles.push({g,lane,type:'pee',z,passed:false});
 }
 const {makeFish:makeFishObstacle,animateFishOdor}=createFishFactory(scene,obstacles);
