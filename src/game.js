@@ -18,6 +18,7 @@ import { createWindSystem } from './systems/WindSystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
+import { lavaJumpCleared, travelSpeedMultiplier } from './systems/HazardRules.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
 const audio=createGameAudio();
@@ -255,8 +256,7 @@ function frame(t){requestAnimationFrame(frame);
   if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT)activateUltimate();
   const ultActive=ultTimer>0;
   broom.tick(dt,t);
-  const travelSpeed=speed*(ultActive?BROOM_CONFIG.ultimateSpeedMultiplier:
-   broom.active?BROOM_CONFIG.speedMultiplier:1);
+  const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
   distance+=travelSpeed*dt*.72;updateHud();speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
   if(spawnTimer<=0){makeSegment(spawnZ);spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025)}
@@ -291,7 +291,7 @@ function frame(t){requestAnimationFrame(frame);
      const crossedFrontEdge=previousZ+half<runner.position.z&&o.g.position.z+half>=runner.position.z;
      if(crossedFrontEdge){
       o.passed=true;
-      if(!(jumping&&jumpY>.62)){end();break}
+      if(!lavaJumpCleared(jumping,jumpY)){end();break}
       invuln=Math.max(invuln,.22);
      }
     }
