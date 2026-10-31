@@ -49,6 +49,15 @@ const fragmentShader = `
   // Broad falloff melts away without a hard edge or visible ring.
   float halo=exp(-pow(dx*3.05,2.0)-pow((y-.48)*2.35,2.0));
   float alpha=clamp((body*.68+halo*.47)*uOpacity,0.0,.88);
+
+  // Fully dissolve the technical rectangular plane boundaries. The separable
+  // smooth UV mask is zero on all four edges, including bright road backgrounds.
+  // It does not change the flame colors, timings, lighting or gameplay.
+  float fadeX=smoothstep(0.0,0.27,vUv.x)
+             *smoothstep(0.0,0.27,1.0-vUv.x);
+  float fadeY=smoothstep(0.0,0.19,vUv.y)
+             *smoothstep(0.0,0.24,1.0-vUv.y);
+  alpha*=fadeX*fadeY;
   if(alpha<.004)discard;
   float core=exp(-pow(dx*5.4,2.0))*body;
   vec3 color=mix(uOuterBlue,uInnerBlue,clamp(core*1.45,0.0,1.0));
