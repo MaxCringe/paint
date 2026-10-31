@@ -10,11 +10,7 @@
 <body>
 <div id="hud">
  <div id="top">
-  <div id="record-group">
-   <div class="pill"><span class="small">РЕКОРД МЕТРОВ</span><span class="big" id="best">0 m</span></div>
-   <div class="pill"><span class="small">РЕКОРД ДУШ</span><span class="big" id="best-souls">0</span></div>
-  </div>
-  <div id="distance-soul-group">
+   <div id="distance-soul-group">
    <div class="pill" id="distance-pill" style="text-align:right"><span class="small">ПУТЬ ИЗ АДА</span><span class="big" id="distance">0 m</span></div>
    <div class="pill stat-pill" style="text-align:right"><span class="small">ДУШИ</span><span class="big" id="coins">0</span></div>
    <div id="soul-meter-wrap" aria-label="Шкала ульты">
@@ -23,30 +19,81 @@
    </div>
   </div>
  </div>
- <div id="audio-controls" aria-label="Настройки музыки и звуков игры">
-  <div class="audio-control-row">
-   <button id="sound-toggle" type="button" title="Включить или выключить игровые звуки" aria-label="Выключить игровые звуки">🔊</button>
-   <span class="audio-row-label">ЗВУКИ</span>
-   <input id="sound-volume" type="range" min="0" max="100" step="1" value="30" aria-label="Громкость эффектов">
-   <span id="sound-volume-value">30%</span>
-  </div>
-  <div class="audio-control-row">
-   <button id="music-toggle" type="button" title="Включить или выключить музыку" aria-label="Выключить музыку">🎵</button>
-   <span class="audio-row-label">МУЗЫКА</span>
-   <input id="music-volume" type="range" min="0" max="100" step="1" value="20" aria-label="Громкость музыки">
-   <span id="music-volume-value">20%</span>
-  </div>
- </div>
  <div id="toast">+ COIN</div>
- <section id="center">
-  <h1>KNOTTY<br><em>PINE</em></h1>
-  <p class="desc" id="message">Фиона Гуд — ведьма в аду. Уклоняйся от сучковатых сосен, прыгай через корни и переживи этот кошмар.</p>
-  <button id="start">СПУСТИТЬСЯ В АД</button>
-  <div id="hint">← → СМЕНА ПОЛОСЫ &nbsp; • &nbsp; ↑ ×2 ДВОЙНОЙ ПРЫЖОК &nbsp; • &nbsp; ↓ ПОДКАТ<br>СОБЕРИ 100 ДУШ — УЛЬТА-ПОЛЁТ С АУРОЙ</div>
+ <section id="center" aria-label="Меню KNOTTY PINE">
+  <div id="menu-main" class="menu-page">
+   <p class="menu-eyebrow">ВЕДЬМА В АДУ</p>
+   <h1>KNOTTY<br><em>PINE</em></h1>
+   <p class="desc" id="message">Фиона — ведьма в аду. Беги сквозь сосновый лес, собирай души и избегай ловушек.</p>
+   <div class="menu-actions">
+    <button id="resume" type="button" class="menu-action menu-primary hidden">ПРОДОЛЖИТЬ</button>
+    <button id="start" type="button" class="menu-action menu-primary">НАЧАТЬ ЗАБЕГ</button>
+    <button id="menu-open-help" type="button" class="menu-action menu-secondary">КАК ИГРАТЬ</button>
+    <button id="menu-open-settings" type="button" class="menu-action menu-secondary">НАСТРОЙКИ</button>
+   </div>
+   <div id="menu-records" aria-label="Личные рекорды">
+   <div id="record-group">
+   <div class="pill"><span class="small">РЕКОРД МЕТРОВ</span><span class="big" id="best">0 m</span></div>
+   <div class="pill"><span class="small">РЕКОРД ДУШ</span><span class="big" id="best-souls">0</span></div>
+   </div>
+   </div>
+  </div>
+  <div id="menu-help" class="menu-page hidden">
+   <h2>КАК ИГРАТЬ</h2>
+   <div class="menu-tabs" role="tablist" aria-label="Устройство">
+    <button class="menu-tab" data-help-tab="pc" type="button" role="tab" aria-selected="true">ПК</button>
+    <button class="menu-tab" data-help-tab="mobile" type="button" role="tab" aria-selected="false">ТЕЛЕФОН</button>
+   </div>
+   <div id="help-pc" class="help-controls" role="tabpanel">
+    <div><span class="help-key-group"><kbd>←</kbd> / <kbd>A</kbd></span><span>Влево</span></div>
+    <div><span class="help-key-group"><kbd>→</kbd> / <kbd>D</kbd></span><span>Вправо</span></div>
+    <div><span class="help-key-group"><kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd></span><span>Прыжок, ещё раз — двойной</span></div>
+    <div><span class="help-key-group"><kbd>↓</kbd> / <kbd>S</kbd></span><span>Подкат</span></div>
+    <div><span class="help-key-group"><kbd>Esc</kbd></span><span>Пауза и меню</span></div>
+   </div>
+   <div id="help-mobile" class="help-controls hidden" role="tabpanel">
+    <div><span>← Свайп влево</span><span>Влево</span></div>
+    <div><span>Свайп вправо →</span><span>Вправо</span></div>
+    <div><span>↑ Свайп вверх</span><span>Прыжок, ещё раз — двойной</span></div>
+    <div><span>↓ Свайп вниз</span><span>Подкат</span></div>
+    <div><span>⏸ Кнопка паузы</span><span>Открыть меню</span></div>
+   </div>
+   <div class="help-abilities">
+    <p><strong>ДУШИ</strong> — 100 душ активируют полёт с синей аурой.</p>
+    <p><strong>ШЛЯПА</strong> — притягивает души с соседних полос.</p>
+    <p><strong>МЕТЛА</strong> — низкий быстрый полёт над лавой, рыбой и лужами. Сосны всё ещё опасны.</p>
+   </div>
+   <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
+  </div>
+  <div id="menu-settings" class="menu-page hidden">
+   <h2>НАСТРОЙКИ</h2>
+   <p class="menu-settings-title">Звук</p>
+  <div id="audio-controls" aria-label="Настройки музыки и звуков игры">
+  <div class="audio-control-row">
+  <button id="sound-toggle" type="button" title="Включить или выключить игровые звуки" aria-label="Выключить игровые звуки">🔊</button>
+  <span class="audio-row-label">ЗВУКИ</span>
+  <input id="sound-volume" type="range" min="0" max="100" step="1" value="30" aria-label="Громкость эффектов">
+  <span id="sound-volume-value">30%</span>
+  </div>
+  <div class="audio-control-row">
+  <button id="music-toggle" type="button" title="Включить или выключить музыку" aria-label="Выключить музыку">🎵</button>
+  <span class="audio-row-label">МУЗЫКА</span>
+  <input id="music-volume" type="range" min="0" max="100" step="1" value="20" aria-label="Громкость музыки">
+  <span id="music-volume-value">20%</span>
+  </div>
+  </div>
+   <div class="menu-toggle-row">
+    <div><strong>ПОКАЗАТЬ FPS</strong><small>Счётчик кадров в секунду</small></div>
+    <label class="menu-switch"><input id="fps-toggle" type="checkbox" aria-label="Показывать FPS"><span></span></label>
+   </div>
+   <div class="menu-toggle-row">
+    <div><strong>ВИБРАЦИЯ</strong><small id="vibration-info">Короткая вибрация при важных событиях.</small></div>
+    <label class="menu-switch"><input id="vibration-toggle" type="checkbox" aria-label="Вибрация"><span></span></label>
+   </div>
+   <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
+  </div>
  </section>
- <div id="bottom">
-  <button class="ctrl" id="left" aria-label="Влево">←</button><button class="ctrl" id="jump" aria-label="Прыжок; нажмите дважды для двойного прыжка">↑</button><button class="ctrl" id="slide" aria-label="Подкат">↓</button><button class="ctrl" id="right" aria-label="Вправо">→</button>
- </div>
+ <button id="pause-button" class="hidden" type="button" aria-label="Пауза, открыть меню" title="Пауза">⏸</button>
 </div>
 
 <script type="module" src="/src/main.js"></script>
