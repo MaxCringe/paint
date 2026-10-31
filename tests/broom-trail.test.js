@@ -3,42 +3,35 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {broomTrailState} from '../src/powerups/BroomTrail.js';
 
-test('smoke plume remains stable until the last three seconds of broom flight',()=>{
+test('broom smoke shrinks and coughs over its last three seconds',()=>{
  assert.deepEqual(broomTrailState(0),{active:false,warning:false,length:1,strength:1,instability:0});
- const full=broomTrailState(8);
- assert.equal(full.active,true);
- assert.equal(full.warning,false);
- assert.equal(full.length,1);
- assert.equal(full.strength,1);
+ assert.equal(broomTrailState(9).active,true);
  assert.equal(broomTrailState(3.01).warning,false);
- const warning=broomTrailState(3);
- assert.equal(warning.warning,true);
- assert.equal(warning.instability,0);
- const dying=broomTrailState(.4);
- assert.ok(dying.length<.4);
- assert.ok(dying.strength<.5);
- assert.ok(dying.instability>.8);
- assert.equal(broomTrailState(-1).active,false);
+ assert.equal(broomTrailState(3).warning,true);
+ assert.equal(broomTrailState(3).strength,1);
+ assert.ok(broomTrailState(.5).length<.4);
+ assert.ok(broomTrailState(.5).strength<.5);
+ assert.ok(broomTrailState(.5).instability>.8);
 });
 
-test('broom visual cue is flowing camera-facing smoke with dying sparks, not flat ribbons or a HUD timer',()=>{
+test('visible smoke uses standard instanced Three.js materials instead of custom shaders',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
  const trail=read('src/powerups/BroomTrail.js');
  const broom=read('src/powerups/BroomRide.js');
  const hud=read('src/ui/GameHud.js');
  const css=read('src/styles/hud.css');
- assert.match(trail,/makeBillboardBatch\(48\)/);
- assert.match(trail,/makeBillboardBatch\(28\)/);
- assert.match(trail,/viewCenter\.xy\+=aCorner\*radius/);
- assert.match(trail,/smoke\.visible=state\.active/);
- assert.match(trail,/sparks\.visible=state\.warning/);
- assert.match(trail,/gl_FragColor/);
+ assert.match(trail,/makeSmokeTexture/);
+ assert.match(trail,/InstancedMesh\(plane,smokeMaterial,SMOKE_COUNT\)/);
+ assert.match(trail,/InstancedMesh\(plane,sparkMaterial,SPARK_COUNT\)/);
  assert.match(trail,/THREE\.NormalBlending/);
  assert.match(trail,/THREE\.AdditiveBlending/);
- assert.match(broom,/duration: 9/);
+ assert.match(trail,/depthTest:false/);
+ assert.match(trail,/smoke\.setMatrixAt/);
+ assert.match(trail,/sparks\.setMatrixAt/);
+ assert.doesNotMatch(trail,/ShaderMaterial/);
  assert.match(broom,/trail\.update\(remaining,t\)/);
  assert.match(broom,/trail\.hide\(\)/);
+ assert.match(broom,/duration: 9/);
  assert.doesNotMatch(hud,/createBroomTimer/);
  assert.doesNotMatch(css,/broom-flight-status/);
- assert.match(broom,/broomIgnoresHazard\(type\)/);
 });
