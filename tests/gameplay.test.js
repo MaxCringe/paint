@@ -139,7 +139,8 @@ test('natural slide bends joints and skirt; no full-body squash, repeat hold or 
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  const fiona=readFileSync(new URL('../src/player/Fiona.js',import.meta.url),'utf8');
  assert.ok(game.includes("slideAction.press();audio.play('slide')"));
- assert.ok(game.includes("'ArrowDown','KeyS'].includes(e.code)"));
+ const input=readFileSync(new URL('../src/systems/GameInput.js',import.meta.url),'utf8');
+ assert.ok(input.includes("e.code==='ArrowDown'||e.code==='KeyS'"));
  assert.ok(game.includes('slideAction.update(dt)'));
  assert.ok(!game.includes('slideT'));
  assert.ok(!game.includes('runner.scale.y='));
