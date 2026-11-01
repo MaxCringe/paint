@@ -45,7 +45,7 @@ const { runner, torso, armL, armR, legL, legR, applySlidePose, ultimateAura } = 
 const obstacles=[], coins=[], hats=[];
 const scarfPickup=createScarfPickup(scene);
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
-const {makeHat,animateHat,animateWearable}=createWitchHatFactory(scene,hats,runner);
+const {makeHat,animateHat,animateWearable}=createWitchHatFactory(scene,hats,torso);
 // One geometry per pine component, reused by every upcoming pine obstacle.
 const knotTrunkGeometry=new THREE.CylinderGeometry(.36,.62,2.55,7);
 const knotNodeGeometry=new THREE.SphereGeometry(1,8,7);

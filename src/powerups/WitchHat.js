@@ -6,7 +6,7 @@ const PICKUP_GLOW_OPACITY=.88;
 
 // Old, folded low-poly witch hat with a crooked tip, inspired by storybook hats.
 // Geometry/materials are shared between the road pick-up and Fiona's worn hat.
-export function createWitchHatFactory(scene,hats,runner) {
+export function createWitchHatFactory(scene,hats,torso) {
  const fabric=new THREE.MeshStandardMaterial({color:0x57402e,roughness:1,flatShading:true,side:THREE.DoubleSide});
  const highlight=new THREE.MeshStandardMaterial({color:0x755339,roughness:1,flatShading:true,side:THREE.DoubleSide});
  const seam=new THREE.MeshBasicMaterial({color:0xa7885e,side:THREE.DoubleSide});
@@ -100,10 +100,13 @@ export function createWitchHatFactory(scene,hats,runner) {
   return group;
  }
  const wearable=model();
- wearable.position.set(0,2.46,0);
+ // Attach the worn hat to Fiona's head-bearing torso pivot.
+ // Local y=1.46 preserves its original world height (torso starts at y=1).
+ // Sliding and broom ducking now carry the hat with her head, not through the air.
+ wearable.position.set(0,1.46,0);
  wearable.scale.setScalar(.66);
  wearable.visible=false;
- runner.add(wearable);
+ torso.add(wearable);
  function makeHat(lane,z){
   const g=new THREE.Group();
   g.position.set((lane-1)*2.55,0,z);

@@ -154,3 +154,19 @@ test('natural slide bends joints and skirt; no full-body squash, repeat hold or 
  assert.ok(crouched.rearLegPitch<0);
  assert.equal(getSlidePose(2).waistPitch,crouched.waistPitch);
 });
+
+test('worn witch hat follows Fiona head while crouching or ducking on broom',()=>{
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ const hat=readFileSync(new URL('../src/powerups/WitchHat.js',import.meta.url),'utf8');
+ const fiona=readFileSync(new URL('../src/player/Fiona.js',import.meta.url),'utf8');
+ assert.ok(game.includes('createWitchHatFactory(scene,hats,torso)'));
+ assert.ok(hat.includes('torso.add(wearable)'));
+ assert.ok(hat.includes('wearable.position.set(0,1.46,0)'));
+ assert.ok(!hat.includes('runner.add(wearable)'));
+ assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
+ assert.ok(game.includes('broom.applyPose(broomDuck)'));
+ // Its pickup and ten-second soul-magnet behavior must be preserved.
+ assert.ok(hat.includes('hats.push({g,visual,glow,lane,z,phase:'));
+ assert.ok(hat.includes('wearable.visible=active'));
+ assert.ok(game.includes('magnetTime=10;'));
+});
