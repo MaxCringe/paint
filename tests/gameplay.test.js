@@ -124,7 +124,7 @@ test('consecutive pine logs: a second deliberate slide press refreshes the activ
  assert.ok(s.remaining>nearlyOver);
  s.update(.5); // Past the first slide's original expiration.
  assert.equal(s.active,true);
- s.update(.4);
+ for(let i=0;i<20;i++)s.update(1/60); // Cross expiry at real frame intervals.
  assert.equal(s.active,false);
  assert.ok(s.crouch>0); // Fiona recovers gradually rather than popping upright.
  for(let i=0;i<25;i++)s.update(1/60);
