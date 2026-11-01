@@ -109,7 +109,7 @@
 #menu-fiona-test .fiona-test-optional summary,#menu-fiona-test .fiona-test-group summary{cursor:pointer;text-align:left;font-weight:800;color:#d7eeb8;font-size:12px;line-height:1.6}
 #menu-fiona-test .fiona-test-group{margin-top:10px;border-top:1px solid #91c5ac35;padding:10px 4px 0}
 #menu-fiona-test .fiona-test-hint{font-size:11px;line-height:1.5;color:#bdd8c7;margin:10px 0}
-#fiona-test-tools{position:fixed;z-index:60;left:12px;bottom:12px;width:min(320px,calc(100vw - 24px));max-height:63dvh;overflow:auto;border:1px solid #8db79c88;border-radius:12px;background:#081c19f0;box-shadow:0 12px 35px #000b;padding:10px;color:#dbf1de;scrollbar-width:thin}
+#fiona-test-tools{position:fixed;z-index:60;pointer-events:auto;touch-action:pan-y;left:12px;bottom:12px;width:min(320px,calc(100vw - 24px));max-height:63dvh;overflow:auto;border:1px solid #8db79c88;border-radius:12px;background:#081c19f0;box-shadow:0 12px 35px #000b;padding:10px;color:#dbf1de;scrollbar-width:thin}
 #fiona-test-tools summary{cursor:pointer;font-size:12px;font-weight:900;letter-spacing:.05em}
 #fiona-test-tools p{font-size:10px;line-height:1.5;margin:9px 0;color:#bfd5cb}
 #fiona-test-preview-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}

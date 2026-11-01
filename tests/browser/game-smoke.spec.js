@@ -42,6 +42,7 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
   'DEV Fiona failed to start; status: '+status+'; page errors: '+errors.join(' | ')).toBe(true);
  const tools=page.locator('#fiona-test-tools');
  await expect(tools).toBeVisible({timeout:30_000});
+ expect(await tools.evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('auto');
  await tools.locator('summary').click();
  await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(23);
  await page.locator('#fiona-test-preview-actions button').filter({hasText:'Бег'}).click();
