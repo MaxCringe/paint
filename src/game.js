@@ -213,7 +213,7 @@ function showDeathResult(){
 }
 function end(reason='other'){
  if(state!=='playing')return;
- const clipDuration=useTestFiona?testAvatar?.die(reason)||0:0;
+ const clipDuration=useTestFiona?testAvatar?.die(reason,{onBroom:broom.active})||0:0;
  broom.cancel();ultimateAura.reset();haptics.play('hit');
  audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);
  state='over';
