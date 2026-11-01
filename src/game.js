@@ -21,7 +21,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomLift } from './systems/HazardRules.js';
+import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomLift, pineLogFlightGuardDuration } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
 import { createRunRecordTracker } from './systems/RunRecords.js';
@@ -249,7 +249,18 @@ function frame(t){requestAnimationFrame(frame);
  hud.tick(dt);
  if(state==='playing'){
   // Scroll the road texture toward the camera so the boards stay fixed to the world as Fiona runs.
-  if(ultTimer>0)ultTimer=Math.max(0,ultTimer-dt);
+  if(ultTimer>0){
+   // An ongoing ultimate must never end while Fiona is crossing a suspended log.
+   // Preserve ordinary duration unless a log is directly along the flyover arc.
+   const ultimateSpeed=speed*BROOM_CONFIG.ultimateSpeedMultiplier;
+   for(const o of obstacles){
+    if(o.type==='pineLog'){
+     const gap=o.g.position.z-runner.position.z;
+     ultTimer=Math.max(ultTimer,pineLogFlightGuardDuration(gap,ultimateSpeed));
+    }
+   }
+   ultTimer=Math.max(0,ultTimer-dt);
+  }
   if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT)activateUltimate();
   const ultActive=ultTimer>0;
   // Finish flying over a suspended log if the broom's timer is about to expire.
@@ -281,10 +292,10 @@ function frame(t){requestAnimationFrame(frame);
     footstepTimer-=dt;
     if(footstepTimer<=0){audio.play('step');footstepTimer=Math.max(.24,.42*15/speed)}
    }else footstepTimer=.12;
-   // The broom automatically arcs ABOVE pine logs instead of clipping through them.
-   const logLift=broom.active?obstacles.reduce((lift,o)=>
+   // Both broom and ultimate arc ABOVE pine logs instead of clipping through them.
+   const logLift=(ultActive||broom.active)?obstacles.reduce((lift,o)=>
     o.type==='pineLog'?Math.max(lift,pineLogBroomLift(o.g.position.z,runner.position.z)):lift,0):0;
-   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
+   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14+logLift:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);

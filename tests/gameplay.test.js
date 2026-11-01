@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createDoubleJump} from '../src/player/DoubleJump.js';
 import {BROOM_CONFIG} from '../src/powerups/BroomRide.js';
-import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomLift} from '../src/systems/HazardRules.js';
+import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomLift,pineLogFlightGuardDuration} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
  const events=[],j=createDoubleJump({onJump:n=>events.push(n),onLand:()=>events.push('land')});
@@ -43,6 +43,20 @@ test('broom crosses logs in a smooth arc and returns to normal hover height',()=
  assert.ok(pineLogBroomLift(6,0)>0);
  assert.equal(pineLogBroomLift(9,0),0);
  assert.equal(pineLogBroomLift(16,0),0);
+});
+
+test('ultimate arcs above logs and cannot expire mid-crossing',()=>{
+ const flightBase=2.25, logTop=1.88+.36, speed=22;
+ assert.equal(pineLogBroomLift(-16,0),0);
+ assert.ok(flightBase+pineLogBroomLift(-8,0)>logTop);
+ assert.ok(flightBase+pineLogBroomLift(0,0)>logTop+.5);
+ assert.equal(pineLogBroomLift(9,0),0);
+ const remaining=.1, crossing=pineLogFlightGuardDuration(-1,speed);
+ assert.ok(crossing>remaining);
+ assert.ok(crossing>=10/speed);
+ assert.equal(pineLogFlightGuardDuration(-17,speed),0);
+ assert.equal(pineLogFlightGuardDuration(9,speed),0);
+ assert.equal(pineLogFlightGuardDuration(0,0),0);
 });
 
 test('lava jumps retain their original height threshold',()=>{

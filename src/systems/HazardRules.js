@@ -15,3 +15,10 @@ export function pineLogBroomLift(logZ,runnerZ){
  const smooth=x=>{const t=Math.max(0,Math.min(1,x));return t*t*(3-2*t);};
  return 1.90*smooth((gap+16)/12)*(1-smooth((gap-3)/6));
 }
+
+// How long an ongoing ultimate needs to keep flying to finish a nearby log crossing.
+// The interval matches the climb/descent corridor; empty road never prolongs flight.
+export function pineLogFlightGuardDuration(gap,travelSpeed){
+ if(!Number.isFinite(gap)||!Number.isFinite(travelSpeed)||travelSpeed<=0||gap< -16||gap>=9)return 0;
+ return (9-gap)/travelSpeed+.08;
+}
