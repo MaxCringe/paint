@@ -3,10 +3,10 @@
 export const EFFECT_VISUAL_SCHEMA=2;
 export const EFFECT_VISUAL_DEFAULTS=Object.freeze({
  broomModel:Object.freeze({woodColor:'#553522',gripColor:'#291a17',bindingColor:'#b18b52',capColor:'#b18b52',bristlesColor:'#b38e60',pickupGlowColor:'#e9b76b'}),
- hat:Object.freeze({glowColor:'#b59ae5',glowOpacity:88,glowSize:100,bobHeight:100,wobble:100,fabricColor:'#57402e',patchColor:'#755339',seamColor:'#a7885e',bandColor:'#30251d',buckleColor:'#97764b'}),
+ hat:Object.freeze({glowColor:'#b59ae5',glowOpacity:63,glowSize:100,bobHeight:100,wobble:100,fabricColor:'#57402e',patchColor:'#755339',seamColor:'#a7885e',bandColor:'#30251d',buckleColor:'#97764b'}),
  scarf:Object.freeze({glowColor:'#ffffff',glowOpacity:65,glowSize:100,floatHeight:100,burstOpacity:95,burstSize:100,clothTint:'#ffffff',fringeColor:'#251c22',collarColor:'#31252c',burstColor:'#ffffff'}),
- souls:Object.freeze({haloColor:'#4e58ff',haloOpacity:16,outerOpacity:93,innerOpacity:97,sparkSize:100,outerColor:'#ffffff',innerColor:'#ffffff',sparkAColor:'#c8ffff',sparkBColor:'#66eeff',sparkCColor:'#8b79ff'}),
- ultimate:Object.freeze({outerColor:'#2275ff',innerColor:'#91eaff',intensity:100,flameSpeed:100,lightIntensity:150,lightColor:'#2275ff',auraWidth:100})
+ souls:Object.freeze({haloColor:'#4e58ff',haloOpacity:13,outerOpacity:100,innerOpacity:85,sparkSize:220,outerColor:'#ffffff',innerColor:'#ffffff',sparkAColor:'#c8ffff',sparkBColor:'#66eeff',sparkCColor:'#8b79ff'}),
+ ultimate:Object.freeze({outerColor:'#2275ff',innerColor:'#91eaff',intensity:77,flameSpeed:39,lightIntensity:150,lightColor:'#2275ff',auraWidth:100})
 });
 export const EFFECT_VISUAL_CONTROLS=Object.freeze({
  broomModel:Object.freeze([

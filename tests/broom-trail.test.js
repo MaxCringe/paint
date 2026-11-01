@@ -40,8 +40,8 @@ test('particles use built-in instanced Three.js materials rather than shaders',(
 
 test('approved standard VFX profiles match both complete sets of values',()=>{
  resetBroomTuning();
- assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":180,"opacity":110,"size":150,"length":90,"streaks":95,"coughs":150,"sparks":150,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#dbcbff","sparkColor":"#ffc17c","glowColor":"#dec5ff"});
- assert.deepEqual(BROOM_VISUAL_PROFILES.landing,{"density":150,"opacity":70,"size":150,"length":50,"streaks":39,"coughs":250,"sparks":299,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#dbcbff","sparkColor":"#ffc17c","glowColor":"#dec5ff"});
+ assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":200,"opacity":200,"size":139,"length":153,"streaks":95,"coughs":250,"sparks":400,"smokeRise":164,"sparkSpread":250,"sparkSize":250,"glowSize":250,"glowIntensity":147,"smokeColor":"#5600b3","coughColor":"#ff70d9","streakColor":"#fa00ab","sparkColor":"#761aa8","glowColor":"#8126f7"});
+ assert.deepEqual(BROOM_VISUAL_PROFILES.landing,{"density":147,"opacity":31,"size":150,"length":47,"streaks":39,"coughs":250,"sparks":299,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#7400f0","coughColor":"#720dde","streakColor":"#540ff5","sparkColor":"#e97aff","glowColor":"#9747ff"});
  assert.equal(BROOM_LANDING_TRANSITION_SECONDS,3);
  const start=broomVisualProfile(9),beforeLanding=broomVisualProfile(3),end=broomVisualProfile(0);
  for(const key of Object.keys(BROOM_VISUAL_RANGES)){
@@ -49,13 +49,13 @@ test('approved standard VFX profiles match both complete sets of values',()=>{
   assert.equal(beforeLanding[key],BROOM_VISUAL_PROFILES.flight[key]);
   assert.equal(end[key],BROOM_VISUAL_PROFILES.landing[key]);
  }
- assert.equal(start.smokeColor,'#d8c5ec');
+ assert.equal(start.smokeColor,'#5600b3');
  for(const key of ['smokeColor','coughColor','streakColor','sparkColor','glowColor']){
   assert.equal(start[key],defaultsColor(key));
-  assert.equal(end[key],defaultsColor(key));
+  assert.equal(end[key],BROOM_VISUAL_PROFILES.landing[key]);
  }
  function defaultsColor(key){return BROOM_VISUAL_PROFILES.flight[key];}
- assert.equal(end.smokeColor,'#d8c5ec');
+ assert.equal(end.smokeColor,'#7400f0');
 });
 
 test('final-three-second profile blends smoothly and respects all bounds',()=>{
@@ -146,6 +146,6 @@ test('neutral particle textures and straw variation support true independent rec
   assert.ok(fx.includes(code),code);
  }
  assert.ok(ride.includes('bristleMat.color.set(v.bristlesColor)'));
- assert.equal(BROOM_VISUAL_PROFILES.flight.sparkColor,'#ffc17c');
- assert.equal(BROOM_VISUAL_PROFILES.flight.streakColor,'#dbcbff');
+ assert.equal(BROOM_VISUAL_PROFILES.flight.sparkColor,'#761aa8');
+ assert.equal(BROOM_VISUAL_PROFILES.flight.streakColor,'#fa00ab');
 });

@@ -13,9 +13,9 @@ test('VFX registry has five effects plus broom appearance with bounded editable 
  assert.equal(EFFECT_EDITOR_AVAILABLE,true);
  assert.deepEqual(Object.keys(EFFECT_VISUAL_DEFAULTS),['broomModel','hat','scarf','souls','ultimate']);
  resetEffectVisuals();
- assert.equal(getEffectVisualProfile('hat').glowOpacity,88);
+ assert.equal(getEffectVisualProfile('hat').glowOpacity,63);
  assert.equal(getEffectVisualProfile('scarf').burstOpacity,95);
- assert.equal(getEffectVisualProfile('souls').haloOpacity,16);
+ assert.equal(getEffectVisualProfile('souls').haloOpacity,13);
  assert.equal(getEffectVisualProfile('ultimate').lightIntensity,150);
  for(const [category,controls] of Object.entries(EFFECT_VISUAL_CONTROLS)){
   for(const [key,,type,min,max] of controls){
@@ -38,7 +38,7 @@ test('settings clamp invalid values and retain independent categories',()=>{
  snapshot.hat.glowOpacity=-500;
  assert.equal(getEffectVisualProfile('hat').glowOpacity,150);
  resetEffectVisualCategory('hat');
- assert.equal(getEffectVisualProfile('hat').glowOpacity,88);
+ assert.equal(getEffectVisualProfile('hat').glowOpacity,63);
  revertEffectVisuals();
  assert.equal(getEffectVisualProfile('scarf').glowColor,'#ffffff');
 });
@@ -111,4 +111,12 @@ test('component tint defaults preserve natural broom appearance rather than flat
  assert.equal(EFFECT_VISUAL_DEFAULTS.broomModel.woodColor,'#553522');
  assert.equal(EFFECT_VISUAL_DEFAULTS.hat.bandColor,'#30251d');
  assert.equal(EFFECT_VISUAL_DEFAULTS.scarf.clothTint,'#ffffff');
+});
+
+test('approved schema 2 editor preset matches all five appearance categories',()=>{
+ resetEffectVisuals();
+ const expected={"broomModel":{"woodColor":"#553522","gripColor":"#291a17","bindingColor":"#b18b52","capColor":"#b18b52","bristlesColor":"#b38e60","pickupGlowColor":"#e9b76b"},"hat":{"glowColor":"#b59ae5","glowOpacity":63,"glowSize":100,"bobHeight":100,"wobble":100,"fabricColor":"#57402e","patchColor":"#755339","seamColor":"#a7885e","bandColor":"#30251d","buckleColor":"#97764b"},"scarf":{"glowColor":"#ffffff","glowOpacity":65,"glowSize":100,"floatHeight":100,"burstOpacity":95,"burstSize":100,"clothTint":"#ffffff","fringeColor":"#251c22","collarColor":"#31252c","burstColor":"#ffffff"},"souls":{"haloColor":"#4e58ff","haloOpacity":13,"outerOpacity":100,"innerOpacity":85,"sparkSize":220,"outerColor":"#ffffff","innerColor":"#ffffff","sparkAColor":"#c8ffff","sparkBColor":"#66eeff","sparkCColor":"#8b79ff"},"ultimate":{"outerColor":"#2275ff","innerColor":"#91eaff","intensity":77,"flameSpeed":39,"lightIntensity":150,"lightColor":"#2275ff","auraWidth":100}};
+ assert.equal(EFFECT_VISUAL_SCHEMA,2);
+ assert.deepEqual(EFFECT_VISUAL_DEFAULTS,expected);
+ assert.deepEqual(effectVisualSnapshot(),expected);
 });
