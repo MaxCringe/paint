@@ -61,6 +61,16 @@ variable, then rebuilding. This is a **feature switch, not a security/access
 control mechanism**: while enabled, everyone using that build can see the
 editor.
 
+## Текущая структура разработки Фионы и проверки
+
+- **Обычный персонаж:** `src/player/Fiona.js`. Он остаётся основным игровым персонажем.
+- **Новая Фиона со скелетом:** `public/models/fiona/rigged-model (1) (1).fbx`; используется только в тестовом забеге.
+- **Собственные движения:** Python/NumPy-генератор `tools/generate_fiona_motions.py` создал 23 анимации в `public/models/fiona/animations/motions.json.gz`. Их подготавливают `src/player/FionaPythonMotions.js` и `src/player/FionaTest.js`. Сторонние `Run Forward.fbx` и `Jump.fbx` в тесте не нужны.
+- **Ввод:** `src/systems/GameInput.js` (клавиатура и свайпы), **достижения:** `src/systems/RunRecords.js`.
+- **Проверки:** `npm test` для правил и `npm run test:browser` для Chromium с WebGL. Для локального браузерного теста сначала выполните `npm run build` и `npx playwright install chromium`.
+
+Подробная карта, устранённые ошибки и остающиеся ограничения: [аудит и журнал исправлений](docs/code-audit-2026-11-01.md).
+
 ## Architecture
 
 - `index.html` — static game HUD and menu markup.
