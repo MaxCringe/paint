@@ -1,6 +1,24 @@
 import * as THREE from 'three';
 import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 
+// Attach the wearable hat without inheriting the tiny FBX model scale.
+// Normal gameplay keeps its original torso placement and dimensions.
+export function mountWearableHat(wearable,torso,headBone=null){
+ if(!headBone){
+  torso.add(wearable);
+  wearable.position.set(0,1.46,0);
+  wearable.scale.setScalar(.66);
+ }else{
+  headBone.updateWorldMatrix(true,false);
+  const world=headBone.getWorldScale(new THREE.Vector3());
+  const safe=n=>Math.max(1e-6,Math.abs(n));
+  headBone.add(wearable);
+  wearable.position.set(0,.18/safe(world.y),0);
+  wearable.scale.set(.66/safe(world.x),.66/safe(world.y),.66/safe(world.z));
+ }
+ wearable.rotation.set(0,0,0);
+}
+
 // Pickup-only aura settings; opacity is a 0–1 value (88% = 10% brighter than 80%).
 const PICKUP_GLOW_COLOR=0xb59ae5;
 const PICKUP_GLOW_OPACITY=.88;
@@ -152,10 +170,7 @@ export function createWitchHatFactory(scene,hats,torso) {
  }
  // During a test run attach the same hat to the actual animated head.
  function attachWearableToHead(bone=null){
-  (bone||torso).add(wearable);
-  wearable.position.set(0,bone?0.18:1.46,0);
-  wearable.rotation.set(0,0,0);
-  wearable.scale.setScalar(.66);
+  mountWearableHat(wearable,torso,bone);
  }
  return {makeHat,animateHat,animateWearable,attachWearableToHead};
 }
