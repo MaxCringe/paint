@@ -21,6 +21,45 @@ npm run preview
 
 Vite writes the production site to `dist/`. Wrangler runs the build before deployment and serves the generated `dist/` directory.
 
+## Temporary in-game VFX editor (development only)
+
+The main menu has **✦ РЕДАКТОР ЭФФЕКТОВ · DEV**. This standalone editor
+pauses the hidden game scene and shows live Three.js previews of the existing
+broom, witch hat, Misty shawl, blue soul flames and ultimate aura. It never
+changes gameplay rules, item probabilities or ability durations.
+
+- Select a category on the top row, then adjust visible effect parameters.
+  The broom has separate **flight** and **last 3 seconds** phases.
+- **Сохранить в браузере** keeps local visual overrides on this device only.
+  Closing the editor without saving reverts the current unsaved values.
+- **Сбросить категорию** restores that category's defaults in the editor
+  (save afterward to retain the reset).
+- **КОПИРОВАТЬ ВСЕ ЗНАЧЕНИЯ** exports the full versioned JSON preset for
+  all five categories, including any unsaved changes. Paste this JSON into
+  ChatGPT to request a reviewed source-code update for every player.
+- Runtime visual settings: `src/effects/EffectVisualProfiles.js`,
+  `src/powerups/BroomVisualProfiles.js`. UI and its CSS:
+  `src/devtools/EffectEditor.js` and `src/devtools/EffectEditor.css`.
+  The optional editor loads from `src/main.js` only while enabled.
+
+### Disable completely before public release
+
+In Vercel project's **Environment Variables**, set
+`VITE_ENABLE_EFFECT_EDITOR=false` for Production, then **redeploy**.
+For local release verification run:
+
+```bash
+VITE_ENABLE_EFFECT_EDITOR=false npm run build
+```
+
+This build condition prevents importing the optional editor module, keeps the
+menu button hidden and ignores local editor overrides. The source files stay
+in the repository for future internal development. Re-enable only for
+controlled development builds by removing or changing that environment
+variable, then rebuilding. This is a **feature switch, not a security/access
+control mechanism**: while enabled, everyone using that build can see the
+editor.
+
 ## Architecture
 
 - `index.html` — static game HUD and menu markup.
