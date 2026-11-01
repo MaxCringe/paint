@@ -145,8 +145,8 @@ test('natural slide bends joints and skirt; no full-body squash, repeat hold or 
  assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
  assert.ok(fiona.includes('legL.rotation.x+=(pose.frontLegPitch'));
  const standing=getSlidePose(0),crouched=getSlidePose(1);
- assert.equal(standing.waistPitch,0);
- assert.equal(standing.waistDrop,0);
+ assert.ok(Math.abs(standing.waistPitch)<1e-9);
+ assert.ok(Math.abs(standing.waistDrop)<1e-9);
  assert.ok(crouched.waistPitch< -1);
  assert.ok(crouched.waistDrop<0);
  assert.ok(crouched.skirtPitch<0);
