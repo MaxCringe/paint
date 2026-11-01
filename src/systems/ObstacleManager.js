@@ -1,45 +1,67 @@
-// Keeps obstacle selection probabilities and spacing decisions outside the frame loop.
+// Fair, deterministic-spacing obstacle planner. Distances use world units.
+// A segment is ~18-25 units; speed rises from 15 to 29 units/s.
+// Full-width hazards require incompatible actions (jump vs slide), so they
+// need longer recovery windows than lane-specific hazards.
+export const HAZARD_SPACING=Object.freeze({
+ lavaLog:52, fullWidth:32, laneRepeat:22, laneAfterFull:18
+});
 export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
-  // A log requires a crouch while lava requires a jump. Never chain these
-  // incompatible full-width hazards without a generous recovery stretch.
-  const MIN_LAVA_LOG_GAP=48;
-  let lastLavaZ=null,lastLogZ=null;
-  const tooClose=(z,other)=>other!==null&&Math.abs(z-other)<MIN_LAVA_LOG_GAP;
-  // Choose at most one pickup, only on a free lane.
-  function maybePowerup(freeLanes,z){
-   if(!freeLanes.length)return;
-   const roll=Math.random();
-   const lane=freeLanes[(Math.random()*freeLanes.length)|0];
-   if(roll<.075)makeHat(lane,z);
-   else if(makeBroom&&roll<.075+broomChance)makeBroom(lane,z);
+ const history=[];
+ const near=(a,b,dist)=>Math.abs(a-b)<dist;
+ const remember=(z,type,lane=-1)=>{
+  history.push({z,type,lane});
+  for(let i=history.length-1;i>=0;i--)if(Math.abs(history[i].z-z)>140)history.splice(i,1);
+ };
+ const safe=(z,type,lane=-1)=>history.every(h=>{
+  if((type==='lava'&&h.type==='pineLog')||(type==='pineLog'&&h.type==='lava'))
+   return !near(z,h.z,HAZARD_SPACING.lavaLog);
+  if(type==='lava'||type==='pineLog'){
+   if(h.type==='lava'||h.type==='pineLog')return !near(z,h.z,HAZARD_SPACING.fullWidth);
+   return !near(z,h.z,HAZARD_SPACING.laneAfterFull);
   }
-  return function makeSegment(z) {
-    
-     if(Math.random()<.13&&!tooClose(z,lastLogZ)){
-      makeLavaRiver(z);lastLavaZ=z;return;
-     }
-     // Keep a safe stretch between full-width logs and lava, including
-     // adjacent generated segments; never place a log inside a river.
-     if(makePineLog&&Math.random()<.10&&!tooClose(z,lastLavaZ)){
-      makePineLog(z);lastLogZ=z;return;
-     }
-     if(Math.random()<.88){
-      const lane=(Math.random()*3)|0;
-      if(Math.random()<.20)makeFish(lane,z);else if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');
-      // Keep a clear view of the hazard: souls follow it in the next safe stretch,
-      // not alongside the fish, puddle, or fallen pine. Four souls, same chance.
-      let soulLane=-1;
-      if(Math.random()<.72){
-       const cl=(lane+1+(Math.random()<.5?1:0))%3;
-       soulLane=cl;
-       for(let j=0;j<4;j++)makeSoul(cl,z-4-j*1.55,1.2+Math.sin(j*.8)*.18);
-      }
-      // Rare witch hat only on an unoccupied lane: never hidden under a hazard or soul chain.
-      maybePowerup([0,1,2].filter(l=>l!==lane&&l!==soulLane),z-1.0);
-     }else{
-      const lane=(Math.random()*3)|0;
-      for(let j=0;j<5;j++)makeSoul(lane,z-j*1.55,1.2);
-      maybePowerup([0,1,2].filter(l=>l!==lane),z-1.0);
-     }
-  };
+  if(h.type==='lava'||h.type==='pineLog')return !near(z,h.z,HAZARD_SPACING.laneAfterFull);
+  return lane!==h.lane||!near(z,h.z,HAZARD_SPACING.laneRepeat);
+ });
+ function maybePowerup(freeLanes,z){
+  if(!freeLanes.length)return;
+  const roll=Math.random();
+  const lane=freeLanes[(Math.random()*freeLanes.length)|0];
+  if(roll<.075)makeHat(lane,z);
+  else if(makeBroom&&roll<.075+broomChance)makeBroom(lane,z);
+ }
+ function addSouls(lane,z,count){
+  for(let j=0;j<count;j++)makeSoul(lane,z-j*1.55,1.2+Math.sin(j*.8)*.12);
+ }
+ return function makeSegment(z){
+  if(Math.random()<.13&&safe(z,'lava')){
+   makeLavaRiver(z);remember(z,'lava');return;
+  }
+  if(makePineLog&&Math.random()<.10&&safe(z,'pineLog')){
+   makePineLog(z);remember(z,'pineLog');return;
+  }
+  const free=[0,1,2].filter(l=>safe(z,'lane',l));
+  if(free.length&&Math.random()<.88){
+   const lane=free[(Math.random()*free.length)|0];
+   const roll=Math.random();
+   if(roll<.20)makeFish(lane,z);
+   else if(roll<.336)makePuddle(lane,z);
+   else makeObstacle(lane,z,'knot');
+   remember(z,'lane',lane);
+   // Reward a safe neighboring lane; never bury souls inside hazards.
+   const neighbors=[0,1,2].filter(l=>l!==lane);
+   let soulLane=-1;
+   if(Math.random()<.72){
+    soulLane=neighbors[(Math.random()*neighbors.length)|0];
+    addSouls(soulLane,z-4,4);
+   }
+   maybePowerup([0,1,2].filter(l=>l!==lane&&l!==soulLane),z-1);
+  }else{
+   // An intentionally empty recovery segment is preferable to an unfair spawn.
+   if(Math.random()<.75){
+    const lane=(Math.random()*3)|0;
+    addSouls(lane,z,5);
+    maybePowerup([0,1,2].filter(l=>l!==lane),z-1);
+   }
+  }
+ };
 }
