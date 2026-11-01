@@ -213,7 +213,7 @@ function showDeathResult(){
 }
 function end(reason='other'){
  if(state!=='playing')return;
- const clipDuration=useTestFiona?testAvatar?.die(reason,{onBroom:broom.active})||0:0;
+ if(useTestFiona)testAvatar?.die(reason,{onBroom:broom.active});
  broom.cancel();ultimateAura.reset();haptics.play('hit');
  audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);
  state='over';
@@ -222,11 +222,9 @@ function end(reason='other'){
   localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);
   hud.setRecords(best,bestSouls);
  }
- // Fatal hazards stop the run immediately, but keep the 3D scene visible
- // until the relevant death reaction finishes; fish uses ONLY Stumble Backwards.
- deathRevealRemaining=useTestFiona&&clipDuration>0?
-  Math.min(6,Math.max(.35,clipDuration+.15)):0;
- if(deathRevealRemaining===0)showDeathResult();
+ // Restore immediate game-over without waiting for death clips.
+ deathRevealRemaining=0;
+ showDeathResult();
 }
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');if(useTestFiona)testAvatar?.trigger(d<0?'moveLeft':'moveRight')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active){
