@@ -15,8 +15,12 @@ export function createSoulFactory(scene, coins) {
   const soulSparkGeometry=new THREE.IcosahedronGeometry(.033,0);
   
   
-  function updateVisuals(){
+  let lastVisualSignature='';
+  function updateVisuals(force=false){
    const v=getEffectVisualProfile('souls');
+   const signature=[v.outerOpacity,v.innerOpacity,v.haloOpacity,v.haloColor,v.sparkSize].join('|');
+   if(!force&&signature===lastVisualSignature)return;
+   lastVisualSignature=signature;
    soulOuterMaterial.opacity=v.outerOpacity/100;
    soulInnerMaterial.opacity=v.innerOpacity/100;
    soulAuraMaterial.opacity=v.haloOpacity/100;
@@ -71,7 +75,7 @@ export function createSoulFactory(scene, coins) {
     for(const mesh of [aura,outer,inner,side])mesh.geometry.dispose();
    };
    coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
-   updateVisuals();
+   updateVisuals(true);
   }
   makeSoul.updateVisuals=updateVisuals;
   return makeSoul;

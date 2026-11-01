@@ -51,6 +51,7 @@ export function buildEffectExport(){
 export function createEffectEditor(){
  const openButton=document.getElementById('menu-open-effects-editor');
  if(!openButton)return {open(){},close(){}};
+ openButton.classList.remove('hidden');
  const root=document.createElement('section');
  root.id='effects-editor';root.className='hidden';
  root.setAttribute('role','dialog');
@@ -100,7 +101,7 @@ export function createEffectEditor(){
  const nav=$('fx-categories'),fields=$('fx-fields'),notice=$('fx-message');
  let active=false,category='broom',phase='flight',lastFocus=null;
  let scene=null,renderer=null,camera=null,runner=null,broom=null,hat=null,hatFactory=null;
- let scarfGroup=null,scarfHalo=null,soul=null,soulFactory=null,aura=null;
+ let scarfGroup=null,scarfHalo=null,scarfFlash=null,soul=null,soulFactory=null,aura=null;
  let raf=0,started=0,rotation=-.31,dragX=null,previewWidth=0,previewHeight=0;
  function setMessage(text){notice.textContent=text;}
  function activeConfig(){return category==='broom'?broomTuningSnapshot()[phase]:getEffectVisualProfile(category);}
@@ -211,6 +212,12 @@ export function createEffectEditor(){
   scarfHalo=new THREE.Sprite(glow);
   scarfHalo.position.set(0,0,-.25);scarfHalo.scale.set(3.5,3.1,1);
   scarfGroup.add(scarfHalo);
+  // Repeating pickup burst uses the same visual parameters as the real shawl.
+  const flashMaterial=glow.clone();
+  scarfFlash=new THREE.Sprite(flashMaterial);
+  scarfFlash.position.set(0,0,-.21);
+  scarfFlash.scale.set(2.5,2.5,1);
+  scarfGroup.add(scarfFlash);
   const coins=[];
   soulFactory=createSoulFactory(scene,coins);
   soulFactory(1,0,1.4);
@@ -280,7 +287,13 @@ export function createEffectEditor(){
     scarfHalo.material.opacity=v.glowOpacity/100;
     const s=(1+Math.sin(now*.006)*.08)*v.glowSize/100;
     scarfHalo.scale.set(3.5*s,3.1*s,1);
-    $('fx-preview-timer').textContent='ПЛАТОК · 3D';
+    const burstAge=(elapsed%2.2)/.65;
+    const burstLife=burstAge<1?1-burstAge:0;
+    scarfFlash.material.color.set(v.glowColor);
+    scarfFlash.material.opacity=burstLife*v.burstOpacity/100;
+    scarfFlash.scale.setScalar((2.5+2*(1-burstLife))*v.burstSize/100);
+    scarfFlash.visible=burstLife>0;
+    $('fx-preview-timer').textContent='ПЛАТОК · ВСПЫШКА';
    }else if(category==='souls'){
     soulFactory.updateVisuals();
     for(let i=0;i<soul.flames.length;i++)animateSoulFlame(soul.flames[i],now,soul.phase+i*1.7,i===1?.65:1);

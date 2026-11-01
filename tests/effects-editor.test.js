@@ -45,7 +45,8 @@ test('settings clamp invalid values and retain independent categories',()=>{
 test('editor isolates the real 3D models, exports all effects, and has a one-switch release guard',()=>{
  const editor=read('src/devtools/EffectEditor.js');
  const html=read('index.html'),main=read('src/main.js'),game=read('src/game.js');
- assert.match(html,/id="menu-open-effects-editor"/);
+ assert.match(html,/id="menu-open-effects-editor"[^>]+hidden/);
+ assert.match(editor,/openButton.classList.remove\('hidden'\)/);
  assert.match(editor,/createFiona\(scene,mat,box\)/);
  assert.match(editor,/createBroomRide\(scene,runner,fiona\)/);
  assert.match(editor,/createWitchHatFactory\(scene,hats,fiona.torso\)/);
@@ -54,6 +55,8 @@ test('editor isolates the real 3D models, exports all effects, and has a one-swi
  assert.match(editor,/saveEffectVisuals\(\)/);
  assert.match(editor,/saveBroomTuning\(\)/);
  assert.match(editor,/navigator.clipboard.writeText\(json\)/);
+ assert.match(editor,/scarfFlash.material.opacity=burstLife\*v.burstOpacity\/100/);
+ assert.match(read('src/souls/createSoulFactory.js'),/if\(!force&&signature===lastVisualSignature\)return/);
  assert.match(editor,/schemaVersion:EFFECT_VISUAL_SCHEMA/);
  assert.match(main,/VITE_ENABLE_EFFECT_EDITOR/);
  assert.match(main,/import\('\.\/devtools\/EffectEditor\.js'\)/);
