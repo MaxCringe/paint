@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createUltimateAura } from '../effects/UltimateAura.js';
+import { getSlidePose } from './Slide.js';
 
 // Create Fiona's procedural model and return only the parts used by the animation loop.
 export function createFiona(scene, mat, box) {
@@ -23,6 +24,9 @@ export function createFiona(scene, mat, box) {
    mesh.position.set(x,y,z);mesh.scale.set(scaleX,scaleY,scaleZ);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
   }
   
+  // A skirt pivot at the waist lets the dress follow crouching without scaling it.
+  const skirtPivot=new THREE.Group();skirtPivot.position.y=1;runner.add(skirtPivot);
+  const skirtParts=new THREE.Group();skirtParts.position.y=-1;skirtPivot.add(skirtParts);
   // Long, tailored skirt with a soft flare, shaped waist and fine sewn panel lines.
   const skirtProfile=[
    new THREE.Vector2(.54,.10),new THREE.Vector2(.57,.16),new THREE.Vector2(.54,.25),
@@ -30,28 +34,28 @@ export function createFiona(scene, mat, box) {
    new THREE.Vector2(.30,.80),new THREE.Vector2(.265,.91),new THREE.Vector2(.235,.99)
   ];
   const skirt=new THREE.Mesh(new THREE.LatheGeometry(skirtProfile,32),bodyMat);
-  skirt.castShadow=true;skirt.receiveShadow=true;runner.add(skirt);
+  skirt.castShadow=true;skirt.receiveShadow=true;skirtParts.add(skirt);
   const skirtOverlay=new THREE.Mesh(new THREE.LatheGeometry([
    new THREE.Vector2(.545,.115),new THREE.Vector2(.548,.18),new THREE.Vector2(.50,.32),
    new THREE.Vector2(.43,.49),new THREE.Vector2(.37,.63),new THREE.Vector2(.305,.80)
   ],32),velvetMat);
-  skirtOverlay.castShadow=true;skirtOverlay.receiveShadow=true;runner.add(skirtOverlay);
+  skirtOverlay.castShadow=true;skirtOverlay.receiveShadow=true;skirtParts.add(skirtOverlay);
   for(const sign of [-1,1]){
    for(const angle of [-1.02,-.62,-.24,.24,.62,1.02]){
     const pts=[];
     for(const [y,r] of [[.90,.27],[.70,.35],[.47,.43],[.25,.54],[.135,.56]]){
      pts.push([Math.sin(angle)*r,y,sign*Math.cos(angle)*r]);
     }
-    characterTube(runner,pts,.0085,sign<0?seamMat:dressTrim,12,5);
+    characterTube(skirtParts,pts,.0085,sign<0?seamMat:dressTrim,12,5);
    }
   }
   // A narrow waist belt and a small antique-gold clasp.
   const belt=new THREE.Mesh(new THREE.TorusGeometry(.245,.019,8,32),dressTrim);
-  belt.rotation.x=Math.PI/2;belt.position.set(0,1.025,0);belt.castShadow=true;runner.add(belt);
+  belt.rotation.x=Math.PI/2;belt.position.set(0,1.025,0);belt.castShadow=true;skirtParts.add(belt);
   const beltClasp=new THREE.Mesh(new THREE.BoxGeometry(.082,.105,.035),jewelryMat);
-  beltClasp.position.set(0,1.03,-.245);beltClasp.castShadow=true;runner.add(beltClasp);
+  beltClasp.position.set(0,1.03,-.245);beltClasp.castShadow=true;skirtParts.add(beltClasp);
   const claspInset=new THREE.Mesh(new THREE.BoxGeometry(.038,.059,.012),bodyMat);
-  claspInset.position.set(0,1.03,-.267);runner.add(claspInset);
+  claspInset.position.set(0,1.03,-.267);skirtParts.add(claspInset);
   
   // Pivoted upper body, so the existing running lean remains natural.
   const torso=new THREE.Group();torso.position.set(0,1.0,0);runner.add(torso);
@@ -223,5 +227,17 @@ export function createFiona(scene, mat, box) {
   
   // Procedural blue-fire glow replaces the former globe shells and nine balls.
   const ultimateAura=createUltimateAura(runner);
-  return {runner,torso,armL,armR,legL,legR,ultimateAura};
+  function applySlidePose(amount=0){
+   const pose=getSlidePose(amount);
+   // Called after the normal run/broom pose. Add a waist bend and flex the limbs.
+   skirtPivot.rotation.x=pose.skirtPitch;
+   skirtPivot.position.y=1+pose.skirtLift;
+   torso.rotation.x+=pose.waistPitch;
+   torso.position.y+=pose.waistDrop;
+   torso.position.z+=pose.waistForward;
+   for(const arm of [armL,armR])arm.rotation.x+=(pose.armPitch-arm.rotation.x)*pose.blend;
+   legL.rotation.x+=(pose.frontLegPitch-legL.rotation.x)*pose.blend;
+   legR.rotation.x+=(pose.rearLegPitch-legR.rotation.x)*pose.blend;
+  }
+  return {runner,torso,armL,armR,legL,legR,applySlidePose,ultimateAura};
 }

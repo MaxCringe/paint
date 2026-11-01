@@ -8,6 +8,7 @@ import { createPineLogFactory } from './obstacles/PineLog.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createDoubleJump } from './player/DoubleJump.js';
+import { createSlide } from './player/Slide.js';
 import { createWorld } from './world/World.js';
 import { createGameAudio } from './audio/sfx.js';
 import { createGameMusic } from './audio/music.js';
@@ -40,7 +41,7 @@ const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
 
-const { runner, torso, armL, armR, legL, legR, ultimateAura } = createFiona(scene, mat, box);
+const { runner, torso, armL, armR, legL, legR, applySlidePose, ultimateAura } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], hats=[];
 const scarfPickup=createScarfPickup(scene);
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
@@ -151,8 +152,9 @@ const makeSegment = createSegmentGenerator({
   broomChance:BROOM_CONFIG.pickupChance
 });
 const doubleJump=createDoubleJump({onJump:()=>audio.play('jump'),onLand:()=>audio.play('land')});
+const slideAction=createSlide();
 let footstepTimer=0;
-let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slideT=0, slipT=0, invuln=0, revivalShield=0, last=0, spawnTimer=0;
+let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slipT=0, invuln=0, revivalShield=0, last=0, spawnTimer=0;
 const $=id=>document.getElementById(id);
 createAudioControls(audio,music);
 const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
@@ -163,7 +165,7 @@ function updateHud(force=false){
  hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld:scarfPickup.canRevive},force);
 }
 const popToast=message=>hud.toast(message);
-function activateUltimate(){broom.cancel();doubleJump.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
+function activateUltimate(){broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
 function start(){
  // A restart from pause is still a completed attempt for record purposes.
  if(state==='paused'){
@@ -175,14 +177,14 @@ function start(){
  }
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideT=0;slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
-function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0)doubleJump.jump()}
-function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&slideT<=0&&!doubleJump.airborne){slideT=.68;audio.play('slide')}}
+function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active)doubleJump.jump()}
+function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(state==='playing')togglePause();else if(!menu.escape()&&state==='paused')togglePause();}return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;
  // Holding jump must not consume the second jump through keyboard auto-repeat.
- if(e.repeat&&['ArrowUp','KeyW','Space'].includes(e.code))return;
+ if(e.repeat&&['ArrowUp','KeyW','Space','ArrowDown','KeyS'].includes(e.code))return;
  if(state==='over')return; if(state!=='playing'){if(!menu.isSubpageOpen()&&(e.code==='Enter'||e.code==='Space'))start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
 window.addEventListener('keydown',actionKey);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
@@ -192,9 +194,9 @@ const gameOver=createGameOver({
  onRevive:()=>{
   if(state!=='over'||!scarfPickup.revive(runner.position))return;
   gameOver.hide();
-  doubleJump.reset();slideT=0;slipT=0;invuln=0;
+  doubleJump.reset();slideAction.reset();slipT=0;invuln=0;
   revivalShield=REVIVAL_PROTECTION_SECONDS;
-  runner.position.set((lane-1)*2.55,0,2.3);runner.scale.y=1;
+  runner.position.set((lane-1)*2.55,0,2.3);
   // Ignore the hazard that killed Fiona while she reappears.
   for(const o of obstacles)if(Math.abs(o.g.position.z-runner.position.z)<7)o.passed=true;
   state='playing';menu.hide();music.resume();
@@ -289,8 +291,8 @@ function frame(t){requestAnimationFrame(frame);
   if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
   animateWearable(t,magnetTime>0);
   if(!ultActive&&!broom.active)doubleJump.update(dt);
-  slideT=Math.max(0,slideT-dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);revivalShield=Math.max(0,revivalShield-dt);
-  const jumping=!ultActive&&!broom.active&&doubleJump.airborne, sliding=!ultActive&&!broom.active&&slideT>0;
+  slideAction.update(dt);slipT=Math.max(0,slipT-dt);invuln=Math.max(0,invuln-dt);revivalShield=Math.max(0,revivalShield-dt);
+  const jumping=!ultActive&&!broom.active&&doubleJump.airborne, sliding=!ultActive&&!broom.active&&slideAction.active;
   if(!ultActive&&!broom.active&&!jumping&&!sliding&&slipT<=0){
     footstepTimer-=dt;
     if(footstepTimer<=0){audio.play('step');footstepTimer=Math.max(.24,.42*15/speed)}
@@ -303,13 +305,15 @@ function frame(t){requestAnimationFrame(frame);
    const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck;
    const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
-  runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
+  runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
-  runner.rotation.x=ultActive?-.12:(sliding?-.55:0);
+  runner.rotation.x=ultActive?-.12:0;
   ultimateAura.update(t,ultActive);
   const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   // The waist, arms and legs flex naturally while the full-size broom remains level.
   broom.applyPose(broomDuck);
+  // Anatomical crouch: bend the torso/legs, never squash Fiona's whole model.
+  applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){
    const previousZ=o.g.position.z;
@@ -352,7 +356,7 @@ function frame(t){requestAnimationFrame(frame);
   ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed:travelSpeed,obstacles});
   if(state==='playing')broom.advancePickups(dt,t,travelSpeed,lane,runner.position.x,{
    canCollect:!ultActive,
-   onCollect:()=>{doubleJump.reset();slideT=0;slipT=0;audio.play('hat');haptics.play('item');popToast('ВЕДЬМИНА МЕТЛА — ПОЛЁТ 9 СЕКУНД');updateHud(true);}
+   onCollect:()=>{doubleJump.reset();slideAction.reset();slipT=0;audio.play('hat');haptics.play('item');popToast('ВЕДЬМИНА МЕТЛА — ПОЛЁТ 9 СЕКУНД');updateHud(true);}
   });
   if(state==='playing')scarfPickup.update(dt,t,travelSpeed,lane,runner.position.x,()=>{
    audio.play('hat');haptics.play('item');

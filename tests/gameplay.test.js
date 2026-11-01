@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createDoubleJump} from '../src/player/DoubleJump.js';
+import {createSlide,getSlidePose,SLIDE_DURATION} from '../src/player/Slide.js';
 import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
 import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration} from '../src/systems/HazardRules.js';
 
@@ -45,8 +46,9 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
  assert.equal(pineLogBroomDuck(9,0),0);
  assert.equal(pineLogBroomDuck(16,0),0);
  assert.ok(game.includes("const broomDuck=broom.active?obstacles.reduce("));
- assert.ok(game.includes("runner.scale.y=ultActive?1:(sliding?.58:1)"));
- assert.ok(game.includes("runner.rotation.x=ultActive?-.12:(sliding?-.55:0)"));
+ assert.ok(!game.includes('runner.scale.y=ultActive?1:(sliding?.58:1)'));
+ assert.ok(game.includes('applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch)'));
+ assert.ok(game.includes('runner.rotation.x=ultActive?-.12:0;'));
  assert.ok(game.includes("broom.applyPose(broomDuck)"));
  assert.ok(!game.includes("runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck)"));
  assert.ok(game.includes("const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck"));
@@ -108,4 +110,47 @@ test('backup sounds are removed, active audio is still present',()=>{
   assert.equal(existsSync(new URL('../public/audio/sfx/'+file,import.meta.url)),false,file);
  for(const file of ['jump.ogg','hat.ogg','pine-body-impact-courtneyeck.mp3','bats-flock-digpro120.mp3'])
   assert.equal(existsSync(new URL('../public/audio/sfx/'+file,import.meta.url)),true,file);
+});
+
+test('consecutive pine logs: a second deliberate slide press refreshes the active slide',()=>{
+ const s=createSlide();
+ assert.equal(SLIDE_DURATION,.82);
+ s.press();
+ s.update(.45);
+ assert.ok(s.active);
+ assert.ok(s.crouch>.8);
+ const nearlyOver=s.remaining;
+ s.press(); // This used to be discarded while the first slide was active.
+ assert.ok(s.remaining>nearlyOver);
+ s.update(.5); // Past the first slide's original expiration.
+ assert.equal(s.active,true);
+ s.update(.4);
+ assert.equal(s.active,false);
+ assert.ok(s.crouch>0); // Fiona recovers gradually rather than popping upright.
+ for(let i=0;i<25;i++)s.update(1/60);
+ assert.ok(s.crouch<.03);
+ s.reset();
+ assert.equal(s.crouch,0);
+});
+
+test('natural slide bends joints and skirt; no full-body squash, repeat hold or broom pose regression',()=>{
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ const fiona=readFileSync(new URL('../src/player/Fiona.js',import.meta.url),'utf8');
+ assert.ok(game.includes("slideAction.press();audio.play('slide')"));
+ assert.ok(game.includes("'ArrowDown','KeyS'].includes(e.code)"));
+ assert.ok(game.includes('slideAction.update(dt)'));
+ assert.ok(!game.includes('slideT'));
+ assert.ok(!game.includes('runner.scale.y='));
+ assert.ok(fiona.includes('skirtPivot.rotation.x=pose.skirtPitch'));
+ assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
+ assert.ok(fiona.includes('legL.rotation.x+=(pose.frontLegPitch'));
+ const standing=getSlidePose(0),crouched=getSlidePose(1);
+ assert.equal(standing.waistPitch,0);
+ assert.equal(standing.waistDrop,0);
+ assert.ok(crouched.waistPitch< -1);
+ assert.ok(crouched.waistDrop<0);
+ assert.ok(crouched.skirtPitch<0);
+ assert.ok(crouched.frontLegPitch>0);
+ assert.ok(crouched.rearLegPitch<0);
+ assert.equal(getSlidePose(2).waistPitch,crouched.waistPitch);
 });
