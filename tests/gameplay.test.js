@@ -52,14 +52,14 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
  assert.ok(game.includes("const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck"));
  assert.ok(!game.includes('pineLogBroomLift'));
  // A proper body bend changes the torso joint, not the full character's scale.
- const normal=getBroomDuckPose(0), tucked=getBroomDuckPose(1);
- assert.equal(normal.waistHeight,1);
- assert.equal(normal.waistPitch,.17);
+ const upright=getBroomDuckPose(0), tucked=getBroomDuckPose(1);
+ assert.equal(upright.waistHeight,1);
+ assert.equal(upright.waistPitch,.17);
  assert.ok(tucked.waistPitch< -1.4);
- assert.ok(tucked.waistHeight<normal.waistHeight);
- assert.ok(tucked.armPitch>normal.armPitch);
- assert.ok(tucked.legPitch>normal.legPitch);
- assert.equal(getBroomDuckPose(0).waistPitch,normal.waistPitch);
+ assert.ok(tucked.waistHeight<upright.waistHeight);
+ assert.ok(tucked.armPitch>upright.armPitch);
+ assert.ok(tucked.legPitch>upright.legPitch);
+ assert.equal(getBroomDuckPose(0).waistPitch,upright.waistPitch);
  assert.equal(getBroomDuckPose(1,0).waistHeight,1);
  const normal=.77;
  assert.equal(normal*(1-pineLogBroomDuck(-16,0))+.20*pineLogBroomDuck(-16,0),normal);
