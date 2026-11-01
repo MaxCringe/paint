@@ -19,19 +19,23 @@ export function createSlide({duration=SLIDE_DURATION}={}) {
  };
 }
 
-// Bend at the waist and hips, keeping every mesh at its original scale.
-// Legs settle into a low staggered slide; the skirt tilts around the waist.
+// The slide lowers Fiona through a two-joint bend; shoes stay on the road.
+const HIP=.57,ANKLE=.075,THIGH=.27,SHIN=.225,DROP=.25;
+export function getSlideLegPose(amount){
+ const a=clamp(amount,0,1);
+ const hipHeight=HIP-DROP*a,d=hipHeight-ANKLE;
+ const along=(THIGH*THIGH-SHIN*SHIN+d*d)/(2*d);
+ const forward=Math.sqrt(Math.max(0,THIGH*THIGH-along*along));
+ const thighPitch=Math.atan2(forward,along),shinPitch=-Math.atan2(forward,d-along);
+ return {hipHeight,thighPitch,kneePitch:shinPitch-thighPitch,
+  ankleHeight:hipHeight-THIGH*Math.cos(thighPitch)-SHIN*Math.cos(shinPitch),
+  ankleDepth:-THIGH*Math.sin(thighPitch)-SHIN*Math.sin(shinPitch)};
+}
+// Knees bend and hips lower; the torso pitches moderately and rolls a little
+// to remain clearly visible from behind (never compress the mesh geometry).
 export function getSlidePose(amount){
  const blend=clamp(amount,0,1);
- return {
-  blend,
-  waistPitch:-1.26*blend,
-  waistDrop:-.17*blend,
-  waistForward:-.17*blend,
-  skirtPitch:-.22*blend,
-  skirtLift:-.035*blend,
-  armPitch:.85,
-  frontLegPitch:1.05,
-  rearLegPitch:-.85
- };
+ return {blend,waistPitch:-.92*blend,waistRoll:-.22*blend,
+  waistDrop:-.28*blend,waistForward:-.08*blend,
+  skirtPitch:-.55*blend,skirtLift:-.11*blend,armPitch:.90};
 }

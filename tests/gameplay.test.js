@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createDoubleJump} from '../src/player/DoubleJump.js';
-import {createSlide,getSlidePose,SLIDE_DURATION} from '../src/player/Slide.js';
+import {createSlide,getSlidePose,getSlideLegPose,SLIDE_DURATION} from '../src/player/Slide.js';
+import * as THREE from 'three';
+import {createFiona} from '../src/player/Fiona.js';
 import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
 import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration} from '../src/systems/HazardRules.js';
 
@@ -143,15 +145,16 @@ test('natural slide bends joints and skirt; no full-body squash, repeat hold or 
  assert.ok(!game.includes('runner.scale.y='));
  assert.ok(fiona.includes('skirtPivot.rotation.x=pose.skirtPitch'));
  assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
- assert.ok(fiona.includes('legL.rotation.x+=(pose.frontLegPitch'));
+ assert.ok(fiona.includes('knee.rotation.x=legs.kneePitch'));
  const standing=getSlidePose(0),crouched=getSlidePose(1);
  assert.ok(Math.abs(standing.waistPitch)<1e-9);
  assert.ok(Math.abs(standing.waistDrop)<1e-9);
  assert.ok(crouched.waistPitch< -1);
  assert.ok(crouched.waistDrop<0);
  assert.ok(crouched.skirtPitch<0);
- assert.ok(crouched.frontLegPitch>0);
- assert.ok(crouched.rearLegPitch<0);
+ assert.ok(crouched.waistRoll<0);
+ assert.ok(getSlideLegPose(1).thighPitch>.5);
+ assert.ok(getSlideLegPose(1).kneePitch< -1.5);
  assert.equal(getSlidePose(2).waistPitch,crouched.waistPitch);
 });
 
@@ -169,4 +172,33 @@ test('worn witch hat follows Fiona head while crouching or ducking on broom',()=
  assert.ok(hat.includes('hats.push({g,visual,glow,lane,z,phase:'));
  assert.ok(hat.includes('wearable.visible=active'));
  assert.ok(game.includes('magnetTime=10;'));
+});
+
+test('sliding bends true knee joints, plants the feet and preserves avatar proportions',()=>{
+ const mat=color=>new THREE.MeshStandardMaterial({color});
+ const box=(w,h,d,material,x,y,z,parent)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+  mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+ };
+ const {runner,torso,legL,legR,applySlidePose}=createFiona(new THREE.Scene(),mat,box);
+ applySlidePose(1);
+ runner.updateMatrixWorld(true);
+ assert.ok(torso.rotation.x<-.7&&torso.rotation.x> -1.1);
+ assert.ok(torso.rotation.z<-.1);
+ assert.ok(torso.position.y<.8);
+ for(const [leg,side] of [[legL,'left'],[legR,'right']]){
+  const knee=leg.getObjectByName('fiona-'+side+'-knee');
+  const boot=leg.getObjectByName('fiona-'+side+'-boot');
+  assert.ok(knee&&boot);
+  assert.ok(leg.position.y<.4);
+  assert.ok(leg.rotation.x>.5&&knee.rotation.x< -1.5);
+  const p=boot.getWorldPosition(new THREE.Vector3());
+  assert.ok(Math.abs(p.y-.075)<.04,'ankle close to ground');
+  assert.ok(Math.abs(p.z-runner.position.z)<.04,'ankle beneath hip');
+  for(const joint of [runner,torso,leg,knee,boot])assert.deepEqual(joint.scale.toArray(),[1,1,1]);
+ }
+ const pose=getSlideLegPose(1);
+ assert.ok(Math.abs(pose.ankleHeight-.075)<.00001);
+ assert.ok(Math.abs(pose.ankleDepth)<.00001);
+ assert.ok(getSlidePose(1).waistPitch> -1);
 });

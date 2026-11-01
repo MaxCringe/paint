@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createUltimateAura } from '../effects/UltimateAura.js';
-import { getSlidePose } from './Slide.js';
+import { getSlidePose,getSlideLegPose } from './Slide.js';
 
 // Create Fiona's procedural model and return only the parts used by the animation loop.
 export function createFiona(scene, mat, box) {
@@ -211,11 +211,15 @@ export function createFiona(scene, mat, box) {
   // Legs use separate pivots so the run cycle no longer swings square blocks at the hips.
   const legL=new THREE.Group(),legR=new THREE.Group();
   legL.position.set(-.17,.57,0);legR.position.set(.17,.57,0);runner.add(legL,legR);
+  const kneeL=new THREE.Group(),kneeR=new THREE.Group();
   const bootL=new THREE.Group(),bootR=new THREE.Group();
-  for(const [leg,boot] of [[legL,bootL],[legR,bootR]]){
-   characterCapsule(leg,.073,.37,pantsMat,0,-.225,0,1,1,1);
-   sphere(.078,pantsMat,0,-.085,0,1,.88,1,leg);
-   boot.position.set(0,-.45,-.025);leg.add(boot);
+  for(const [leg,knee,boot,side] of [[legL,kneeL,bootL,'left'],[legR,kneeR,bootR,'right']]){
+   // Articulated thigh and shin, not a stretched or shrunken leg.
+   characterCapsule(leg,.069,.132,pantsMat,0,-.135,0);
+   knee.position.set(0,-.27,0);knee.name='fiona-'+side+'-knee';leg.add(knee);
+   sphere(.078,pantsMat,0,0,0,1,.88,1,knee);
+   characterCapsule(knee,.061,.103,pantsMat,0,-.118,0);
+   boot.position.set(0,-.225,-.025);boot.name='fiona-'+side+'-boot';knee.add(boot);
    const sole=new THREE.Mesh(new THREE.BoxGeometry(.17,.045,.32),shoeMat);
    sole.position.set(0,-.065,-.075);sole.castShadow=true;boot.add(sole);
    sphere(.088,shoeMat,0,-.005,-.095,1.02,.80,1.38,boot);
@@ -228,16 +232,20 @@ export function createFiona(scene, mat, box) {
   // Procedural blue-fire glow replaces the former globe shells and nine balls.
   const ultimateAura=createUltimateAura(runner);
   function applySlidePose(amount=0){
-   const pose=getSlidePose(amount);
-   // Called after the normal run/broom pose. Add a waist bend and flex the limbs.
+   const pose=getSlidePose(amount),legs=getSlideLegPose(pose.blend);
+   // No avatar scale changes: flex knees, lower pelvis and tilt back.
    skirtPivot.rotation.x=pose.skirtPitch;
    skirtPivot.position.y=1+pose.skirtLift;
    torso.rotation.x+=pose.waistPitch;
+   torso.rotation.z+=pose.waistRoll;
    torso.position.y+=pose.waistDrop;
    torso.position.z+=pose.waistForward;
    for(const arm of [armL,armR])arm.rotation.x+=(pose.armPitch-arm.rotation.x)*pose.blend;
-   legL.rotation.x+=(pose.frontLegPitch-legL.rotation.x)*pose.blend;
-   legR.rotation.x+=(pose.rearLegPitch-legR.rotation.x)*pose.blend;
+   for(const [leg,knee] of [[legL,kneeL],[legR,kneeR]]){
+    leg.position.y=legs.hipHeight;
+    leg.rotation.x+=(legs.thighPitch-leg.rotation.x)*pose.blend;
+    knee.rotation.x=legs.kneePitch;
+   }
   }
   return {runner,torso,armL,armR,legL,legR,applySlidePose,ultimateAura};
 }

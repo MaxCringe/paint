@@ -312,9 +312,9 @@ function frame(t){requestAnimationFrame(frame);
   const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   // The waist, arms and legs flex naturally while the full-size broom remains level.
   broom.applyPose(broomDuck);
-  // Anatomical crouch: bend the torso/legs, never squash Fiona's whole model.
-  applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
+  // Anatomical crouch: knees flex, feet stay grounded and hat follows the head.
+  applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z+=travelSpeed*dt;
