@@ -44,6 +44,15 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await expect(tools).toBeVisible({timeout:30_000});
  expect(await tools.evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('auto');
  await tools.locator('summary').click();
+ const newRun=page.locator('[data-fiona-run-variant="calibrated"]');
+ const oldRun=page.locator('[data-fiona-run-variant="original"]');
+ await expect(newRun).toHaveAttribute('aria-pressed','true');
+ await oldRun.click();
+ await expect(oldRun).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Старый бег');
+ await newRun.click();
+ await expect(newRun).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Новый бег');
  await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(23);
  await page.locator('#fiona-test-preview-actions button').filter({hasText:'Бег'}).click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Python');

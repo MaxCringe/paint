@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { FIONA_ANIMATION_SLOTS } from './FionaAnimationSlots.js';
 import { fetchPythonFionaMotionData, createPythonFionaClips } from './FionaPythonMotions.js';
+import { fetchCalibratedRunData, createCalibratedRunClip } from './FionaCalibratedRun.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -11,8 +12,8 @@ async function parseFBX(file){
  return new FBXLoader().parse(await file.arrayBuffer(),'');
 }
 export async function loadFionaTest({runner,modelFile,turn=true}){
- const [model,generatedData]=await Promise.all([
-  parseFBX(modelFile),fetchPythonFionaMotionData()
+ const [model,generatedData,calibratedData]=await Promise.all([
+  parseFBX(modelFile),fetchPythonFionaMotionData(),fetchCalibratedRunData()
  ]);
  let skinned=0;
  const bones=new Map();
@@ -24,7 +25,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  if(!skinned||bones.size<8)throw new Error('Модель Фионы не содержит привязанного скелета.');
  // Do not read the FBX-embedded animations or user-supplied Mixamo clips.
  const clips=createPythonFionaClips(bones,generatedData);
- const prototypeIds=new Set(clips.keys());
+ // The old 23 Python motions remain untouched. Only a second RUN clip is
+ // added; the A/B switch is restricted to this DEV avatar.
+ clips.set('runCalibrated',createCalibratedRunClip(bones,calibratedData));
+ const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
  const importedIds=new Set();
  const headBone=[...bones.values()].find(b=>/^(?:mixamorig:)?Head$/i.test(b.name))||null;
  const avatar=new THREE.Group(),facing=new THREE.Group();
@@ -44,11 +48,14 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const actions=new Map([...clips].map(([id,clip])=>[id,mixer.clipAction(clip)]));
  let currentAction=null,currentName=null,baseState='run',oneShot=null;
  let active=false,dead=false,manualSlot=null,manualSeconds=0,airborneSlot='jump';
+ let runVariant='calibrated';
  let previous={jumping:false,sliding:false,broom:false,ultimate:false};
  let awaitingDeath=false;
- const available=new Set(actions.keys());
+ const available=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
 
  function resolve(id){
+  if(id==='run'&&runVariant==='calibrated'&&actions.has('runCalibrated'))
+   return 'runCalibrated';
   if(actions.has(id))return id;
   if(id==='doubleJump'&&actions.has('jump'))return 'jump';
   if(id==='broomDuck'&&actions.has('broomFly'))return 'broomFly';
@@ -64,7 +71,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  const loop=once===null?Boolean(SLOTS.get(resolved)?.loop):!once;
+  const loop=once===null?(resolved==='runCalibrated'||Boolean(SLOTS.get(resolved)?.loop)):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
   action.fadeIn(.13).play();
@@ -99,10 +106,11 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(!actions.has(id))return {ok:false,message:'Python-анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
-  manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(id).duration+.18);
+  manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(resolve(id)).duration+.18);
   oneShot=null;
   play(id,{force:true,once:!SLOTS.get(id)?.loop});
-  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+' — анимация Python/NumPy. Механика забега не меняется.'};
+  const version=id==='run'?(runVariant==='calibrated'?' (новый калиброванный бег)':' (старый бег)'):'';
+  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+version+' — Python/NumPy. Механика забега не меняется.'};
  }
  function die(reason='other'){
   if(!active)return;
@@ -125,6 +133,16 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    playBase();
   }
  });
+ function setRunVariant(value){
+  if(value!=='calibrated'&&value!=='original')return {ok:false,message:'Неизвестный вариант бега.'};
+  if(value===runVariant)return {ok:true,message:'Уже выбран '+(value==='calibrated'?'новый':'старый')+' бег.'};
+  runVariant=value;
+  if(active&&!dead&&(baseState==='run'&&!oneShot||manualSlot==='run'))
+   play('run',{force:true,once:manualSlot==='run'?false:null});
+  return {ok:true,message:value==='calibrated'
+   ?'Новый бег: калибровка костей по FBX, цикл 0,70 с.'
+   :'Старый бег: исходные Python-повороты, сохранён для сравнения.'};
+ }
  function reset(){
   dead=false;awaitingDeath=false;manualSlot=null;manualSeconds=0;
   oneShot=null;baseState='run';airborneSlot='jump';
@@ -166,8 +184,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    }
   }
   previous=current;
-  const run=actions.get('run');
-  if(run)run.setEffectiveTimeScale(clamp(speed/15,.8,1.85));
+  for(const name of ['run','runCalibrated']){
+   const run=actions.get(name);
+   if(run)run.setEffectiveTimeScale(clamp(speed/15,.8,1.85));
+  }
   mixer.update(dt);
   // Python clips animate bones, not entire meshes. No squashing or root displacement.
   avatar.rotation.x+=(0-avatar.rotation.x)*Math.min(1,dt*12);
@@ -185,6 +205,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    }
   });
  }
- return {setActive,playJump,trigger,preview,die,update,reset,dispose,headBone,available,prototypeIds,importedIds,
+ return {setActive,playJump,trigger,preview,die,update,reset,dispose,setRunVariant,
+  get runVariant(){return runVariant;},headBone,available,prototypeIds,importedIds,
   get loadedCount(){return available.size;}};
 }

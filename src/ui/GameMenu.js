@@ -3,7 +3,7 @@ import { FIONA_ANIMATION_SLOTS } from '../player/FionaAnimationSlots.js';
 
 // Shared start and pause menu; game-over results now have a dedicated panel.
 // Continue is visible only when a live run has been paused.
-export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTest,haptics,fpsDisplay}){
+export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTest,onTestRunVariant,haptics,fpsDisplay}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
   main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings'),fionaTest:$('menu-fiona-test')
@@ -61,6 +61,20 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
   const previews=$('fiona-test-preview-actions');
   const previewPanel=$('fiona-test-tools');
   const previewStatus=$('fiona-test-preview-status');
+  const runCompareButtons=[...document.querySelectorAll('[data-fiona-run-variant]')];
+  function syncRunCompareButtons(value){
+    for(const button of runCompareButtons){
+      const active=button.dataset.fionaRunVariant===value;
+      button.setAttribute('aria-pressed',String(active));
+      button.classList.toggle('is-selected',active);
+    }
+  }
+  for(const button of runCompareButtons)button.addEventListener('click',()=>{
+    const result=onTestRunVariant?.(button.dataset.fionaRunVariant);
+    if(result?.ok)syncRunCompareButtons(button.dataset.fionaRunVariant);
+    previewStatus.textContent=result?.message||'Тестовая Фиона пока не запущена.';
+  });
+  syncRunCompareButtons('calibrated');
   const previewButtons=new Map();
   const animationGroups=new Map();
   for(const slot of FIONA_ANIMATION_SLOTS){
@@ -79,6 +93,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
   function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set()){
     previewPanel.classList.toggle('hidden',!enabled);
     if(!enabled){previewPanel.open=false;return;}
+    syncRunCompareButtons('calibrated');
     const names=new Set(loaded);
     let count=0;
     for(const slot of FIONA_ANIMATION_SLOTS){

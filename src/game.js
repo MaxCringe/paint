@@ -212,7 +212,7 @@ function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.a
  }}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 const {fpsDisplay}=createOverlays();
-const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onTestRunVariant:variant=>testAvatar?.setRunVariant(variant),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
 createGameInput({
  canvas:renderer.domElement,
  getState:()=>state,

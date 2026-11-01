@@ -118,3 +118,9 @@
 #fiona-test-preview-actions button.fiona-test-preview-loaded{border-color:#91d2ae}
 body.menu-open #fiona-test-tools,body.game-over-open #fiona-test-tools{display:none!important}
 @media(max-width:650px){#fiona-test-tools{bottom:66px;left:8px;width:min(290px,calc(100vw - 16px));max-height:45dvh}}
+
+/* A/B run comparison is local to Fiona's DEV animation panel. */
+#fiona-test-tools .fiona-test-run-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:10px 0 12px}
+#fiona-test-tools .fiona-test-run-comparison span{grid-column:1/-1;color:#dce7d4;font-size:10px;font-weight:800;letter-spacing:.1em}
+#fiona-test-tools .fiona-test-run-comparison button{min-width:0;box-shadow:none;min-height:34px;padding:8px 5px;border:1px solid #91c5ac53;border-radius:8px;background:#254239;color:#d4f5dc;font-size:10px;cursor:pointer}
+#fiona-test-tools .fiona-test-run-comparison button.is-selected{border-color:#b8dfaf;background:#44643d;color:#fff;font-weight:900}
