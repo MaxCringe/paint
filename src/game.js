@@ -333,6 +333,19 @@ function frame(t){requestAnimationFrame(frame);
     if(gap>=-16&&gap<9)broom.guardPineLog((9-gap)/broomSpeed+.03);
    }
   }
+  // Guard broom duration through the entire lava crossing, including landing margin.
+  if(broom.active){
+   const broomSpeed=speed*BROOM_CONFIG.speedMultiplier;
+   for(const o of obstacles){
+    if(o.type!=='lava'||o.passed)continue;
+    const half=o.g.userData.halfDepth||2.95;
+    const gap=o.g.position.z-runner.position.z;
+    if(gap>=-half-1&&gap<half+6){
+     const seconds=(gap+half+1)/broomSpeed+.12;
+     broom.guardPineLog(Math.max(.16,seconds));
+    }
+   }
+  }
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
