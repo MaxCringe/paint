@@ -156,25 +156,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  }
  function die(reason='other',{onBroom=false}={}){
   if(!active)return 0;
-  dead=true;manualSlot=null;manualSeconds=0;oneShot=null;
-  if(onBroom&&reason==='tree'){
-   // Ground-only tree-hit/death clips must never play during broom flight.
-   // Keep the last airborne pose and end the run without a running reaction.
-   awaitingDeath=false;
-   mixer.timeScale=0;
-   return 0;
-  }
-  // Fish and grounded pine impacts each have their OWN final death FBX.
-  // Only the old Python tree-hit fallback chains into generic death.
-  const isFish=reason==='fish'&&actions.has('fishDeathFBX');
-  const isPine=reason==='tree'&&actions.has('treeDeathFBX');
-  awaitingDeath=!isFish&&!isPine&&reason==='tree'&&
-   actions.has('hitTree')&&actions.has('death');
-  const motion=isFish?'fishDeath':isPine?'treeDeath':
-   reason==='tree'&&actions.has('hitTree')?'hitTree':'death';
-  play(motion,{force:true,once:true});
-  const duration=actions.get(resolve(motion))?.getClip().duration||0;
-  return awaitingDeath?duration+(actions.get(resolve('death'))?.getClip().duration||0):duration;
+  dead=true;awaitingDeath=false;manualSlot=null;manualSeconds=0;oneShot=null;
+  // Original instant game-over: no FBX or Python death reaction.
+  mixer.timeScale=0;
+  return 0;
  }
  mixer.addEventListener('finished',event=>{
   if(event.action!==currentAction)return;
