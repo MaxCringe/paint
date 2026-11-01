@@ -44,3 +44,21 @@ test('test run no longer asks for Run Forward or Jump FBX files',()=>{
  assert.ok(!fiona.includes('generateFionaPrototypeClips'));
  assert.ok(fiona.includes('createPythonFionaClips'));
 });
+test('Python motion loader handles both compressed bytes and browser-auto-decompressed responses',async()=>{
+ const compressed=read('public/models/fiona/animations/motions.json.gz');
+ const uncompressed=gunzipSync(compressed);
+ const oldFetch=globalThis.fetch;
+ async function check(body,variant){
+  globalThis.fetch=async()=>new Response(body,{status:200});
+  const module=await import('../src/player/FionaPythonMotions.js?'+variant);
+  const data=await module.fetchPythonFionaMotionData();
+  assert.equal(data.author,'python-numpy');
+  assert.equal(Object.keys(data.motions).length,23);
+ }
+ try{
+  await check(compressed,'raw-gzip');
+  await check(uncompressed,'browser-decoded');
+ }finally{
+  globalThis.fetch=oldFetch;
+ }
+});

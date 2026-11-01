@@ -12,9 +12,14 @@ export async function fetchPythonFionaMotionData(){
  const bytes=new Uint8Array(await response.arrayBuffer());
  let data;
  try{
-  data=JSON.parse(new TextDecoder().decode(gunzipSync(bytes)));
+  // Some static/CDN hosts serve *.gz with Content-Encoding: gzip.
+  // The browser then transparently decompresses it before arrayBuffer().
+  // Detect the actual bytes rather than blindly gunzipping a second time.
+  const compressed=bytes[0]===0x1f&&bytes[1]===0x8b;
+  const decoded=compressed?gunzipSync(bytes):bytes;
+  data=JSON.parse(new TextDecoder().decode(decoded));
  }catch(error){
-  throw new Error('Не удалось открыть Python-анимации: '+error.message);
+  throw new Error('Не удалось открыть Python-анимации: '+(error?.message||String(error)));
  }
  if(data.schema!==1||data.author!=='python-numpy'||!data.motions||
     !data.motions.run||!data.motions.jump)throw new Error('Неверный набор Python-анимаций Фионы.');
