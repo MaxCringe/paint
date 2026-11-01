@@ -21,7 +21,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomLift, pineLogFlightGuardDuration } from './systems/HazardRules.js';
+import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
 import { createRunRecordTracker } from './systems/RunRecords.js';
@@ -292,17 +292,22 @@ function frame(t){requestAnimationFrame(frame);
     footstepTimer-=dt;
     if(footstepTimer<=0){audio.play('step');footstepTimer=Math.max(.24,.42*15/speed)}
    }else footstepTimer=.12;
-   // Only the low broom climbs over logs; ultimate keeps its normal flight height.
-   const logLift=broom.active?obstacles.reduce((lift,o)=>
-    o.type==='pineLog'?Math.max(lift,pineLogBroomLift(o.g.position.z,runner.position.z)):lift,0):0;
-   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
+   // Fiona ducks UNDER the suspended pine log instead of rising over it.
+   // Distance-based approach/release is smooth at any frame rate.
+   const broomDuck=broom.active?obstacles.reduce((duck,o)=>
+    o.type==='pineLog'?Math.max(duck,pineLogBroomDuck(o.g.position.z,runner.position.z)):duck,0):0;
+   // Lower Fiona and her mounted broom slightly, leaving genuine clearance below the wood.
+   const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck;
+   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
-  runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
+  runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
-  runner.rotation.x=ultActive?-.12:(sliding?-.55:0);
+  runner.rotation.x=ultActive?-.12:(sliding?-.55:-.18*broomDuck);
   ultimateAura.update(t,ultActive);
   const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   broom.applyPose();
+  // Curl forward only when flying beneath a log.
+  if(broomDuck>0)torso.rotation.x+=.47*broomDuck;
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){
    const previousZ=o.g.position.z;
