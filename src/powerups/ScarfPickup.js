@@ -6,7 +6,7 @@ import {createScarfModelFactory} from './ScarfModel.js';
 // Pickup logic and revival stay independent of the embroidered 3D model.
 export function createScarfPickup(scene){
  const rules=createScarfRules();
- const {createModel}=createScarfModelFactory();
+ const {createModel,updateVisuals}=createScarfModelFactory();
  const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
  const context=canvas.getContext('2d');
  const gradient=context.createRadialGradient(32,32,0,32,32,32);
@@ -23,7 +23,7 @@ export function createScarfPickup(scene){
  function burst(position){
   clearBurst();
   const v=getEffectVisualProfile('scarf');
-  const material=aura.clone();material.depthTest=false;material.opacity=v.burstOpacity/100;
+  const material=aura.clone();material.depthTest=false;material.opacity=v.burstOpacity/100;material.color.set(v.burstColor);
   const sprite=new THREE.Sprite(material);
   sprite.position.set(position.x,position.y+1.45,position.z);sprite.scale.setScalar(2.5*v.burstSize/100);
   scene.add(sprite);burstEffect={sprite,material,timer:.65};
@@ -58,13 +58,14 @@ export function createScarfPickup(scene){
  }
  function update(dt,t,speed,lane,runnerX,onCollect){
   const v=getEffectVisualProfile('scarf');
+  updateVisuals();
   aura.color.set(v.glowColor);
   aura.opacity=v.glowOpacity/100;
   if(burstEffect){
    burstEffect.timer-=dt;
    const r=Math.max(0,burstEffect.timer/.65);
    burstEffect.material.opacity=r*v.burstOpacity/100;
-   burstEffect.material.color.set(v.glowColor);
+   burstEffect.material.color.set(v.burstColor);
    burstEffect.sprite.scale.setScalar((2.5+(1-r)*2)*v.burstSize/100);
    if(burstEffect.timer<=0)clearBurst();
   }

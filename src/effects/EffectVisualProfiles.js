@@ -1,34 +1,49 @@
 // Visual-only parameter registry for the temporary KNOTTY PINE VFX workshop.
 // No gameplay timings, hitboxes, spawning probabilities or inventory rules live here.
-export const EFFECT_VISUAL_SCHEMA=1;
+export const EFFECT_VISUAL_SCHEMA=2;
 export const EFFECT_VISUAL_DEFAULTS=Object.freeze({
- hat:Object.freeze({glowColor:'#b59ae5',glowOpacity:88,glowSize:100,bobHeight:100,wobble:100}),
- scarf:Object.freeze({glowColor:'#ffffff',glowOpacity:65,glowSize:100,floatHeight:100,burstOpacity:95,burstSize:100}),
- souls:Object.freeze({haloColor:'#4e58ff',haloOpacity:16,outerOpacity:93,innerOpacity:97,sparkSize:100}),
- ultimate:Object.freeze({outerColor:'#2275ff',innerColor:'#91eaff',intensity:100,flameSpeed:100,lightIntensity:150})
+ broomModel:Object.freeze({woodColor:'#553522',gripColor:'#291a17',bindingColor:'#b18b52',capColor:'#b18b52',bristlesColor:'#ffffff',pickupGlowColor:'#e9b76b'}),
+ hat:Object.freeze({glowColor:'#b59ae5',glowOpacity:88,glowSize:100,bobHeight:100,wobble:100,fabricColor:'#57402e',patchColor:'#755339',seamColor:'#a7885e',bandColor:'#30251d',buckleColor:'#97764b'}),
+ scarf:Object.freeze({glowColor:'#ffffff',glowOpacity:65,glowSize:100,floatHeight:100,burstOpacity:95,burstSize:100,clothTint:'#ffffff',fringeColor:'#251c22',collarColor:'#31252c',burstColor:'#ffffff'}),
+ souls:Object.freeze({haloColor:'#4e58ff',haloOpacity:16,outerOpacity:93,innerOpacity:97,sparkSize:100,outerColor:'#ffffff',innerColor:'#ffffff',sparkAColor:'#c8ffff',sparkBColor:'#66eeff',sparkCColor:'#8b79ff'}),
+ ultimate:Object.freeze({outerColor:'#2275ff',innerColor:'#91eaff',intensity:100,flameSpeed:100,lightIntensity:150,lightColor:'#2275ff',auraWidth:100})
 });
 export const EFFECT_VISUAL_CONTROLS=Object.freeze({
+ broomModel:Object.freeze([
+  ['woodColor','Древко · дерево','color'],['gripColor','Рукоять','color'],
+  ['bindingColor','Металлическое крепление','color'],['capColor','Наконечник','color'],
+  ['bristlesColor','Оттенок прутьев','color'],['pickupGlowColor','Свечение метлы на дороге','color']
+ ]),
  hat:Object.freeze([
   ['glowColor','Цвет свечения','color'],['glowOpacity','Яркость свечения','range',0,150],
   ['glowSize','Размер ореола','range',20,220],['bobHeight','Покачивание','range',0,200],
-  ['wobble','Повороты шляпы','range',0,200]
+  ['wobble','Повороты шляпы','range',0,200],
+  ['fabricColor','Основная ткань','color'],['patchColor','Заплатка','color'],
+  ['seamColor','Стежки шва','color'],['bandColor','Лента','color'],
+  ['buckleColor','Пряжка','color']
  ]),
  scarf:Object.freeze([
   ['glowColor','Цвет ореола','color'],['glowOpacity','Видимость ореола','range',0,150],
   ['glowSize','Размер свечения','range',20,220],['floatHeight','Парение платка','range',0,200],
-  ['burstOpacity','Яркость вспышки','range',0,150],['burstSize','Размер вспышки','range',20,220]
+  ['burstOpacity','Яркость вспышки','range',0,150],['burstSize','Размер вспышки','range',20,220],
+  ['burstColor','Цвет вспышки','color'],['clothTint','Оттенок ткани и вышивки','color'],
+  ['fringeColor','Бахрома','color'],['collarColor','Складки воротника','color']
  ]),
  souls:Object.freeze([
   ['haloColor','Цвет голубого ореола','color'],['haloOpacity','Яркость ореола','range',0,120],
   ['outerOpacity','Видимость внешнего пламени','range',0,100],
   ['innerOpacity','Видимость сердцевины','range',0,100],
-  ['sparkSize','Размер искр','range',0,220]
+  ['sparkSize','Размер искр','range',0,220],
+  ['outerColor','Внешнее пламя · оттенок','color'],['innerColor','Внутренний огонь · оттенок','color'],
+  ['sparkAColor','Искры · светлые','color'],['sparkBColor','Искры · бирюзовые','color'],
+  ['sparkCColor','Искры · фиолетовые','color']
  ]),
  ultimate:Object.freeze([
   ['outerColor','Внешний цвет ауры','color'],['innerColor','Цвет сердцевины','color'],
   ['intensity','Интенсивность пламени','range',0,200],
   ['flameSpeed','Скорость колыхания','range',0,250],
-  ['lightIntensity','Подсветка Фионы','range',0,300]
+  ['lightIntensity','Подсветка Фионы','range',0,300],
+  ['lightColor','Цвет подсветки Фионы','color'],['auraWidth','Ширина ауры','range',30,180]
  ])
 });
 const KEY='knottyPineEffectVisualWorkshopV1';

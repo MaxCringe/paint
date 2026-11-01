@@ -121,7 +121,19 @@ export function createWitchHatFactory(scene,hats,torso) {
   g.add(visual);
   hats.push({g,visual,glow,lane,z,phase:Math.random()*Math.PI*2,passed:false,collected:false});
  }
+ function updateAppearance(){
+  const v=getEffectVisualProfile('hat');
+  fabric.color.set(v.fabricColor);
+  highlight.color.set(v.patchColor);
+  seam.color.set(v.seamColor);
+  band.color.set(v.bandColor);
+  gold.color.set(v.buckleColor);
+  glowMat.color.set(v.glowColor);
+  glowMat.opacity=v.glowOpacity/100;
+ }
+ updateAppearance();
  function animateHat(h,t){
+  updateAppearance();
   h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10;
   h.visual.rotation.y=t*.0018+h.phase;
   h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065;
@@ -134,6 +146,7 @@ export function createWitchHatFactory(scene,hats,torso) {
   h.glow.scale.set(2.75*size*(1+pulse*.065),2.55*size*(1+pulse*.065),1);
  }
  function animateWearable(t,active){
+  updateAppearance();
   wearable.visible=active;
   if(active)wearable.rotation.z=Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100;
  }

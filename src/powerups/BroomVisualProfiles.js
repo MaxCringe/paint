@@ -1,16 +1,18 @@
 // Live visual-only presets for the real Three.js broom trail.
 export const BROOM_VISUAL_PROFILES=Object.freeze({
- flight:Object.freeze({density:180,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeColor:'#d8c5ec'}),
- landing:Object.freeze({density:150,opacity:70,size:150,length:50,streaks:39,coughs:250,sparks:299,smokeColor:'#d8c5ec'})
+ flight:Object.freeze({density:180,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#ffffff',sparkColor:'#ffffff',glowColor:'#dec5ff'}),
+ landing:Object.freeze({density:150,opacity:70,size:150,length:50,streaks:39,coughs:250,sparks:299,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#ffffff',sparkColor:'#ffffff',glowColor:'#dec5ff'})
 });
 export const BROOM_LANDING_TRANSITION_SECONDS=3;
 export const BROOM_TUNING_STORAGE_KEY='knottyPineBroomVisualLabV1';
 export const BROOM_VISUAL_RANGES=Object.freeze({
  density:[0,200],opacity:[0,200],size:[15,220],length:[15,200],
- sparks:[0,400],streaks:[0,200],coughs:[0,250]
+ sparks:[0,400],streaks:[0,200],coughs:[0,250],
+ smokeRise:[0,200],sparkSpread:[0,250],sparkSize:[0,250],glowSize:[20,250],glowIntensity:[0,200]
 });
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const isColor=s=>typeof s==='string'&&/^#[a-f0-9]{6}$/i.test(s);
+export const BROOM_VISUAL_COLOR_KEYS=Object.freeze(['smokeColor','coughColor','streakColor','sparkColor','glowColor']);
 const modes=['flight','landing'];
 const clone=v=>JSON.parse(JSON.stringify(v));
 const copyDefaults=()=>Object.fromEntries(modes.map(mode=>[mode,{...BROOM_VISUAL_PROFILES[mode]}]));
@@ -20,7 +22,8 @@ function sanitizeMode(mode,values){
   if(values&&values[key]!==undefined&&Number.isFinite(Number(values[key])))
    safe[key]=clamp(Number(values[key]),min,max);
  }
- if(isColor(values?.smokeColor))safe.smokeColor=values.smokeColor.toLowerCase();
+ for(const key of BROOM_VISUAL_COLOR_KEYS)
+  if(isColor(values?.[key]))safe[key]=values[key].toLowerCase();
  return safe;
 }
 function loadSaved(){
@@ -37,7 +40,7 @@ let draft=clone(savedProfiles);
 export function broomTuningSnapshot(){return clone(draft);}
 export function setBroomTuningValue(mode,key,value){
  if(!modes.includes(mode))return;
- if(key==='smokeColor'){if(isColor(value))draft[mode][key]=value.toLowerCase();return;}
+ if(BROOM_VISUAL_COLOR_KEYS.includes(key)){if(isColor(value))draft[mode][key]=value.toLowerCase();return;}
  const range=BROOM_VISUAL_RANGES[key],n=Number(value);
  if(range&&Number.isFinite(n))draft[mode][key]=clamp(n,...range);
 }
@@ -64,6 +67,7 @@ export function broomVisualProfile(remaining){
  const mixed={transition};
  for(const key of Object.keys(BROOM_VISUAL_RANGES))
   mixed[key]=lerp(flight[key],landing[key]);
- mixed.smokeColor=blendColor(flight.smokeColor,landing.smokeColor,transition);
+ for(const key of BROOM_VISUAL_COLOR_KEYS)
+  mixed[key]=blendColor(flight[key],landing[key],transition);
  return mixed;
 }

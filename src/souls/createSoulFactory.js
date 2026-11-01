@@ -25,6 +25,11 @@ export function createSoulFactory(scene, coins) {
    soulInnerMaterial.opacity=v.innerOpacity/100;
    soulAuraMaterial.opacity=v.haloOpacity/100;
    soulAuraMaterial.color.set(v.haloColor);
+   soulOuterMaterial.color.set(v.outerColor);
+   soulInnerMaterial.color.set(v.innerColor);
+   soulSparkMaterials[0].color.set(v.sparkAColor);
+   soulSparkMaterials[1].color.set(v.sparkBColor);
+   soulSparkMaterials[2].color.set(v.sparkCColor);
    for(const coin of coins){
     for(const spark of coin.sparks)spark.mesh.scale.setScalar(spark.baseSize*v.sparkSize/100);
    }

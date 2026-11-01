@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 
 // Misty Day's embroidered shawl, modeled as a gently folded 3D textile.
 // All geometry, floral artwork and materials are shared between pick-ups.
@@ -185,6 +186,13 @@ export function createScarfModelFactory(){
    new THREE.Vector3(1.02,.63,.015)
   ]),20,.049,5,false
  );
+ function updateVisuals(){
+  const v=getEffectVisualProfile('scarf');
+  clothMat.color.set(v.clothTint);
+  fringeMat.color.set(v.fringeColor);
+  foldMat.color.set(v.collarColor);
+ }
+ updateVisuals();
  function createModel(){
   const group=new THREE.Group();
   group.add(new THREE.Mesh(clothGeo,clothMat));
@@ -192,5 +200,5 @@ export function createScarfModelFactory(){
   group.add(new THREE.Mesh(collarGeo,foldMat));
   return group;
  }
- return {createModel};
+ return {createModel,updateVisuals};
 }

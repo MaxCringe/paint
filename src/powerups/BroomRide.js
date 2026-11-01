@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 import { broomIgnoresHazard } from '../systems/HazardRules.js';
 import { createBroomTrail } from './BroomTrail.js';
 
@@ -41,6 +42,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  const wood = new THREE.MeshStandardMaterial({color:0x553522,roughness:.88});
  const gripMat = new THREE.MeshStandardMaterial({color:0x291a17,roughness:1});
  const bronze = new THREE.MeshStandardMaterial({color:0xb18b52,metalness:.42,roughness:.49});
+ const capMetal = new THREE.MeshStandardMaterial({color:0xb18b52,metalness:.42,roughness:.49});
  const bristleMat = new THREE.MeshStandardMaterial({
   vertexColors:true,roughness:1,side:THREE.DoubleSide
  });
@@ -125,7 +127,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   part(group,shaftGeo,wood,0,0,-.05).rotation.x=Math.PI/2;
   part(group,bindingGeo,bronze,0,0,.75).rotation.x=Math.PI/2;
   part(group,gripGeo,gripMat,0,0,-1.05).rotation.x=Math.PI/2;
-  part(group,capGeo,bronze,0,0,-1.18);
+  part(group,capGeo,capMetal,0,0,-1.18);
   part(group,bristlesGeo,bristleMat);
   return group;
  }
@@ -136,8 +138,20 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  // The flying broom leaves a lavender smoke plume and dying magic sparks, no HUD timer.
  const trail=createBroomTrail(runner,glowTexture);
  let remaining=0,blend=0,time=0;
+ function updateAppearance(){
+  const v=getEffectVisualProfile('broomModel');
+  wood.color.set(v.woodColor);
+  gripMat.color.set(v.gripColor);
+  bronze.color.set(v.bindingColor);
+  capMetal.color.set(v.capColor);
+  // Vertex colors preserve the natural variation between individual straws.
+  bristleMat.color.set(v.bristlesColor);
+  glowMat.color.set(v.pickupGlowColor);
+ }
+ updateAppearance();
 
  function spawn(lane,z){
+  updateAppearance();
   const group = new THREE.Group();
   group.position.set((lane-1)*2.55,0,z);
   const visual=model();
@@ -172,6 +186,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   if(remaining>0)remaining=Math.max(remaining,Math.max(0,seconds));
  }
  function tick(dt,t){
+  updateAppearance();
   time=t;
   remaining=Math.max(0,remaining-dt);
   blend=clamp(blend+(remaining>0?1:-1)*dt*4,0,1);
@@ -187,6 +202,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  // The dedicated effect lab uses exactly the in-game broom model and VFX.
  // No timer is consumed, no gameplay state/collisions are changed.
  function preview(remaining,t){
+  updateAppearance();
   blend=1;
   mounted.visible=true;
   mounted.scale.setScalar(1);

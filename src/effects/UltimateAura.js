@@ -92,6 +92,7 @@ export function createUltimateAura(runner) {
   const plane=new THREE.Mesh(geometry,material);
   plane.position.set(0,y,z);
   plane.scale.set(width,height,1);
+  plane.userData.baseWidth=width;
   plane.frustumCulled=false;
   plane.renderOrder=order;
   plane.castShadow=false;plane.receiveShadow=false;
@@ -114,7 +115,10 @@ export function createUltimateAura(runner) {
   colors.uInnerBlue.value.set(v.innerColor);
   for(const material of materials)
    material.uniforms.uOpacity.value=material.userData.baseOpacity*ULT_AURA_STYLE.intensity*v.intensity/100;
-  blueLight.color.set(v.outerColor);
+  for(const plane of group.children){
+   if(plane.isMesh)plane.scale.x=plane.userData.baseWidth*v.auraWidth/100;
+  }
+  blueLight.color.set(v.lightColor);
   blueLight.intensity=v.lightIntensity/100;
  }
  function reset(){group.visible=false;}
