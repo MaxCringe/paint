@@ -67,8 +67,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const broomSeatAngles={hips:[-.28,0,0],spine:[.30,0,0],
   leftUpperLeg:[-1.50,0,-.12],rightUpperLeg:[-1.50,0,.12],
   leftLowerLeg:[1.65,0,0],rightLowerLeg:[1.65,0,0],
-  leftArm:[-.95,0,-.22],rightArm:[-.95,0,.22],
-  leftForeArm:[-.38,0,0],rightForeArm:[-.38,0,0]};
+  // Mixamo shoulders start in a raised/T pose: lower them toward the torso
+  // before reaching forward; elbows bend so hands approach the broom handle.
+  leftArm:[-.55,0,-1.05],rightArm:[-.55,0,1.05],
+  leftForeArm:[-.85,0,-.12],rightForeArm:[-.85,0,.12]};
  const broomSeatTarget=new THREE.Quaternion();
  const mixer=new THREE.AnimationMixer(model);
  const actions=new Map([...clips].map(([id,clip])=>[id,mixer.clipAction(clip)]));
