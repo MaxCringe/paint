@@ -32,7 +32,14 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await page.locator('#menu-open-fiona-test').click();
  await expect(page.locator('#menu-fiona-test')).toBeVisible();
  await page.locator('#fiona-test-launch').click();
- await expect(page.locator('#center')).toHaveClass(/hidden/,{timeout:90_000});
+ await page.waitForFunction(()=>{
+  const menu=document.getElementById('center');
+  const status=document.getElementById('fiona-test-status')?.textContent||'';
+  return menu?.classList.contains('hidden')||status.startsWith('Ошибка:');
+ },{timeout:90_000});
+ const status=await page.locator('#fiona-test-status').textContent();
+ expect(await page.locator('#center').getAttribute('class'),
+  'DEV Fiona failed to start; status: '+status+'; page errors: '+errors.join(' | ')).toMatch(/hidden/);
  const tools=page.locator('#fiona-test-tools');
  await expect(tools).toBeVisible({timeout:30_000});
  await tools.locator('summary').click();
