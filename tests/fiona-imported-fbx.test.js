@@ -79,7 +79,7 @@ test('puddle is nonfatal and fish has its own final death animation with a delay
  assert.ok(game.includes("o.type==='fish'?'fish':'other'"));
  assert.ok(player.includes("const isFish=reason==='fish'&&actions.has('fishDeathFBX')"));
  assert.ok(player.includes("const motion=isFish?'fishDeath'"));
- assert.ok(player.includes("awaitingDeath=!isFish&&reason==='tree'"));
+ assert.ok(player.includes("awaitingDeath=!isFish&&!isPine&&reason==='tree'"));
  assert.ok(!player.includes("awaitingDeath=reason==='fish'"));
  assert.ok(player.includes("if(id==='slip'&&actions.has('slipFBX'))"));
  assert.ok(player.includes("if(id==='death'&&actions.has('deathFBX'))"));
