@@ -25,7 +25,7 @@ Vite writes the production site to `dist/`. Wrangler runs the build before deplo
 
 The main menu has **✦ РЕДАКТОР ЭФФЕКТОВ · DEV**. This standalone editor
 pauses the hidden game scene and shows live Three.js previews of the existing
-broom, witch hat, Misty shawl, blue soul flames and ultimate aura. It never
+broom particle trail, broom material appearance, witch hat, Misty shawl, blue soul flames and ultimate aura. It never
 changes gameplay rules, item probabilities or ability durations.
 
 - Select a category on the top row, then adjust visible effect parameters.
@@ -35,7 +35,8 @@ changes gameplay rules, item probabilities or ability durations.
 - **Сбросить категорию** restores that category's defaults in the editor
   (save afterward to retain the reset).
 - **КОПИРОВАТЬ ВСЕ ЗНАЧЕНИЯ** exports the full versioned JSON preset for
-  all five categories, including any unsaved changes. Paste this JSON into
+  all six categories, including any unsaved changes. Colors of component materials
+  and separate broom smoke/cough/spark/streak/glow layers are included. Paste this JSON into
   ChatGPT to request a reviewed source-code update for every player.
 - Runtime visual settings: `src/effects/EffectVisualProfiles.js`,
   `src/powerups/BroomVisualProfiles.js`. UI and its CSS:

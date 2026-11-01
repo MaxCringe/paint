@@ -47,3 +47,23 @@ test('last three seconds of the broom display the warning and brighter sparks',(
  assert.ok(broomTrailState(1).sparkIntensity>broomTrailState(2.9).sparkIntensity);
  assert.ok(broomTrailState(0.2).fatigue>broomTrailState(2.5).fatigue);
 });
+
+test('flight and landing can have independent effect colors with smooth interpolation',()=>{
+ resetBroomTuning();
+ setBroomTuningValue('flight','streakColor','#112233');
+ setBroomTuningValue('landing','streakColor','#445566');
+ setBroomTuningValue('flight','sparkColor','#ffeedd');
+ setBroomTuningValue('landing','coughColor','#baabcd');
+ assert.equal(broomVisualProfile(9).streakColor,'#112233');
+ assert.equal(broomVisualProfile(0).streakColor,'#445566');
+ assert.equal(broomVisualProfile(1.5).streakColor,'#2b3c4d');
+ assert.equal(broomVisualProfile(9).sparkColor,'#ffeedd');
+ assert.equal(broomVisualProfile(0).coughColor,'#baabcd');
+ setBroomTuningValue('flight','smokeRise',500);
+ setBroomTuningValue('flight','sparkSpread',-5);
+ assert.equal(broomVisualProfile(9).smokeRise,200);
+ assert.equal(broomVisualProfile(9).sparkSpread,0);
+ setBroomTuningValue('flight','sparkColor','javascript:');
+ assert.equal(broomVisualProfile(9).sparkColor,'#ffeedd');
+ resetBroomTuning();
+});

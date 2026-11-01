@@ -19,21 +19,36 @@ import {
 } from '../effects/EffectVisualProfiles.js';
 
 const categories=[
- ['broom','🧹','Метла','Дым, магический шлейф, финальные сбои'],
+ ['broom','🧹','Эффекты метлы','Дым, искры, прерывистые пыхи и магические струйки'],
+ ['broomModel','🪵','Модель метлы','Древко, рукоять, крепление, прутья и свечение предмета'],
  ['hat','✦','Шляпа','Свечение и покачивание предмета'],
  ['scarf','❀','Платок Мисти','Ореол, парение и вспышка'],
  ['souls','◈','Души','Голубое пламя и искры'],
  ['ultimate','✧','Ульта','Огненная аура вокруг Фионы']
 ];
 const broomFields=[
+ ['_smoke','ДЫМ И ВЕТЕР','heading'],
  ['density','Плотность дыма','range',0,200],
  ['opacity','Видимость дыма','range',0,200],
  ['size','Размер дымовых клубов','range',15,220],
  ['length','Длина шлейфа','range',15,200],
+ ['smokeRise','Подъём дыма','range',0,200],
+ ['smokeColor','Цвет обычного дыма','color'],
+ ['_streaks','МАГИЧЕСКИЙ ШЛЕЙФ','heading'],
  ['streaks','Магические струйки','range',0,200],
- ['coughs','Прерывистые «пыхи»','range',0,250],
- ['sparks','Искры','range',0,400],
- ['smokeColor','Цвет дыма','color']
+ ['streakColor','Цвет струек','color'],
+ ['_coughs','ПОСЛЕДНИЕ «ПЫХИ»','heading'],
+ ['coughs','Сила выбросов','range',0,250],
+ ['coughColor','Цвет «пыхов»','color'],
+ ['_sparks','ИСКРЫ И СБОИ','heading'],
+ ['sparks','Яркость искр','range',0,400],
+ ['sparkSize','Размер искр','range',0,250],
+ ['sparkSpread','Разлёт искр','range',0,250],
+ ['sparkColor','Цвет искр','color'],
+ ['_glow','СВЕЧЕНИЕ КОНЧИКА','heading'],
+ ['glowSize','Размер свечения','range',20,250],
+ ['glowIntensity','Интенсивность','range',0,200],
+ ['glowColor','Цвет свечения','color']
 ];
 export function buildEffectExport(){
  const all=effectVisualSnapshot();
@@ -41,6 +56,7 @@ export function buildEffectExport(){
   schemaVersion:EFFECT_VISUAL_SCHEMA,
   game:'KNOTTY PINE',
   broom:broomTuningSnapshot(),
+  broomModel:all.broomModel,
   hat:all.hat,
   scarf:all.scarf,
   souls:all.souls,
@@ -93,7 +109,7 @@ export function createEffectEditor(){
    </div>
    <button id="fx-copy" type="button" class="effects-editor-copy">⧉ КОПИРОВАТЬ ВСЕ ЗНАЧЕНИЯ</button>
    <textarea id="fx-copy-fallback" class="hidden" readonly aria-label="Пресет для копирования"></textarea>
-   <small>Копирование включает все 5 категорий, даже несохранённые изменения. Пришли JSON в чат — и мы применим его для всех игроков.</small>
+   <small>Копирование включает все 6 категорий, даже несохранённые изменения. Пришли JSON в чат — и мы применим его для всех игроков.</small>
   </footer>
  </div>`;
  document.body.appendChild(root);
@@ -101,7 +117,7 @@ export function createEffectEditor(){
  const nav=$('fx-categories'),fields=$('fx-fields'),notice=$('fx-message');
  let active=false,category='broom',phase='flight',lastFocus=null;
  let scene=null,renderer=null,camera=null,runner=null,broom=null,hat=null,hatFactory=null;
- let scarfGroup=null,scarfHalo=null,scarfFlash=null,soul=null,soulFactory=null,aura=null;
+ let scarfGroup=null,scarfFactory=null,scarfHalo=null,scarfFlash=null,soul=null,soulFactory=null,aura=null;
  let raf=0,started=0,rotation=-.31,dragX=null,previewWidth=0,previewHeight=0;
  function setMessage(text){notice.textContent=text;}
  function activeConfig(){return category==='broom'?broomTuningSnapshot()[phase]:getEffectVisualProfile(category);}
@@ -122,6 +138,13 @@ export function createEffectEditor(){
   const specs=category==='broom'?broomFields:EFFECT_VISUAL_CONTROLS[category];
   const values=activeConfig();
   for(const [key,title,kind,min,max] of specs){
+   if(kind==='heading'){
+    const header=document.createElement('h4');
+    header.className='effects-editor-group-heading';
+    header.textContent=title;
+    fields.appendChild(header);
+    continue;
+   }
    const row=document.createElement('label');
    row.className='effects-editor-field';
    const titleRow=document.createElement('span');titleRow.className='effects-editor-field-top';
@@ -196,8 +219,8 @@ export function createEffectEditor(){
   hatFactory.makeHat(1,0);
   hat=hats[0];
   hat.visual.scale.setScalar(1.25);
-  const cloth=createScarfModelFactory();
-  scarfGroup=cloth.createModel();scarfGroup.position.y=1.55;
+  scarfFactory=createScarfModelFactory();
+  scarfGroup=scarfFactory.createModel();scarfGroup.position.y=1.55;
   scarfGroup.scale.setScalar(1.13);scene.add(scarfGroup);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
   const ctx=canvas.getContext('2d'),g=ctx.createRadialGradient(32,32,0,32,32,32);
@@ -258,7 +281,7 @@ export function createEffectEditor(){
   if(!active)return;
   resize();
   const elapsed=(now-started)*.001;
-  const focus=category==='broom'||category==='ultimate';
+  const focus=category==='broom'||category==='broomModel'||category==='ultimate';
   runner.visible=focus;
   hat.g.visible=category==='hat';
   scarfGroup.visible=category==='scarf';
@@ -269,7 +292,10 @@ export function createEffectEditor(){
   scarfGroup.rotation.y=rotation+Math.sin(now*.0007)*.15;
   soul.g.rotation.y=rotation;
   aura.update(now,category==='ultimate');
-  if(category==='broom'){
+  if(category==='broomModel'){
+   broom.preview(8,now,{showTrail:false});
+   $('fx-preview-timer').textContent='ДЕТАЛИ МЕТЛЫ';
+  }else if(category==='broom'){
    // Preview the *entire* last 3 s, including the final 0.1s "bah-bah".
    const remaining=phase==='flight'?9-(elapsed%5.5):
     Math.max(.001,3-(elapsed%3.6));
@@ -282,6 +308,7 @@ export function createEffectEditor(){
     $('fx-preview-timer').textContent='МАГНИТ · ВИЗУАЛ';
    }else if(category==='scarf'){
     const v=getEffectVisualProfile('scarf');
+    scarfFactory.updateVisuals();
     scarfGroup.position.y=1.55+Math.sin(now*.0035)*.14*v.floatHeight/100;
     scarfHalo.material.color.set(v.glowColor);
     scarfHalo.material.opacity=v.glowOpacity/100;
@@ -289,7 +316,7 @@ export function createEffectEditor(){
     scarfHalo.scale.set(3.5*s,3.1*s,1);
     const burstAge=(elapsed%2.2)/.65;
     const burstLife=burstAge<1?1-burstAge:0;
-    scarfFlash.material.color.set(v.glowColor);
+    scarfFlash.material.color.set(v.burstColor);
     scarfFlash.material.opacity=burstLife*v.burstOpacity/100;
     scarfFlash.scale.setScalar((2.5+2*(1-burstLife))*v.burstSize/100);
     scarfFlash.visible=burstLife>0;
@@ -303,7 +330,7 @@ export function createEffectEditor(){
     $('fx-preview-timer').textContent='УЛЬТА · АУРА';
    }
   }
-  const close=category==='hat'||category==='scarf'||category==='souls';
+  const close=category==='hat'||category==='scarf'||category==='souls'||category==='broomModel';
   const camDistance=close?4.6:8;
   camera.position.set(Math.sin(rotation*.23+0.33)*camDistance*.34,close?2.25:3.55,camDistance);
   camera.lookAt(0,close?1.25:1.75,category==='broom'?.45:0);
@@ -337,7 +364,10 @@ export function createEffectEditor(){
   lastFocus?.focus?.();
  }
  function resetCurrent(){
-  if(category==='broom')resetBroomTuning();
+  if(category==='broom'){
+   // Reset only the selected flight stage; the other stage is independent.
+   resetBroomTuning();
+  }
   else resetEffectVisualCategory(category);
   drawFields();
   setMessage('Настройки этой категории восстановлены. Чтобы закрепить — нажми «Сохранить».');

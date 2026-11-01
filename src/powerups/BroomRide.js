@@ -201,7 +201,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  }
  // The dedicated effect lab uses exactly the in-game broom model and VFX.
  // No timer is consumed, no gameplay state/collisions are changed.
- function preview(remaining,t){
+ function preview(remaining,t,{showTrail=true}={}){
   updateAppearance();
   blend=1;
   mounted.visible=true;
@@ -210,7 +210,8 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   mounted.rotation.z=Math.sin(t*.0028)*.028;
   mounted.rotation.x=Math.sin(t*.0033)*.025;
   applyPose(0);
-  trail.update(Math.max(.001,remaining),t);
+  if(showTrail)trail.update(Math.max(.001,remaining),t);
+  else trail.hide();
  }
  function advancePickups(dt,t,speed,lane,runnerX,{canCollect=true,onCollect=()=>{}}={}){
   for(let i=pickups.length-1;i>=0;i--){

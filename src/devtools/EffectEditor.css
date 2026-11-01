@@ -70,3 +70,9 @@
  #effects-editor .effects-editor-copy{grid-column:1/-1}
 }
 @media(max-height:560px) and (min-width:761px){.effects-editor-shell{height:99dvh;gap:7px}.effects-editor-header p{display:none}}
+
+/* Color-coded inspector sections and native color inputs. */
+.effects-editor-group-heading{font-size:10px;font-weight:850;letter-spacing:.11em;color:#ecc18b;
+ margin:12px 0 0;padding:8px 5px 4px;border-bottom:1px solid #986f654c}
+.effects-editor-group-heading:first-child{margin-top:1px}
+.effects-editor-field input[type=color]{border-radius:8px;min-height:36px}

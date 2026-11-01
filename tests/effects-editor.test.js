@@ -8,10 +8,10 @@ import {
 } from '../src/effects/EffectVisualProfiles.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
-test('VFX registry has five separated categories with bounded editable visual fields',()=>{
- assert.equal(EFFECT_VISUAL_SCHEMA,1);
+test('VFX registry has five effects plus broom appearance with bounded editable fields',()=>{
+ assert.equal(EFFECT_VISUAL_SCHEMA,2);
  assert.equal(EFFECT_EDITOR_AVAILABLE,true);
- assert.deepEqual(Object.keys(EFFECT_VISUAL_DEFAULTS),['hat','scarf','souls','ultimate']);
+ assert.deepEqual(Object.keys(EFFECT_VISUAL_DEFAULTS),['broomModel','hat','scarf','souls','ultimate']);
  resetEffectVisuals();
  assert.equal(getEffectVisualProfile('hat').glowOpacity,88);
  assert.equal(getEffectVisualProfile('scarf').burstOpacity,95);
@@ -58,6 +58,13 @@ test('editor isolates the real 3D models, exports all effects, and has a one-swi
  assert.match(editor,/scarfFlash.material.opacity=burstLife\*v.burstOpacity\/100/);
  assert.match(read('src/souls/createSoulFactory.js'),/if\(!force&&signature===lastVisualSignature\)return/);
  assert.match(editor,/schemaVersion:EFFECT_VISUAL_SCHEMA/);
+ assert.ok(editor.includes('broomModel:all.broomModel'));
+ assert.ok(editor.includes("['coughColor','Цвет «пыхов»','color']"));
+ assert.ok(editor.includes("['sparkColor','Цвет искр','color']"));
+ assert.ok(editor.includes("['streakColor','Цвет струек','color']"));
+ assert.ok(editor.includes("['glowColor','Цвет свечения','color']"));
+ assert.ok(editor.includes('scarfFactory.updateVisuals()'));
+ assert.ok(editor.includes("broom.preview(8,now,{showTrail:false})"));
  assert.match(main,/VITE_ENABLE_EFFECT_EDITOR/);
  assert.match(main,/import\('\.\/devtools\/EffectEditor\.js'\)/);
  assert.match(game,/effect-editor-open/);
@@ -70,5 +77,31 @@ test('visual profiles drive actual hat, scarf, soul and ultimate renderers, neve
   assert.ok(content.includes("getEffectVisualProfile('"+category+"')"),category);
  assert.match(read('src/systems/ScarfRules.js'),/SCARF_INTERVAL_METRES=3000/);
  assert.match(read('src/powerups/BroomRide.js'),/duration: 9/);
+ const model=read('src/powerups/BroomRide.js');
+ for(const token of ['v.woodColor','v.gripColor','v.bindingColor','v.capColor','v.bristlesColor','v.pickupGlowColor']){
+  assert.ok(model.includes(token),token);
+ }
+ const cloth=read('src/powerups/ScarfModel.js');
+ for(const token of ['v.clothTint','v.fringeColor','v.collarColor'])assert.ok(cloth.includes(token),token);
  assert.match(read('src/game.js'),/magnetTime=10/);
+});
+
+test('appearance colors are independently addressable and survive local resets',()=>{
+ resetEffectVisuals();
+ assert.equal(setEffectVisualValue('broomModel','woodColor','#123abc'),true);
+ assert.equal(getEffectVisualProfile('broomModel').woodColor,'#123abc');
+ assert.equal(getEffectVisualProfile('broomModel').gripColor,'#291a17');
+ assert.equal(setEffectVisualValue('hat','fabricColor','#aabbcc'),true);
+ assert.equal(getEffectVisualProfile('hat').fabricColor,'#aabbcc');
+ assert.equal(setEffectVisualValue('scarf','fringeColor','#112233'),true);
+ assert.equal(getEffectVisualProfile('scarf').fringeColor,'#112233');
+ assert.equal(setEffectVisualValue('souls','innerColor','#00ff44'),true);
+ assert.equal(getEffectVisualProfile('souls').innerColor,'#00ff44');
+ assert.equal(setEffectVisualValue('ultimate','lightColor','#ffddcc'),true);
+ assert.equal(getEffectVisualProfile('ultimate').lightColor,'#ffddcc');
+ assert.equal(setEffectVisualValue('hat','fabricColor','untrusted'),false);
+ assert.equal(setEffectVisualValue('broomModel','pickupChance',.9),false);
+ resetEffectVisualCategory('broomModel');
+ assert.equal(getEffectVisualProfile('broomModel').woodColor,'#553522');
+ resetEffectVisuals();
 });
