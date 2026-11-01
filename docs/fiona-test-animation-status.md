@@ -1,19 +1,13 @@
-# Fiona 3D DEV run — asset and animation status
+# Новая Фиона — тестовые анимации
 
-The original 2D/procedural Fiona, collision gameplay, broom and ultimate are NOT replaced.
+- **Модель:** `public/models/fiona/rigged-model (1) (1).fbx` (уже загружена в main).
+- **Источник движений:** `tools/generate_fiona_motions.py` с NumPy.
+- **Готовый набор:** `public/models/fiona/animations/motions.json.gz` — 23 процедурные анимации.
+- **Интеграция:** `src/player/FionaPythonMotions.js` конвертирует анимации Python в QuaternionKeyframeTrack, `src/player/FionaTest.js` воспроизводит их на скелете.
+- **Управление:** меню «ТЕСТ НОВОЙ ФИОНЫ · DEV». Модель и анимации загружаются автоматически. Можно выбрать другую модель вручную для проверки совместимости скелета.
+- **Run Forward.fbx / Jump.fbx:** больше не используются, не нужны, никогда не были загружены в GitHub. Локальные файлы на устройствах пользователя не удаляются.
+- **Внимание:** это авторские анимации-прототипы, не motion capture. Нужна проверка платья, метлы, подката, шляпы и переходов на сайте.
+- **Физика:** стандартные `DoubleJump.js`, `Slide.js`, `BroomRide.js` не изменены; тестовый персонаж не меняет столкновения и сохранённые рекорды.
+- **Откат:** сохранена старая процедурная Фиона. Текущий стабильный коммит указан в `KNOTTY_PINE_RULES.md` и не изменён.
 
-## Assets
-- The checked-in code can fetch `/fiona/rigged-model.fbx`, `/fiona/run-forward.fbx`, and `/fiona/jump.fbx` if they exist.
-- As of this commit **the binary FBX files have NOT been pushed into this repository**. Do not announce them as hosted until they appear in the repository tree.
-- If hosted files are missing, the tester can use FBX selected from disk. After a successful test, it caches the three required files locally in IndexedDB, so future tests on the *same browser* need no manual selection.
-- Optional extra animations from the DEV panel are session-local; the latest tested three required files remain cached.
-
-## Motion quality
-- `Run Forward` and `Jump` are user-supplied Mixamo FBX clips, not part of the source tree yet.
-- `Idle` is extracted from the FBX model when present.
-- `FionaPrototypeMotions.js` creates up to 21 **experimental** bone-rotation AnimationClips for the other slots with Three.js. These are placeholder choreography for fast functional testing, not motion capture and not vetted Mixamo presets.
-- Favor a final rig-safe animation for the duck/slide, broom ride, death and revival. Do not squash the whole character mesh. Verify skirt weights and bone motion visually.
-- Every animation in the DEV preview is explicitly identified as an imported FBX or generated prototype.
-
-## Rollback
-- Changes are isolated to `src/player/FionaTest.js`, DEV menu, and new helper modules. `src/player/Fiona.js` remains unchanged.
+[Карта проекта и аудит](code-audit-2026-11-01.md)

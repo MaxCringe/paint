@@ -50,20 +50,15 @@
   </div>
   <div id="menu-fiona-test" class="menu-page hidden">
     <h2>ТЕСТ НОВОЙ ФИОНЫ</h2>
-    <p class="desc">Новая модель в тестовом забеге. Если FBX уже размещены на сайте или сохранены в этом браузере, выбирай сразу «Запустить». Иначе один раз выбери файлы. Обычный режим и рекорды не изменяются.</p>
-    <label class="fiona-test-label" for="fiona-model-file">1. Фиона со скелетом (.fbx)</label>
-    <input class="fiona-test-file" type="file" id="fiona-model-file" accept=".fbx">
-    <label class="fiona-test-label" for="fiona-run-file">2. Бег — Run Forward.fbx</label>
-    <input class="fiona-test-file" type="file" id="fiona-run-file" accept=".fbx">
-    <label class="fiona-test-label" for="fiona-jump-file">3. Прыжок — Jump.fbx</label>
-    <input class="fiona-test-file" type="file" id="fiona-jump-file" accept=".fbx">
+    <p class="desc">Новая модель Фионы и 23 авторские Python-анимации загружаются автоматически. Нажми «Запустить» — больше не нужно выбирать Run Forward и Jump.</p>
+    <p class="fiona-test-hint">Модель загружается автоматически из GitHub/Vercel. Все 23 движения созданы на Python (NumPy) и доступны для проверки в тестовом забеге.</p>
     <details class="fiona-test-optional">
-      <summary>Остальные движения — добавить FBX по желанию</summary>
-      <p class="fiona-test-hint">Необязательные слоты. Новые анимации можно подставлять постепенно, не переделывая игру.</p>
-      <div id="fiona-test-animation-slots"></div>
+      <summary>Другая версия модели (необязательно)</summary>
+      <label class="fiona-test-label" for="fiona-model-file">Модель со скелетом (.fbx)</label>
+      <input class="fiona-test-file" type="file" id="fiona-model-file" accept=".fbx">
     </details>
     <label class="fiona-test-label fiona-test-orientation"><input type="checkbox" id="fiona-test-turn" checked> Развернуть модель на 180°</label>
-    <p id="fiona-test-status" role="status" aria-live="polite">Нажми «Запустить». Если файлов ещё нет — выбери FBX один раз, они сохранятся в этом браузере.</p>
+    <p id="fiona-test-status" role="status" aria-live="polite">Готово к запуску. Модель: GitHub. Движения: Python/NumPy.</p>
     <button id="fiona-test-launch" type="button" class="menu-action menu-primary">ЗАПУСТИТЬ ТЕСТОВЫЙ ЗАБЕГ</button>
     <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
    </div>

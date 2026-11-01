@@ -58,40 +58,16 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
  $('menu-open-settings').addEventListener('click',()=>openPage('settings'));
   $('menu-open-fiona-test').addEventListener('click',()=>openPage('fionaTest'));
   const testStatus=$('fiona-test-status'),testLaunch=$('fiona-test-launch');
-  const optionalRoot=$('fiona-test-animation-slots');
   const previews=$('fiona-test-preview-actions');
   const previewPanel=$('fiona-test-tools');
   const previewStatus=$('fiona-test-preview-status');
-  const animationInputs=new Map();
   const previewButtons=new Map();
   const animationGroups=new Map();
   for(const slot of FIONA_ANIMATION_SLOTS){
-    if(slot.id!=='run'&&slot.id!=='jump'){
-      let container=animationGroups.get(slot.group);
-      if(!container){
-        const details=document.createElement('details');
-        details.className='fiona-test-group';
-        const summary=document.createElement('summary');
-        summary.textContent=slot.group;
-        container=document.createElement('div');
-        details.append(summary,container);
-        optionalRoot.append(details);
-        animationGroups.set(slot.group,container);
-      }
-      const label=document.createElement('label');
-      label.className='fiona-test-label';
-      label.htmlFor='fiona-animation-'+slot.id;
-      label.textContent=slot.label;
-      const input=document.createElement('input');
-      input.type='file';input.accept='.fbx';input.className='fiona-test-file';
-      input.id='fiona-animation-'+slot.id;
-      container.append(label,input);
-      animationInputs.set(slot.id,input);
-    }
     const button=document.createElement('button');
     button.type='button';button.className='fiona-test-preview-button';
     button.textContent=slot.label;
-    button.title='Нет загруженной FBX-анимации';
+    button.title='Python-анимация ещё не загружена';
     button.disabled=true;
     button.addEventListener('click',()=>{
       const result=onPreviewTest?.(slot.id);
@@ -110,27 +86,21 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const has=names.has(slot.id);
       button.disabled=!has;
       button.classList.toggle('fiona-test-preview-loaded',has);
-      button.title=has?(prototypeIds.has(slot.id)?'ПРОТОТИП: '+slot.label:'FBX: '+slot.label):'Анимация пока недоступна';
-      button.textContent=slot.label+(prototypeIds.has(slot.id)?' · прототип':'');
+      button.title=has?'Python/NumPy: '+slot.label:'Анимация пока недоступна';
+      button.textContent=slot.label+(prototypeIds.has(slot.id)?' · Python':'');
       if(has)count++;
     }
     previewStatus.textContent='Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
-      ' (прототипов: '+prototypeIds.size+'). Проверяй их прямо в тестовом забеге.';
+      ' (сгенерировано на Python: '+prototypeIds.size+'). Проверяй в тестовом забеге.';
   }
   testLaunch.addEventListener('click',async()=>{
     const modelFile=$('fiona-model-file').files?.[0];
-    const runFile=$('fiona-run-file').files?.[0];
-    const jumpFile=$('fiona-jump-file').files?.[0];
     testLaunch.disabled=true;testStatus.textContent='Ищу Фиону и проверяю анимации…';
     try{
-      const animationFiles={run:runFile,jump:jumpFile};
-      for(const [id,input] of animationInputs){
-        if(input.files?.[0])animationFiles[id]=input.files[0];
-      }
-      const resolved=await resolveFionaAssets({modelFile,animationFiles});
+      const resolved=await resolveFionaAssets({modelFile});
       await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
-      const remembered=await resolved.remember();
-      testStatus.textContent='Тест запущен. '+(remembered?'Файлы сохранены в браузере.':'Кэш браузера недоступен.');
+      testStatus.textContent='Тест запущен: модель '+(resolved.origin==='website'?'из GitHub':'с компьютера')+
+        ', анимации Python/NumPy (23).';
     }catch(error){
       console.error('Fiona test load failed',error);
       testStatus.textContent='Ошибка: '+(error?.message||String(error));

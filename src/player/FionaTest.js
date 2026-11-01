@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { FIONA_ANIMATION_SLOTS } from './FionaAnimationSlots.js';
-import { generateFionaPrototypeClips } from './FionaPrototypeMotions.js';
+import { fetchPythonFionaMotionData, createPythonFionaClips } from './FionaPythonMotions.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -10,28 +10,9 @@ async function parseFBX(file){
  if(!file||!/\.fbx$/i.test(file.name))throw new Error('Нужен файл FBX: '+(file?.name||'не выбран'));
  return new FBXLoader().parse(await file.arrayBuffer(),'');
 }
-function extractClip(object,slot,bones){
- const source=object.animations?.[0];
- if(!source?.tracks?.length)throw new Error('«'+SLOTS.get(slot).label+'»: FBX не содержит анимации.');
- const used=new Set();
- for(const track of source.tracks){
-  const bone=track.name.split('.')[0];
-  if(bones.has(bone))used.add(bone);
- }
- if(used.size<8)throw new Error('«'+SLOTS.get(slot).label+'»: совпадает всего '+used.size+' костей модели.');
- const clip=source.clone();clip.name=slot;
- return clip;
-}
-
-export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,jumpFile,turn=true}){
- // Backward compatibility for the original three-file test panel.
- const files={...animationFiles};
- if(!files.run&&runFile)files.run=runFile;
- if(!files.jump&&jumpFile)files.jump=jumpFile;
- if(!files.run||!files.jump)throw new Error('Для теста нужны анимации бега и прыжка.');
- const entries=Object.entries(files).filter(([id,file])=>SLOTS.has(id)&&file);
- const [model, ...sourceAnimations]=await Promise.all([
-  parseFBX(modelFile),...entries.map(([,file])=>parseFBX(file))
+export async function loadFionaTest({runner,modelFile,turn=true}){
+ const [model,generatedData]=await Promise.all([
+  parseFBX(modelFile),fetchPythonFionaMotionData()
  ]);
  let skinned=0;
  const bones=new Map();
@@ -40,22 +21,11 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
   if(node.isSkinnedMesh)skinned++;
   if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}
  });
- if(!skinned||bones.size<8)throw new Error('Модель не содержит скелета с привязанной геометрией.');
- const clips=new Map();
- for(let i=0;i<entries.length;i++){
-  const [id]=entries[i];
-  clips.set(id,extractClip(sourceAnimations[i],id,bones));
- }
- // Keep the model's own Idle/Run/Wave where relevant before adding authored prototypes.
- const embeddedNames={Idle:'idle',Run:'run'};
- for(const clip of (model.animations||[])){
-  const id=embeddedNames[clip.name]||embeddedNames[clip.name?.split('|').pop()];
-  if(id&&!clips.has(id))clips.set(id,clip.clone());
- }
- const importedIds=new Set(clips.keys());
- const generated=generateFionaPrototypeClips(bones,model,clips);
- for(const [id,clip] of generated)clips.set(id,clip);
- const prototypeIds=new Set(generated.keys());
+ if(!skinned||bones.size<8)throw new Error('Модель Фионы не содержит привязанного скелета.');
+ // Do not read the FBX-embedded animations or user-supplied Mixamo clips.
+ const clips=createPythonFionaClips(bones,generatedData);
+ const prototypeIds=new Set(clips.keys());
+ const importedIds=new Set();
  const headBone=[...bones.values()].find(b=>/^(?:mixamorig:)?Head$/i.test(b.name))||null;
  const avatar=new THREE.Group(),facing=new THREE.Group();
  avatar.add(facing);facing.add(model);
@@ -126,15 +96,13 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
  }
  function preview(id){
   if(!active)return {ok:false,message:'Сначала запусти тестовый забег.'};
-  if(!actions.has(id))return {ok:false,message:'Для «'+(SLOTS.get(id)?.label||id)+'» ещё нет FBX. Добавь файл в тестовом меню.'};
+  if(!actions.has(id))return {ok:false,message:'Python-анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
   manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(id).duration+.18);
   oneShot=null;
   play(id,{force:true,once:!SLOTS.get(id)?.loop});
-  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+
-   (prototypeIds.has(id)?' — процедурный прототип.':' — FBX-анимация.')+
-   ' Механика забега не меняется.'};
+  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+' — анимация Python/NumPy. Механика забега не меняется.'};
  }
  function die(reason='other'){
   if(!active)return;
@@ -201,13 +169,9 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
   const run=actions.get('run');
   if(run)run.setEffectiveTimeScale(clamp(speed/15,.8,1.85));
   mixer.update(dt);
-  // For states without FBX, gently retain temporary no-squash character poses.
-  const needsSlide=sliding&&!actions.has('slide')&&!manualSlot;
-  const needsBroom=broom&&!actions.has('broomFly')&&!manualSlot;
-  const pitch=needsSlide?-.72*crouch:needsBroom?-.19:0;
-  const offset=needsSlide?-.18*crouch:needsBroom?.05:0;
-  avatar.rotation.x+=(pitch-avatar.rotation.x)*Math.min(1,dt*12);
-  avatar.position.y+=(offset-avatar.position.y)*Math.min(1,dt*12);
+  // Python clips animate bones, not entire meshes. No squashing or root displacement.
+  avatar.rotation.x+=(0-avatar.rotation.x)*Math.min(1,dt*12);
+  avatar.position.y+=(0-avatar.position.y)*Math.min(1,dt*12);
  }
  function dispose(){
   mixer.stopAllAction();mixer.uncacheRoot(model);
