@@ -13,7 +13,8 @@ export function mountWearableHat(wearable,torso,headBone=null){
   const world=headBone.getWorldScale(new THREE.Vector3());
   const safe=n=>Math.max(1e-6,Math.abs(n));
   headBone.add(wearable);
-  // Seat the brim above the scalp rather than cutting through the hair.\n  wearable.position.set(0,.30/safe(world.y),0);
+  // Seat the brim above the scalp rather than cutting through the hair.
+  wearable.position.set(0,.30/safe(world.y),0);
   wearable.scale.set(.66/safe(world.x),.66/safe(world.y),.66/safe(world.z));
  }
  wearable.rotation.set(0,0,0);
