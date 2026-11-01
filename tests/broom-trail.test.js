@@ -40,8 +40,8 @@ test('particles use built-in instanced Three.js materials rather than shaders',(
 
 test('approved standard VFX profiles match both complete sets of values',()=>{
  resetBroomTuning();
- assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":180,"opacity":110,"size":150,"length":90,"streaks":95,"coughs":150,"sparks":150,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#ffffff","sparkColor":"#ffffff","glowColor":"#dec5ff"});
- assert.deepEqual(BROOM_VISUAL_PROFILES.landing,{"density":150,"opacity":70,"size":150,"length":50,"streaks":39,"coughs":250,"sparks":299,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#ffffff","sparkColor":"#ffffff","glowColor":"#dec5ff"});
+ assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":180,"opacity":110,"size":150,"length":90,"streaks":95,"coughs":150,"sparks":150,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#dbcbff","sparkColor":"#ffc17c","glowColor":"#dec5ff"});
+ assert.deepEqual(BROOM_VISUAL_PROFILES.landing,{"density":150,"opacity":70,"size":150,"length":50,"streaks":39,"coughs":250,"sparks":299,"smokeRise":100,"sparkSpread":100,"sparkSize":100,"glowSize":100,"glowIntensity":100,"smokeColor":"#d8c5ec","coughColor":"#d8c5ec","streakColor":"#dbcbff","sparkColor":"#ffc17c","glowColor":"#dec5ff"});
  assert.equal(BROOM_LANDING_TRANSITION_SECONDS,3);
  const start=broomVisualProfile(9),beforeLanding=broomVisualProfile(3),end=broomVisualProfile(0);
  for(const key of Object.keys(BROOM_VISUAL_RANGES)){
