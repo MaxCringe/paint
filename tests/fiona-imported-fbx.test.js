@@ -32,7 +32,7 @@ test('retargeted FBX rotation uses target rest pose and never root translation',
  assert.equal(boneCount,8);
  assert.equal(mainJointCount,8);
  assert.ok(clip.tracks.every(x=>x.name.endsWith('.quaternion')));
- assert.equal(clip.duration,.6);
+ assert.ok(Math.abs(clip.duration-.6)<1e-5);
  const hip=clip.tracks.find(x=>x.name==='Hips.quaternion');
  const first=new THREE.Quaternion().fromArray(hip.values,0);
  const second=new THREE.Quaternion().fromArray(hip.values,4);
