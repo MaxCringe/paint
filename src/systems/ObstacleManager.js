@@ -7,6 +7,8 @@ export const HAZARD_SPACING=Object.freeze({
 });
 export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
  const history=[];
+ let progress=0;
+ const reset=()=>{history.length=0;progress=0;};
  const near=(a,b,dist)=>Math.abs(a-b)<dist;
  const remember=(z,type,lane=-1)=>{
   history.push({z,type,lane});
@@ -32,21 +34,25 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
  function addSouls(lane,z,count){
   for(let j=0;j<count;j++)makeSoul(lane,z-j*1.55,1.2+Math.sin(j*.8)*.12);
  }
- return function makeSegment(z){
-  if(Math.random()<.13&&safe(z,'lava')){
-   makeLavaRiver(z);remember(z,'lava');return;
+ function makeSegment(z){
+  // World z wraps from -150 to -50 repeatedly. Spacing must instead use
+  // a monotonic progression or old entries block every future spawn.
+  progress+=22;
+  const p=progress;
+  if(Math.random()<.13&&safe(p,'lava')){
+   makeLavaRiver(z);remember(p,'lava');return;
   }
-  if(makePineLog&&Math.random()<.10&&safe(z,'pineLog')){
-   makePineLog(z);remember(z,'pineLog');return;
+  if(makePineLog&&Math.random()<.10&&safe(p,'pineLog')){
+   makePineLog(z);remember(p,'pineLog');return;
   }
-  const free=[0,1,2].filter(l=>safe(z,'lane',l));
+  const free=[0,1,2].filter(l=>safe(p,'lane',l));
   if(free.length&&Math.random()<.88){
    const lane=free[(Math.random()*free.length)|0];
    const roll=Math.random();
    if(roll<.20)makeFish(lane,z);
    else if(roll<.336)makePuddle(lane,z);
    else makeObstacle(lane,z,'knot');
-   remember(z,'lane',lane);
+   remember(p,'lane',lane);
    // Reward a safe neighboring lane; never bury souls inside hazards.
    const neighbors=[0,1,2].filter(l=>l!==lane);
    let soulLane=-1;
@@ -63,5 +69,7 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
     maybePowerup([0,1,2].filter(l=>l!==lane),z-1);
    }
   }
- };
+ }
+ makeSegment.reset=reset;
+ return makeSegment;
 }
