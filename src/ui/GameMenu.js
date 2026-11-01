@@ -90,6 +90,17 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     previews.append(button);
     previewButtons.set(slot.id,button);
   }
+  // A separate fish-specific fatal reaction, not a 24th Python slot.
+  const fishDeathPreview=document.createElement('button');
+  fishDeathPreview.type='button';
+  fishDeathPreview.className='fiona-test-preview-button';
+  fishDeathPreview.textContent='Смерть от рыбы · FBX';
+  fishDeathPreview.disabled=true;
+  fishDeathPreview.addEventListener('click',()=>{
+    const result=onPreviewTest?.('fishDeath');
+    previewStatus.textContent=result?.message||'Анимация смерти от рыбы недоступна.';
+  });
+  previews.append(fishDeathPreview);
   function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set(),importedIds=new Set(),importedFiles=[],importErrors=[],runVariant='fbx'){
     previewPanel.classList.toggle('hidden',!enabled);
     if(!enabled){previewPanel.open=false;return;}
@@ -97,6 +108,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     const fbxButton=runCompareButtons.find(b=>b.dataset.fionaRunVariant==='fbx');
     if(fbxButton)fbxButton.disabled=!importedIds.has('run');
     const names=new Set(loaded);
+    fishDeathPreview.disabled=!importedIds.has('fishDeath');
     let count=0;
     for(const slot of FIONA_ANIMATION_SLOTS){
       const button=previewButtons.get(slot.id);
@@ -110,7 +122,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       if(has)count++;
     }
     previewPanel.dataset.fbxImported=String(importedFiles.length);
-    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/2 ('+
+    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/5 ('+
       importedFiles.map(r=>r.file+' → '+r.sourceClip+': '+r.boneCount+' костей; доступные клипы ['+
         r.allClips.map(c=>c.name+':'+c.duration+'с').join(', ')+']').join('; ')+'). '+
       'Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
@@ -123,7 +135,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const resolved=await resolveFionaAssets({modelFile});
       const avatar=await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
       testStatus.textContent='Тест запущен: модель '+(resolved.origin==='website'?'из GitHub':'с компьютера')+
-        ', FBX '+avatar.importedFiles.length+'/2, полёт — Python, души — без анимации.'+
+        ', FBX '+avatar.importedFiles.length+'/5, полёт — Python, души — без анимации.'+
         (avatar.importErrors.length?' Ошибки: '+avatar.importErrors.join(' | '):'');
     }catch(error){
       console.error('Fiona test load failed',error);

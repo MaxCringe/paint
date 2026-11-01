@@ -32,7 +32,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  // Keep the original Python/NumPy actions as reversible fallbacks.
  const importResult=await loadFionaFBXClips(bones);
  for(const [id,clip] of importResult.clips){
-  clips.set(id==='run'?'runFBX':'jumpFBX',clip);
+  const name={run:'runFBX',jump:'jumpFBX',slip:'slipFBX',
+   death:'deathFBX',fishDeath:'fishDeathFBX'}[id];
+  if(name)clips.set(name,clip);
  }
  const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
  const importedIds=new Set(importResult.clips.keys());
@@ -65,6 +67,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    if(runVariant==='calibrated'&&actions.has('runCalibrated'))return 'runCalibrated';
   }
   if(id==='jump'&&actions.has('jumpFBX'))return 'jumpFBX';
+  if(id==='slip'&&actions.has('slipFBX'))return 'slipFBX';
+  if(id==='death'&&actions.has('deathFBX'))return 'deathFBX';
+  if(id==='fishDeath'&&actions.has('fishDeathFBX'))return 'fishDeathFBX';
   if(actions.has(id))return id;
   if(id==='doubleJump'&&actions.has('jump'))return 'jump';
   if(id==='broomDuck'&&actions.has('broomFly'))return 'broomFly';
@@ -80,7 +85,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  const loop=once===null?(['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop)):!once;
+  const loop=once===null?(resolved!=='slipFBX'&&
+   (['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop))):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
   action.fadeIn(.13).play();
@@ -123,20 +129,30 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(!actions.has(resolve(id)))return {ok:false,message:'Анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
-  manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(resolve(id)).duration+.18);
+  manualSeconds=Math.max(SLOTS.get(id)?.loop&&id!=='slip'?2.7:1.2,clips.get(resolve(id)).duration+.18);
   oneShot=null;
-  play(id,{force:true,once:!SLOTS.get(id)?.loop});
+  play(id,{force:true,once:id==='fishDeath'||id==='slip'||!SLOTS.get(id)?.loop});
   const selected=resolve(id);
-  const source=selected==='runFBX'?'Fast Run.fbx':selected==='jumpFBX'?'Running Jump.fbx':null;
-  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+
+  const filenames={
+   runFBX:'Fast Run.fbx',jumpFBX:'Running Jump.fbx',
+   slipFBX:'Edge Slip.fbx',deathFBX:'Standing React Death Right.fbx',
+   fishDeathFBX:'Stumble Backwards.fbx'
+  };
+  const source=filenames[selected]||null;
+  return {ok:true,message:'Просмотр: '+(SLOTS.get(id)?.label||'Смерть от рыбы')+
    (source?' — '+source:' — Python/NumPy')+'. Физика забега не меняется.'};
  }
  function die(reason='other'){
-  if(!active)return;
+  if(!active)return 0;
   dead=true;manualSlot=null;manualSeconds=0;oneShot=null;
-  awaitingDeath=reason==='tree'&&actions.has('hitTree')&&actions.has('death');
-  if(reason==='tree'&&actions.has('hitTree'))play('hitTree',{force:true,once:true});
-  else play('death',{force:true,once:true});
+  // Fish has its own complete death animation. Do not chain generic death.
+  const isFish=reason==='fish'&&actions.has('fishDeathFBX');
+  awaitingDeath=!isFish&&reason==='tree'&&actions.has('hitTree')&&actions.has('death');
+  const motion=isFish?'fishDeath':reason==='tree'&&actions.has('hitTree')?'hitTree':'death';
+  play(motion,{force:true,once:true});
+  const duration=actions.get(resolve(motion))?.getClip().duration||0;
+  // Tree hit chains into generic death; fish never chains into generic death.
+  return awaitingDeath?duration+(actions.get(resolve('death'))?.getClip().duration||0):duration;
  }
  mixer.addEventListener('finished',event=>{
   if(event.action!==currentAction)return;

@@ -49,8 +49,8 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  const oldRun=page.locator('[data-fiona-run-variant="original"]');
  const fbxStatus=await page.locator('#fiona-test-preview-status').textContent();
  console.log('FBX IMPORT STATUS:',fbxStatus);
- expect(fbxStatus).toContain('FBX-файлы: 2/2');
- await expect(tools).toHaveAttribute('data-fbx-imported','2');
+ expect(fbxStatus).toContain('FBX-файлы: 5/5');
+ await expect(tools).toHaveAttribute('data-fbx-imported','5');
  await expect(importedRun).toHaveAttribute('aria-pressed','true');
  await oldRun.click();
  await expect(oldRun).toHaveAttribute('aria-pressed','true');
@@ -61,7 +61,7 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await importedRun.click();
  await expect(importedRun).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Fast Run.fbx');
- await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(23);
+ await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(24);
  const controls=page.locator('#fiona-test-preview-actions button');
  await controls.filter({hasText:'Бег'}).click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Fast Run.fbx');
@@ -71,6 +71,12 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
  await controls.filter({hasText:'Сбор души'}).first().click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('без анимации');
+ await controls.filter({hasText:'Скольжение на луже'}).first().click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Edge Slip.fbx');
+ await controls.filter({hasText:'Смерть'}).first().click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Standing React Death Right.fbx');
+ await controls.filter({hasText:'Смерть от рыбы'}).first().click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Stumble Backwards.fbx');
  const attempts=await page.evaluate(()=>localStorage.getItem('knottyPineRunsStarted'));
  expect(attempts,'DEV test must not count as a real run').toBeNull();
  await page.keyboard.press('Escape');

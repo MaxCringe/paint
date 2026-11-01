@@ -4,9 +4,13 @@ import * as THREE from 'three';
 import {FIONA_FBX_FILES,fionaBoneKey,retargetFionaFBXClip} from '../src/player/FionaImportedFBX.js';
 
 const joints=['Hips','Spine','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm'];
-test('only approved FBX clips map to running and jumping',()=>{
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),['Fast Run.fbx','Running Jump.fbx']);
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),['run','jump']);
+test('five FBX clips map fish to its exclusive death animation',()=>{
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),[
+  'Fast Run.fbx','Running Jump.fbx','Edge Slip.fbx',
+  'Standing React Death Right.fbx','Stumble Backwards.fbx'
+ ]);
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),
+  ['run','jump','slip','death','fishDeath']);
  assert.equal(fionaBoneKey('mixamorig:Hips'),'hips');
  assert.equal(fionaBoneKey('Armature|mixamorig:LeftArm'),'leftarm');
 });
@@ -64,4 +68,21 @@ test('rejected flight FBX is not referenced or downloaded',async()=>{
  assert.ok(!game.includes("testAvatar?.trigger('soulPickup')"));
  // Original soul reward and sound remain, and nothing else blocks the run.
  assert.ok(game.includes("audio.play('soul');haptics.play('soul');coinCount++"));
+});
+
+test('puddle is nonfatal and fish has its own final death animation with a delayed result screen',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ const player=readFileSync(new URL('../src/player/FionaTest.js',import.meta.url),'utf8');
+ assert.ok(game.includes("if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9"));
+ assert.ok(game.includes("o.type==='fish'?'fish':'other'"));
+ assert.ok(player.includes("const isFish=reason==='fish'&&actions.has('fishDeathFBX')"));
+ assert.ok(player.includes("const motion=isFish?'fishDeath'"));
+ assert.ok(player.includes("awaitingDeath=!isFish&&reason==='tree'"));
+ assert.ok(!player.includes("awaitingDeath=reason==='fish'"));
+ assert.ok(player.includes("if(id==='slip'&&actions.has('slipFBX'))"));
+ assert.ok(player.includes("if(id==='death'&&actions.has('deathFBX'))"));
+ assert.ok(game.includes("deathRevealRemaining=useTestFiona&&clipDuration>0"));
+ assert.ok(game.includes("if(deathRevealRemaining===0)showDeathResult()"));
+ assert.ok(game.includes("state='over'"));
 });

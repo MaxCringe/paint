@@ -5,7 +5,10 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 // Flying.fbx was rejected and removed; flight uses the Python fallback.
 export const FIONA_FBX_FILES=Object.freeze([
  {id:'run',file:'Fast Run.fbx',action:'runFBX'},
- {id:'jump',file:'Running Jump.fbx',action:'jumpFBX'}
+ {id:'jump',file:'Running Jump.fbx',action:'jumpFBX'},
+ {id:'slip',file:'Edge Slip.fbx',action:'slipFBX'},
+ {id:'death',file:'Standing React Death Right.fbx',action:'deathFBX'},
+ {id:'fishDeath',file:'Stumble Backwards.fbx',action:'fishDeathFBX'}
 ]);
 const URL='/models/fiona/animations/fbx/';
 const MIN_MAJOR_JOINTS=4;
@@ -97,9 +100,13 @@ export async function loadFionaFBXClips(targetBones){
    model=loader.parse(bytes,URL);
    const sourceBones=validatedSourceBones(model);
    const allClips=(model.animations||[]).filter(c=>c.tracks?.some(t=>t.name.endsWith('.quaternion')));
-   const sourceClip=allClips.find(c=>new RegExp(asset.id==='run'?'fast.?run|running':'running.?jump|jump','i').test(c.name))
-    ||allClips.find(c=>c.tracks.length>=6&&c.duration>.3)
-    ||allClips[0];
+   // Uploaded FBXs contain original Walk/Run/Idle as well as the new Mixamo take.
+   const title=asset.file.replace(/\.fbx$/i,'').toLowerCase();
+   const sourceClip=allClips.find(c=>c.name.toLowerCase()===title)
+    ||allClips.find(c=>/^mixamo\.com$/i.test(c.name))
+    ||allClips.find(c=>c.name.toLowerCase().includes(title)&&c.duration>.1)
+    ||allClips.find(c=>c.tracks.length>=6&&c.duration>.3&&
+      !['walk','run','wave','bind','idle'].includes(c.name.toLowerCase()));
    if(!sourceClip)throw new Error(asset.file+': нет скелетных дорожек вращения');
    const result=retargetFionaFBXClip(sourceClip,sourceBones,targetBones,asset.action);
    return {...asset,...result,originalDuration:sourceClip.duration,

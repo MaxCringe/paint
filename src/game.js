@@ -167,6 +167,7 @@ function updateHud(force=false){
 }
 const popToast=message=>hud.toast(message);
 let testAvatar=null,useTestFiona=false;
+let deathRevealRemaining=0;
 function restoreClassicFiona(){
  useTestFiona=false;
  attachWearableToHead();
@@ -205,8 +206,28 @@ function start(){
  }
  runRecords.start(best,bestSouls,{practice:useTestFiona});
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
-function end(reason='other'){if(useTestFiona)testAvatar?.die(reason);broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';if(!useTestFiona){best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);}menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
+ deathRevealRemaining=0;audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+function showDeathResult(){
+ menu.showGameOver();
+ gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive});
+}
+function end(reason='other'){
+ if(state!=='playing')return;
+ const clipDuration=useTestFiona?testAvatar?.die(reason)||0:0;
+ broom.cancel();ultimateAura.reset();haptics.play('hit');
+ audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);
+ state='over';
+ if(!useTestFiona){
+  best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);
+  localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);
+  hud.setRecords(best,bestSouls);
+ }
+ // Fatal hazards stop the run immediately, but keep the 3D scene visible
+ // until the relevant death reaction finishes; fish uses ONLY Stumble Backwards.
+ deathRevealRemaining=useTestFiona&&clipDuration>0?
+  Math.min(6,Math.max(.35,clipDuration+.15)):0;
+ if(deathRevealRemaining===0)showDeathResult();
+}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');if(useTestFiona)testAvatar?.trigger(d<0?'moveLeft':'moveRight')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active){
   if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
@@ -392,7 +413,7 @@ function frame(t){requestAnimationFrame(frame);
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
      if(broom.immuneTo(o.type)||revivalShield>0)continue;
       if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
-     else{const safe=jumping;if(!safe){end(o.type==='knot'?'tree':'other');break}else{invuln=.22}}
+     else{const safe=jumping;if(!safe){end(o.type==='knot'?'tree':o.type==='fish'?'fish':'other');break}else{invuln=.22}}
     }
    }
   }
@@ -484,8 +505,12 @@ function frame(t){requestAnimationFrame(frame);
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
   updateHud();
  }else if(state==='over'&&useTestFiona){
-  // Death clip may continue after gameplay stops; no physics or counters advance.
+  // Death clip continues while gameplay and counters remain frozen.
   testAvatar?.update(dt);
+  if(deathRevealRemaining>0){
+   deathRevealRemaining=Math.max(0,deathRevealRemaining-dt);
+   if(deathRevealRemaining===0)showDeathResult();
+  }
  }
  // Camera follows gently; maintain forward view
  camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);camera.lookAt(runner.position.x*.2,1.05,-5);
