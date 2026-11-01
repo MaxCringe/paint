@@ -1,9 +1,9 @@
 // Shared start and pause menu; game-over results now have a dedicated panel.
 // Continue is visible only when a live run has been paused.
-export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
+export function createGameMenu({onStart,onResume,onPause,onStartTest,haptics,fpsDisplay}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
-  main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings')
+  main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings'),fionaTest:$('menu-fiona-test')
  };
  const tabButtons=Array.from(root.querySelectorAll('[data-help-tab]'));
  const helpPages={pc:$('help-pc'),mobile:$('help-mobile')};
@@ -53,6 +53,24 @@ export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
 
  $('menu-open-help').addEventListener('click',()=>openPage('help'));
  $('menu-open-settings').addEventListener('click',()=>openPage('settings'));
+  $('menu-open-fiona-test').addEventListener('click',()=>openPage('fionaTest'));
+  const testStatus=$('fiona-test-status'),testLaunch=$('fiona-test-launch');
+  testLaunch.addEventListener('click',async()=>{
+    const modelFile=$('fiona-model-file').files?.[0];
+    const runFile=$('fiona-run-file').files?.[0];
+    const jumpFile=$('fiona-jump-file').files?.[0];
+    if(!modelFile||!runFile||!jumpFile){
+      testStatus.textContent='Выбери три FBX: модель, бег и прыжок.';return;
+    }
+    testLaunch.disabled=true;testStatus.textContent='Проверяю модель и анимации…';
+    try{
+      await onStartTest({modelFile,runFile,jumpFile,turn:$('fiona-test-turn').checked});
+      testStatus.textContent='Фиона загружена. Тестовый забег запущен.';
+    }catch(error){
+      console.error('Fiona test load failed',error);
+      testStatus.textContent='Ошибка: '+(error?.message||String(error));
+    }finally{testLaunch.disabled=false;}
+  });
  root.querySelectorAll('[data-menu-back]').forEach(button=>
   button.addEventListener('click',()=>openPage('main')));
  tabButtons.forEach(button=>button.addEventListener('click',()=>helpTab(button.dataset.helpTab)));

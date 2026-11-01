@@ -150,5 +150,12 @@ export function createWitchHatFactory(scene,hats,torso) {
   wearable.visible=active;
   if(active)wearable.rotation.z=Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100;
  }
- return {makeHat,animateHat,animateWearable};
+ // During a test run attach the same hat to the actual animated head.
+ function attachWearableToHead(bone=null){
+  (bone||torso).add(wearable);
+  wearable.position.set(0,bone?0.18:1.46,0);
+  wearable.rotation.set(0,0,0);
+  wearable.scale.setScalar(.66);
+ }
+ return {makeHat,animateHat,animateWearable,attachWearableToHead};
 }

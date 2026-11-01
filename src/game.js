@@ -41,11 +41,11 @@ const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
 
-const { runner, torso, armL, armR, legL, legR, applySlidePose, ultimateAura } = createFiona(scene, mat, box);
+const { runner, torso, armL, armR, legL, legR, applySlidePose, ultimateAura, setClassicVisible } = createFiona(scene, mat, box);
 const obstacles=[], coins=[], hats=[];
 const scarfPickup=createScarfPickup(scene);
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
-const {makeHat,animateHat,animateWearable}=createWitchHatFactory(scene,hats,torso);
+const {makeHat,animateHat,animateWearable,attachWearableToHead}=createWitchHatFactory(scene,hats,torso);
 // One geometry per pine component, reused by every upcoming pine obstacle.
 const knotTrunkGeometry=new THREE.CylinderGeometry(.36,.62,2.55,7);
 const knotNodeGeometry=new THREE.SphereGeometry(1,8,7);
@@ -165,10 +165,34 @@ function updateHud(force=false){
  hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld:scarfPickup.canRevive},force);
 }
 const popToast=message=>hud.toast(message);
+let testAvatar=null,useTestFiona=false;
+function restoreClassicFiona(){
+ useTestFiona=false;
+ attachWearableToHead();
+ testAvatar?.setActive(false);
+ setClassicVisible(true);
+}
+async function startFionaTest(files){
+ const {loadFionaTest}=await import('./player/FionaTest.js');
+ const candidate=await loadFionaTest({runner,...files});
+ // Switch visible geometry only when all model and animation checks have passed.
+ attachWearableToHead();
+ testAvatar?.dispose();
+ testAvatar=candidate;
+ useTestFiona=true;
+ testAvatar.setActive(true);
+ setClassicVisible(false);
+ attachWearableToHead(testAvatar.headBone);
+ start();
+}
+function startFromMenu(){
+ if(state!=='paused')restoreClassicFiona();
+ start();
+}
 function activateUltimate(){broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
 function start(){
  // A restart from pause is still a completed attempt for record purposes.
- if(state==='paused'){
+ if(state==='paused'&&!useTestFiona){
   best=Math.max(best,Math.floor(distance));
   bestSouls=Math.max(bestSouls,coinCount);
   localStorage.setItem('knottyPineBest',best);
@@ -178,9 +202,11 @@ function start(){
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
  audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
-function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
+function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';if(!useTestFiona){best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);}menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
-function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active)doubleJump.jump()}
+function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active){
+  if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump();
+ }}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(state==='playing')togglePause();else if(!menu.escape()&&state==='paused')togglePause();}return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;
  // Holding jump must not consume the second jump through keyboard auto-repeat.
@@ -189,7 +215,7 @@ function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(
 window.addEventListener('keydown',actionKey);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 const {fpsDisplay}=createOverlays();
-const menu=createGameMenu({onStart:start,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
 const gameOver=createGameOver({
  onRevive:()=>{
   if(state!=='over'||!scarfPickup.revive(runner.position))return;
@@ -208,6 +234,7 @@ const gameOver=createGameOver({
  },
  onMainMenu:()=>{
   gameOver.hide();
+  restoreClassicFiona();
   state='ready';
   $('message').textContent='Фиона — ведьма в аду. Беги сквозь сосновый лес, собирай души и избегай ловушек.';
   menu.show('ready');
@@ -315,6 +342,7 @@ function frame(t){requestAnimationFrame(frame);
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   // Anatomical crouch: knees flex, feet stay grounded and hat follows the head.
   applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
+  if(useTestFiona)testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,ultimate:ultActive,speed:travelSpeed});
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z+=travelSpeed*dt;
@@ -429,7 +457,7 @@ function frame(t){requestAnimationFrame(frame);
    const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
     c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
    if(!c.g.userData.got&&(magnetCaught||normalCaught)){
-    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
+    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(!useTestFiona&&coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}

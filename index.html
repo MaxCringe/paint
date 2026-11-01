@@ -36,6 +36,7 @@
    <div class="menu-actions">
     <button id="resume" type="button" class="menu-action menu-primary hidden">ПРОДОЛЖИТЬ</button>
     <button id="start" type="button" class="menu-action menu-primary">НАЧАТЬ ЗАБЕГ</button>
+     <button id="menu-open-fiona-test" type="button" class="menu-action menu-secondary">✦ ТЕСТ НОВОЙ ФИОНЫ · DEV</button>
     <button id="menu-open-help" type="button" class="menu-action menu-secondary">КАК ИГРАТЬ</button>
     <button id="menu-open-settings" type="button" class="menu-action menu-secondary">НАСТРОЙКИ</button>
     <button id="menu-open-effects-editor" type="button" class="menu-action menu-secondary hidden">✦ РЕДАКТОР ЭФФЕКТОВ · DEV</button>
@@ -47,7 +48,21 @@
    </div>
    </div>
   </div>
-  <div id="menu-help" class="menu-page hidden">
+  <div id="menu-fiona-test" class="menu-page hidden">
+    <h2>ТЕСТ НОВОЙ ФИОНЫ</h2>
+    <p class="desc">Новая модель прямо в забеге. Обычный режим и рекорды остаются нетронутыми. Файлы обрабатываются только в браузере.</p>
+    <label class="fiona-test-label" for="fiona-model-file">1. Фиона со скелетом (.fbx)</label>
+    <input class="fiona-test-file" type="file" id="fiona-model-file" accept=".fbx">
+    <label class="fiona-test-label" for="fiona-run-file">2. Бег — Run Forward.fbx</label>
+    <input class="fiona-test-file" type="file" id="fiona-run-file" accept=".fbx">
+    <label class="fiona-test-label" for="fiona-jump-file">3. Прыжок — Jump.fbx</label>
+    <input class="fiona-test-file" type="file" id="fiona-jump-file" accept=".fbx">
+    <label class="fiona-test-label fiona-test-orientation"><input type="checkbox" id="fiona-test-turn" checked> Развернуть модель на 180°</label>
+    <p id="fiona-test-status" role="status" aria-live="polite">Выбери три файла и запусти тест.</p>
+    <button id="fiona-test-launch" type="button" class="menu-action menu-primary">ЗАПУСТИТЬ ТЕСТОВЫЙ ЗАБЕГ</button>
+    <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
+   </div>
+   <div id="menu-help" class="menu-page hidden">
    <h2>КАК ИГРАТЬ</h2>
    <div class="menu-tabs" role="tablist" aria-label="Устройство">
     <button class="menu-tab" data-help-tab="pc" type="button" role="tab" aria-selected="true">ПК</button>

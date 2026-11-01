@@ -229,6 +229,13 @@ export function createFiona(scene, mat, box) {
   }
   runner.position.set(0,0,2.3);
   
+  // Hide only the procedural body's meshes; other VFX remain attached to runner.
+  const originalBodyMeshes=[];
+  for(const part of [skirtPivot,torso,legL,legR])
+    part.traverse(o=>{if(o.isMesh)originalBodyMeshes.push(o)});
+  function setClassicVisible(visible){
+    for(const mesh of originalBodyMeshes)mesh.visible=visible;
+  }
   // Procedural blue-fire glow replaces the former globe shells and nine balls.
   const ultimateAura=createUltimateAura(runner);
   function applySlidePose(amount=0){
@@ -247,5 +254,5 @@ export function createFiona(scene, mat, box) {
     knee.rotation.x=legs.kneePitch;
    }
   }
-  return {runner,torso,armL,armR,legL,legR,applySlidePose,ultimateAura};
+  return {runner,torso,armL,armR,legL,legR,applySlidePose,ultimateAura,setClassicVisible};
 }
