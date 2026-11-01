@@ -1,6 +1,6 @@
 // Live visual-only presets for the real Three.js broom trail.
 export const BROOM_VISUAL_PROFILES=Object.freeze({
- flight:Object.freeze({density:90,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeColor:'#d8c5ec'}),
+ flight:Object.freeze({density:180,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeColor:'#d8c5ec'}),
  landing:Object.freeze({density:150,opacity:70,size:150,length:50,streaks:39,coughs:250,sparks:299,smokeColor:'#d8c5ec'})
 });
 export const BROOM_LANDING_TRANSITION_SECONDS=3;

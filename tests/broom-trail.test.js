@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {broomTrailState} from '../src/powerups/BroomTrail.js';
+import {broomTrailState,broomSputterState} from '../src/powerups/BroomTrail.js';
 import {broomVisualProfile,BROOM_VISUAL_PROFILES,BROOM_LANDING_TRANSITION_SECONDS,BROOM_VISUAL_RANGES,resetBroomTuning} from '../src/powerups/BroomVisualProfiles.js';
 
 test('broom coughs and sparks intensify during the final three seconds',()=>{
@@ -16,6 +16,9 @@ test('broom coughs and sparks intensify during the final three seconds',()=>{
  assert.ok(broomTrailState(.5).fatigue>.8);
  assert.ok(broomTrailState(.5).coughPhase>broomTrailState(2.5).coughPhase);
  assert.ok(broomTrailState(.5).sparkIntensity>broomTrailState(2.5).sparkIntensity);
+ assert.equal(broomTrailState(1.21).stalling,false);
+ assert.equal(broomTrailState(1.2).stalling,true);
+ assert.equal(broomTrailState(0).stallPulse,0);
 });
 
 test('particles use built-in instanced Three.js materials rather than shaders',()=>{
@@ -37,7 +40,7 @@ test('particles use built-in instanced Three.js materials rather than shaders',(
 
 test('approved standard VFX profiles match both complete sets of values',()=>{
  resetBroomTuning();
- assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":90,"opacity":110,"size":150,"length":90,"streaks":95,"coughs":150,"sparks":150,"smokeColor":"#d8c5ec"});
+ assert.deepEqual(BROOM_VISUAL_PROFILES.flight,{"density":180,"opacity":110,"size":150,"length":90,"streaks":95,"coughs":150,"sparks":150,"smokeColor":"#d8c5ec"});
  assert.deepEqual(BROOM_VISUAL_PROFILES.landing,{"density":150,"opacity":70,"size":150,"length":50,"streaks":39,"coughs":250,"sparks":299,"smokeColor":"#d8c5ec"});
  assert.equal(BROOM_LANDING_TRANSITION_SECONDS,3);
  const start=broomVisualProfile(9),beforeLanding=broomVisualProfile(3),end=broomVisualProfile(0);
@@ -84,4 +87,35 @@ test('3D broom workshop stays separate from runner and preserves gameplay mechan
  assert.match(broom,/ultimateSpeedMultiplier: 1\.35/);
  assert.ok(broom.includes('broomIgnoresHazard(type)'));
  assert.doesNotMatch(game,/createBroomTuning|broomEffectSettings/);
+});
+
+test('engine-stall warning is intermittent, deterministic and frame-rate independent',()=>{
+ for(const s of [9,3,1.21,0,-.2,NaN,Infinity]){
+  assert.equal(broomSputterState(s).pulse,0,'no sputter outside final 1.2s: '+s);
+ }
+ const peaks=[1.11,.905,.71,.505,.2825,.145,.0625];
+ const gaps=[1.01,.81,.61,.40,.22,.10,.02];
+ for(const remaining of peaks){
+  const a=broomSputterState(remaining);
+  assert.equal(a.stalling,true);
+  assert.ok(a.pulse>.25,'expected bright beat at '+remaining);
+  assert.deepEqual(a,broomSputterState(remaining));
+ }
+ for(const remaining of gaps){
+  assert.equal(broomSputterState(remaining).pulse,0,'expected dark gap at '+remaining);
+ }
+ assert.equal(broomSputterState(.2825).finalBurst,true);
+ assert.equal(broomSputterState(1.11).finalBurst,false);
+ assert.ok(broomSputterState(.0625).pulse>broomSputterState(1.11).pulse);
+ assert.equal(broomSputterState(0).stalling,false);
+});
+
+test('spark, smoke cough and broom glow share one stall pulse while running model stays untouched',()=>{
+ const fx=readFileSync(new URL('../src/powerups/BroomTrail.js',import.meta.url),'utf8');
+ for(const token of ['const stallBeat=state.stalling?state.stallPulse:1','visual.coughs/100*coughBeat','*stallBeat*sparkBurstSize','1.15*stallBeat']){
+  assert.ok(fx.includes(token),token);
+ }
+ const ride=readFileSync(new URL('../src/powerups/BroomRide.js',import.meta.url),'utf8');
+ assert.match(ride,/duration: 9/);
+ assert.match(ride,/trail\.update\(remaining,t\)/);
 });

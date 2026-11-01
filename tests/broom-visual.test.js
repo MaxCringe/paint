@@ -8,11 +8,11 @@ import {broomTrailState} from '../src/powerups/BroomTrail.js';
 
 test('broom VFX presets are separate and transition smoothly over the final 3s',()=>{
  resetBroomTuning();
- assert.equal(broomVisualProfile(9).density,90);
+ assert.equal(broomVisualProfile(9).density,180);
  assert.equal(broomVisualProfile(3).opacity,110);
  assert.equal(broomVisualProfile(0).opacity,70);
  assert.equal(broomVisualProfile(0).sparks,299);
- assert.equal(broomVisualProfile(1.5).density,(90+150)/2);
+ assert.equal(broomVisualProfile(1.5).density,(180+150)/2);
  assert.equal(broomVisualProfile(9).smokeColor,'#d8c5ec');
 });
 test('3D workshop sliders alter the actual shared particle profiles, with limits',()=>{
@@ -28,10 +28,10 @@ test('3D workshop sliders alter the actual shared particle profiles, with limits
  assert.equal(broomTuningSnapshot().landing.coughs,235);
  assert.equal(broomVisualProfile(0).sparks,400);
  assert.equal(broomVisualProfile(0).smokeColor,'#bdaabb');
- assert.equal(BROOM_VISUAL_PROFILES.flight.density,90);
+ assert.equal(BROOM_VISUAL_PROFILES.flight.density,180);
  assert.equal(broomTuningSnapshot().landing.smokeColor,'#bdaabb');
  resetBroomTuning();
- assert.equal(broomVisualProfile(9).density,90);
+ assert.equal(broomVisualProfile(9).density,180);
 });
 test('closing without saving reverts the workshop tuning',()=>{
  resetBroomTuning();

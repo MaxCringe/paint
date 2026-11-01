@@ -9,16 +9,49 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const fract=v=>v-Math.floor(v);
 const smooth=v=>v*v*(3-2*v);
 
+// A deterministic engine-stall rhythm driven by remaining broom time, not
+// frame count. The last 0.35s contain three short separate "bang" flashes.
+// Every gap is truly dark; the effect stops immediately when power is gone.
+const STALL_START_SECONDS=1.2;
+const SPUTTER_BEATS=Object.freeze([
+ [1.16,1.06,.55],
+ [.96,.85,.63],
+ [.76,.66,.73],
+ [.55,.46,.86],
+ [.315,.25,1.04],
+ [.18,.11,1.13],
+ [.09,.035,1.28]
+]);
+export function broomSputterState(remaining){
+ const seconds=Number.isFinite(remaining)?Math.max(0,remaining):0;
+ const stalling=seconds>0&&seconds<=STALL_START_SECONDS;
+ let pulse=0;
+ if(stalling){
+  for(const [start,end,gain] of SPUTTER_BEATS){
+   if(seconds<start&&seconds>end){
+    const progress=(start-seconds)/(start-end);
+    pulse=gain*Math.pow(Math.sin(Math.PI*progress),.7);
+    break;
+   }
+  }
+ }
+ return {stalling,pulse,finalBurst:stalling&&seconds<=.35};
+}
+
 export function broomTrailState(remaining){
  const seconds=Math.max(0,Number.isFinite(remaining)?remaining:0);
  const active=seconds>0, warning=active&&seconds<=WARN_SECONDS;
  const fatigue=warning?smooth(clamp((WARN_SECONDS-seconds)/WARN_SECONDS,0,1)):0;
  const elapsed=warning?WARN_SECONDS-seconds:0;
+ const sputter=broomSputterState(seconds);
  // Integrated emission phase: coughs accelerate smoothly from 2 to 4 per second.
  return {
   active,warning,fatigue,
   coughPhase:2*elapsed+elapsed*elapsed/3,
-  sparkIntensity:.12+.88*fatigue
+  sparkIntensity:.12+.88*fatigue,
+  stalling:sputter.stalling,
+  stallPulse:sputter.pulse,
+  finalBurst:sputter.finalBurst
  };
 }
 
@@ -124,6 +157,11 @@ export function createBroomTrail(runner,glowTexture){
   const visual=broomVisualProfile(remaining);
   const t=timeMs*.001;
   const fatigue=state.fatigue;
+  // The same beat drives spark size/brightness, smoke coughs and the glowing
+  // bristle tip. Nothing is allocated during the animation frame.
+  const stallBeat=state.stalling?state.stallPulse:1;
+  const coughBeat=state.stalling?stallBeat*(1+.4*stallBeat):1;
+  const sparkBurstSize=state.stalling?1+.85*stallBeat:1;
   const coughOnset=smooth(clamp((WARN_SECONDS-remaining)/.65,0,1));
   const size=visual.size/100;
   const length=visual.length/100;
@@ -147,7 +185,7 @@ export function createBroomTrail(runner,glowTexture){
     const age=fract(phase);
     const envelope=Math.sin(Math.PI*age);
     const radius=state.warning?
-     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size)*visual.coughs/100:0;
+     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size)*visual.coughs/100*coughBeat:0;
     place(wisps.mesh,i,
      .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
      .61+age*.32+Math.cos(j*3.1)*.065,
@@ -181,7 +219,7 @@ export function createBroomTrail(runner,glowTexture){
    const age=state.warning?burstAge:normalAge;
    const visible=state.warning||i<4;
    const life=Math.sin(Math.PI*age)*Math.pow(1-age,.65);
-   const amount=visible?life*(state.warning?.62+.38*fatigue:.32):0;
+   const amount=visible?life*(state.warning?.62+.38*fatigue:.32)*stallBeat*sparkBurstSize:0;
    const spread=state.warning?(.18+1.06*age):(.09+.33*age);
    const w=(.09+(i%4)*.026)*size*amount;
    const h=w*(1.1+(i%3)*.36);
@@ -193,9 +231,11 @@ export function createBroomTrail(runner,glowTexture){
   }
   sparks.mesh.instanceMatrix.needsUpdate=true;
   sparks.material.opacity=Math.min(1,
-   (.31+.69*fatigue)*Math.sqrt(visual.sparks/100));
-  headMaterial.opacity=.28+.21*fatigue+
-   .12*fatigue*Math.max(0,Math.sin(state.coughPhase*Math.PI*2));
+   (.31+.69*fatigue)*Math.sqrt(visual.sparks/100))*
+   (state.stalling?Math.min(1,1.15*stallBeat):1);
+  headMaterial.opacity=(.28+.21*fatigue+
+   .12*fatigue*Math.max(0,Math.sin(state.coughPhase*Math.PI*2)))*
+   (state.stalling?Math.min(1,.04+1.15*stallBeat):1);
   head.scale.set(.51*size*(1+.20*fatigue),.42*size*(1+.20*fatigue),1);
   for(const b of [wisps,streaks,sparks])b.mesh.visible=true;
   head.visible=true;
