@@ -1,5 +1,10 @@
 // Keeps obstacle selection probabilities and spacing decisions outside the frame loop.
 export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
+  // A log requires a crouch while lava requires a jump. Never chain these
+  // incompatible full-width hazards without a generous recovery stretch.
+  const MIN_LAVA_LOG_GAP=48;
+  let lastLavaZ=null,lastLogZ=null;
+  const tooClose=(z,other)=>other!==null&&Math.abs(z-other)<MIN_LAVA_LOG_GAP;
   // Choose at most one pickup, only on a free lane.
   function maybePowerup(freeLanes,z){
    if(!freeLanes.length)return;
@@ -10,9 +15,14 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
   }
   return function makeSegment(z) {
     
-     if(Math.random()<.13){makeLavaRiver(z);return}
-     // Full-width log owns its segment; nothing can be hidden inside it.
-     if(makePineLog&&Math.random()<.10){makePineLog(z);return}
+     if(Math.random()<.13&&!tooClose(z,lastLogZ)){
+      makeLavaRiver(z);lastLavaZ=z;return;
+     }
+     // Keep a safe stretch between full-width logs and lava, including
+     // adjacent generated segments; never place a log inside a river.
+     if(makePineLog&&Math.random()<.10&&!tooClose(z,lastLavaZ)){
+      makePineLog(z);lastLogZ=z;return;
+     }
      if(Math.random()<.88){
       const lane=(Math.random()*3)|0;
       if(Math.random()<.20)makeFish(lane,z);else if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');
