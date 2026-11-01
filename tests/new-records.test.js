@@ -36,6 +36,24 @@ test('second run glows only after strictly exceeding the previous snapshot',()=>
  assert.deepEqual(records.progress(4411,830),{metres:true,souls:true});
 });
 
+test('DEV attempts never consume a first run or highlight a record',()=>{
+ const store=makeStore();
+ const records=createRunRecordTracker({storage:store});
+ records.start(0,0,{practice:true});
+ assert.equal(records.runsStarted,0);
+ assert.deepEqual(records.progress(99999,999),{metres:false,souls:false});
+ assert.equal(store.writes.length,0);
+ records.start(0,0);
+ assert.equal(records.runsStarted,1);
+ assert.deepEqual(records.progress(1000,100),{metres:false,souls:false});
+ records.start(0,0,{practice:true});
+ assert.equal(records.runsStarted,1);
+ assert.deepEqual(records.progress(5000,500),{metres:false,souls:false});
+ records.start(1000,100);
+ assert.equal(records.runsStarted,2);
+ assert.deepEqual(records.progress(1001,101),{metres:true,souls:true});
+ assert.equal(store.writes.length,2);
+});
 test('old players with saved personal records may earn highlights immediately',()=>{
  const store=makeStore();
  const records=createRunRecordTracker({storage:store,bestMetres:4409,bestSouls:828});
@@ -115,6 +133,6 @@ test('new personal record colors only affect distance and souls, not ultimate me
  assert.ok(css.includes('#distance-pill.new-record'));
  assert.ok(css.includes('#souls-pill.new-record'));
  assert.ok(!css.includes('#soul-meter-wrap.new-record'));
- assert.ok(game.includes('runRecords.start(best,bestSouls)'));
+ assert.ok(game.includes('runRecords.start(best,bestSouls,{practice:useTestFiona})'));
  assert.ok(game.includes('runRecords.progress(distance,coinCount)'));
 });

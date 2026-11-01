@@ -42,8 +42,8 @@ test('pickup, independent revival screen and disabled advertisements are wired',
  assert.match(game,/onRetry:\(\)=>\{/);
 });
 
-test('temporary abundant test pickups are per segment and rarity can be restored',()=>{
- assert.equal(SCARF_TEST_MODE,true);
+test('release rarity is restored and abundant pickups disabled',()=>{
+ assert.equal(SCARF_TEST_MODE,false);
  assert.ok(SCARF_TEST_SPAWN_CHANCE>=.075&&SCARF_TEST_SPAWN_CHANCE<=1);
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
  const game=read('src/game.js'),scarf=read('src/powerups/ScarfPickup.js');

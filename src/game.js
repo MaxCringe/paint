@@ -161,7 +161,7 @@ const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
 let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(localStorage.getItem('knottyPineBestSouls')||0);hud.setRecords(best,bestSouls);
 const runRecords=createRunRecordTracker({storage:localStorage,bestMetres:best,bestSouls});
 function updateHud(force=false){
- hud.setRecordHighlights(runRecords.progress(distance,coinCount));
+ hud.setRecordHighlights(useTestFiona?{metres:false,souls:false}:runRecords.progress(distance,coinCount));
  hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld:scarfPickup.canRevive},force);
 }
 const popToast=message=>hud.toast(message);
@@ -201,7 +201,7 @@ function start(){
   localStorage.setItem('knottyPineBestSouls',bestSouls);
   hud.setRecords(best,bestSouls);
  }
- runRecords.start(best,bestSouls);
+ runRecords.start(best,bestSouls,{practice:useTestFiona});
  hud.setRecordHighlights({metres:false,souls:false});
  audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function end(reason='other'){if(useTestFiona)testAvatar?.die(reason);broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';if(!useTestFiona){best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);}menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
@@ -339,13 +339,19 @@ function frame(t){requestAnimationFrame(frame);
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
   runner.rotation.x=ultActive?-.12:0;
   ultimateAura.update(t,ultActive);
-  const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
-  // The waist, arms and legs flex naturally while the full-size broom remains level.
-  broom.applyPose(broomDuck);
-  torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
-  // Anatomical crouch: knees flex, feet stay grounded and hat follows the head.
-  applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
-  if(useTestFiona)testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultActive,slip:slipT>0,speed:travelSpeed});
+  if(useTestFiona){
+   // The old Fiona is hidden. Its joints need no per-frame animation,
+   // while broom visuals, obstacles and collisions keep updating normally.
+   testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultActive,slip:slipT>0,speed:travelSpeed});
+  }else{
+   const run=t*.012*travelSpeed/15;
+   armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;
+   legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
+   // Preserve exact normal-run broom and anatomical slide poses.
+   broom.applyPose(broomDuck);
+   torso.rotation.z=((lane-1)*2.55-runner.position.x)*-.05;
+   applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
+  }
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z+=travelSpeed*dt;

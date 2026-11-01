@@ -13,12 +13,15 @@ export function createRunRecordTracker({storage,bestMetres=0,bestSouls=0}={}){
  let runs=read();
  let baselineMetres=score(bestMetres),baselineSouls=score(bestSouls);
  let eligible=false,metres=false,souls=false;
- function start(previousMetres,previousSouls){
+ function start(previousMetres,previousSouls,{practice=false}={}){
   baselineMetres=score(previousMetres);
   baselineSouls=score(previousSouls);
-  eligible=runs>0;  // First ever run only establishes the initial record.
-  runs++;
-  try{storage?.setItem(key,String(runs));}catch{}
+  // DEV tests never count toward attempts or earn record highlights.
+  eligible=!practice&&runs>0;
+  if(!practice){
+   runs++;
+   try{storage?.setItem(key,String(runs));}catch{}
+  }
   metres=false;souls=false;
   return status();
  }

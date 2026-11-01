@@ -1,7 +1,7 @@
 // Misty Day scarf: fixed 3 km opportunities and one revival per attempt.
 export const SCARF_INTERVAL_METRES=3000;
-// TEMPORARY: set false for rare 3000m pickups after testing.
-export const SCARF_TEST_MODE=true;
+// Release rarity: 3000-metre opportunities; the plentiful debug mode stays disabled.
+export const SCARF_TEST_MODE=false;
 export const SCARF_TEST_SPAWN_CHANCE=.22; // Probability per generated section (hat-like).
 export const REVIVAL_PROTECTION_SECONDS=3;
 export function createScarfRules(){
