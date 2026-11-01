@@ -115,14 +115,15 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const has=names.has(slot.id);
       button.disabled=!has;
       button.classList.toggle('fiona-test-preview-loaded',has);
-      const isImported=importedIds.has(slot.id);
+      const isImported=importedIds.has(slot.id)||
+        (slot.id==='hitTree'&&importedIds.has('treeDeath'));
       const passive=slot.id==='soulPickup';
       button.title=passive?'Сбор душ не прерывает бег':has?(isImported?'FBX: '+slot.label:'Python/NumPy: '+slot.label):'Анимация пока недоступна';
       button.textContent=slot.label+(passive?' · без анимации':isImported?' · FBX':prototypeIds.has(slot.id)?' · Python':'');
       if(has)count++;
     }
     previewPanel.dataset.fbxImported=String(importedFiles.length);
-    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/6 ('+
+    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/7 ('+
       importedFiles.map(r=>r.file+' → '+r.sourceClip+': '+r.boneCount+' костей; доступные клипы ['+
         r.allClips.map(c=>c.name+':'+c.duration+'с').join(', ')+']').join('; ')+'). '+
       'Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
@@ -135,7 +136,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const resolved=await resolveFionaAssets({modelFile});
       const avatar=await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
       testStatus.textContent='Тест запущен: модель '+(resolved.origin==='website'?'из GitHub':'с компьютера')+
-        ', FBX '+avatar.importedFiles.length+'/6, полёт — Python, души — без анимации.'+
+        ', FBX '+avatar.importedFiles.length+'/7, полёт — Python, души — без анимации.'+
         (avatar.importErrors.length?' Ошибки: '+avatar.importErrors.join(' | '):'');
     }catch(error){
       console.error('Fiona test load failed',error);

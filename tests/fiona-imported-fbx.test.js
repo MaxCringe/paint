@@ -4,13 +4,14 @@ import * as THREE from 'three';
 import {FIONA_FBX_FILES,fionaBoneKey,retargetFionaFBXClip} from '../src/player/FionaImportedFBX.js';
 
 const joints=['Hips','Spine','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm'];
-test('six imported FBX clips distinguish ground slide and fish death',()=>{
+test('seven FBX clips keep dedicated tree and fish deaths separate',()=>{
  assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),[
   'Fast Run.fbx','Running Jump.fbx','Edge Slip.fbx',
-  'Standing React Death Right.fbx','Stumble Backwards.fbx','Crouched To Sprinting.fbx'
+  'Standing React Death Right.fbx','Stumble Backwards.fbx',
+  'Crouched To Sprinting.fbx','Hit On Legs.fbx'
  ]);
  assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),
-  ['run','jump','slip','death','fishDeath','slide']);
+  ['run','jump','slip','death','fishDeath','slide','treeDeath']);
  assert.equal(fionaBoneKey('mixamorig:Hips'),'hips');
  assert.equal(fionaBoneKey('Armature|mixamorig:LeftArm'),'leftarm');
 });
@@ -100,4 +101,21 @@ test('ground-only log crouch uses a nonlooping FBX and never changes broom pose'
  assert.ok(controller.includes("jumping?airborneSlot:sliding?'slide':slip?'slip':'run'"));
  assert.ok(game.includes("if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne)"));
  assert.ok(game.includes("const jumping=!ultActive&&!broom.active&&doubleJump.airborne, sliding=!ultActive&&!broom.active&&slideAction.active"));
+});
+
+test('pine tree collision plays Hit On Legs as its entire death, not the general death',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+ const player=read('src/player/FionaTest.js'),game=read('src/game.js');
+ const ui=read('src/ui/GameMenu.js');
+ assert.ok(player.includes("treeDeath:'treeDeathFBX'"));
+ assert.ok(player.includes("id==='hitTree'||id==='treeDeath'"));
+ assert.ok(player.includes("const isPine=reason==='tree'&&actions.has('treeDeathFBX')"));
+ assert.ok(player.includes("awaitingDeath=!isFish&&!isPine&&reason==='tree'"));
+ assert.ok(player.includes("const motion=isFish?'fishDeath':isPine?'treeDeath'"));
+ assert.ok(ui.includes("slot.id==='hitTree'&&importedIds.has('treeDeath')"));
+ assert.ok(game.includes("end('tree')"));
+ assert.ok(game.includes("testAvatar?.die(reason,{onBroom:broom.active})"));
+ assert.ok(player.includes("if(onBroom&&reason==='tree')"));
+ assert.ok(game.includes("deathRevealRemaining=useTestFiona&&clipDuration>0"));
 });

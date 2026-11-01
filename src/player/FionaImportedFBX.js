@@ -9,7 +9,8 @@ export const FIONA_FBX_FILES=Object.freeze([
  {id:'slip',file:'Edge Slip.fbx',action:'slipFBX'},
  {id:'death',file:'Standing React Death Right.fbx',action:'deathFBX'},
  {id:'fishDeath',file:'Stumble Backwards.fbx',action:'fishDeathFBX'},
- {id:'slide',file:'Crouched To Sprinting.fbx',action:'slideFBX'}
+ {id:'slide',file:'Crouched To Sprinting.fbx',action:'slideFBX'},
+ {id:'treeDeath',file:'Hit On Legs.fbx',action:'treeDeathFBX'}
 ]);
 const URL='/models/fiona/animations/fbx/';
 const MIN_MAJOR_JOINTS=4;

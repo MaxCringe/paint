@@ -33,7 +33,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const importResult=await loadFionaFBXClips(bones);
  for(const [id,clip] of importResult.clips){
   const name={run:'runFBX',jump:'jumpFBX',slip:'slipFBX',
-   death:'deathFBX',fishDeath:'fishDeathFBX',slide:'slideFBX'}[id];
+   death:'deathFBX',fishDeath:'fishDeathFBX',slide:'slideFBX',
+   treeDeath:'treeDeathFBX'}[id];
   if(name)clips.set(name,clip);
  }
  const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
@@ -72,6 +73,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX';
   if(id==='death'&&actions.has('deathFBX'))return 'deathFBX';
   if(id==='fishDeath'&&actions.has('fishDeathFBX'))return 'fishDeathFBX';
+  // Existing "Удар о дерево" preview now shows the full, standalone pine death.
+  if((id==='hitTree'||id==='treeDeath')&&actions.has('treeDeathFBX'))
+   return 'treeDeathFBX';
   if(actions.has(id))return id;
   if(id==='doubleJump'&&actions.has('jump'))return 'jump';
   if(id==='broomDuck'&&actions.has('broomFly'))return 'broomFly';
@@ -143,7 +147,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    runFBX:'Fast Run.fbx',jumpFBX:'Running Jump.fbx',
    slipFBX:'Edge Slip.fbx',deathFBX:'Standing React Death Right.fbx',
    fishDeathFBX:'Stumble Backwards.fbx',
-   slideFBX:'Crouched To Sprinting.fbx'
+   slideFBX:'Crouched To Sprinting.fbx',
+   treeDeathFBX:'Hit On Legs.fbx'
   };
   const source=filenames[selected]||null;
   return {ok:true,message:'Просмотр: '+(SLOTS.get(id)?.label||'Смерть от рыбы')+
@@ -159,13 +164,16 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    mixer.timeScale=0;
    return 0;
   }
-  // Fish has its own complete death animation. Do not chain generic death.
+  // Fish and grounded pine impacts each have their OWN final death FBX.
+  // Only the old Python tree-hit fallback chains into generic death.
   const isFish=reason==='fish'&&actions.has('fishDeathFBX');
-  awaitingDeath=!isFish&&reason==='tree'&&actions.has('hitTree')&&actions.has('death');
-  const motion=isFish?'fishDeath':reason==='tree'&&actions.has('hitTree')?'hitTree':'death';
+  const isPine=reason==='tree'&&actions.has('treeDeathFBX');
+  awaitingDeath=!isFish&&!isPine&&reason==='tree'&&
+   actions.has('hitTree')&&actions.has('death');
+  const motion=isFish?'fishDeath':isPine?'treeDeath':
+   reason==='tree'&&actions.has('hitTree')?'hitTree':'death';
   play(motion,{force:true,once:true});
   const duration=actions.get(resolve(motion))?.getClip().duration||0;
-  // Tree hit chains into generic death; fish never chains into generic death.
   return awaitingDeath?duration+(actions.get(resolve('death'))?.getClip().duration||0):duration;
  }
  mixer.addEventListener('finished',event=>{
