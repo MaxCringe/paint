@@ -3,7 +3,7 @@ import {broomVisualProfile} from './BroomVisualProfiles.js';
 
 // WebGL-compatible magical-wisp / spark-burst preset, adapted for KNOTTY PINE.
 // A light, fast-moving wake in flight; distinct "cough" puffs and amber sparks
-// during the last three seconds. No imported assets or runtime allocations.
+// during the last three seconds. No imported assets or per-frame meshes.
 const WARN_SECONDS=3;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const fract=v=>v-Math.floor(v);
@@ -18,7 +18,7 @@ export function broomTrailState(remaining){
  return {
   active,warning,fatigue,
   coughPhase:2*elapsed+elapsed*elapsed/3,
-  sparkIntensity:warning?.35+.65*fatigue:.12
+  sparkIntensity:.12+.88*fatigue
  };
 }
 
@@ -124,6 +124,7 @@ export function createBroomTrail(runner,glowTexture){
   const visual=broomVisualProfile(remaining);
   const t=timeMs*.001;
   const fatigue=state.fatigue;
+  const coughOnset=smooth(clamp((WARN_SECONDS-remaining)/.65,0,1));
   const size=visual.size/100;
   const length=visual.length/100;
   // The ordinary trail is airy: sparse moving filaments + faint translucent wisps.
@@ -146,7 +147,7 @@ export function createBroomTrail(runner,glowTexture){
     const age=fract(phase);
     const envelope=Math.sin(Math.PI*age);
     const radius=state.warning?
-     (.24+.51*age)*envelope*(.68+.32*fatigue)*Math.max(.72,size):0;
+     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size):0;
     place(wisps.mesh,i,
      .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
      .61+age*.32+Math.cos(j*3.1)*.065,
@@ -155,7 +156,7 @@ export function createBroomTrail(runner,glowTexture){
    }
   }
   wisps.mesh.instanceMatrix.needsUpdate=true;
-  wisps.material.opacity=state.warning?.34+.22*fatigue:.37*visual.opacity/100;
+  wisps.material.opacity=.37*visual.opacity/100+.19*fatigue;
   // Slender magical airflow streaks replace the old thick persistent smoke.
   for(let i=0;i<STREAKS;i++){
    const age=fract((i+.4)/STREAKS+t*(.29+(i%3)*.034));
@@ -191,9 +192,9 @@ export function createBroomTrail(runner,glowTexture){
   }
   sparks.mesh.instanceMatrix.needsUpdate=true;
   sparks.material.opacity=Math.min(1,
-   (state.warning?.66+.34*fatigue:.31)*Math.sqrt(visual.sparks/100));
-  headMaterial.opacity=(state.warning?.28+.25*fatigue:.28)*
-   (state.warning?.7+.3*Math.max(0,Math.sin(state.coughPhase*Math.PI*2)) :1);
+   (.31+.69*fatigue)*Math.sqrt(visual.sparks/100));
+  headMaterial.opacity=.28+.21*fatigue+
+   .12*fatigue*Math.max(0,Math.sin(state.coughPhase*Math.PI*2));
   head.scale.set(.51*size*(1+.20*fatigue),.42*size*(1+.20*fatigue),1);
   for(const b of [wisps,streaks,sparks])b.mesh.visible=true;
   head.visible=true;
