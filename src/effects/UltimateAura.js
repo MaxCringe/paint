@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from './EffectVisualProfiles.js';
 
 // Visual-only effect; disabling this module leaves the ultimate's gameplay intact.
 export const ULT_AURA_ENABLED = true;
@@ -87,6 +88,7 @@ export function createUltimateAura(runner) {
    blending:THREE.AdditiveBlending,depthWrite:false,depthTest:true,
    side:THREE.DoubleSide
   });
+  material.userData.baseOpacity=opacity;
   const plane=new THREE.Mesh(geometry,material);
   plane.position.set(0,y,z);
   plane.scale.set(width,height,1);
@@ -105,7 +107,15 @@ export function createUltimateAura(runner) {
  group.add(blueLight);
  function update(timeMs,active){
   group.visible=!!active;
-  if(active)clock.value=timeMs*.001*ULT_AURA_STYLE.animationSpeed;
+  if(!active)return;
+  const v=getEffectVisualProfile('ultimate');
+  clock.value=timeMs*.001*ULT_AURA_STYLE.animationSpeed*v.flameSpeed/100;
+  colors.uOuterBlue.value.set(v.outerColor);
+  colors.uInnerBlue.value.set(v.innerColor);
+  for(const material of materials)
+   material.uniforms.uOpacity.value=material.userData.baseOpacity*ULT_AURA_STYLE.intensity*v.intensity/100;
+  blueLight.color.set(v.outerColor);
+  blueLight.intensity=v.lightIntensity/100;
  }
  function reset(){group.visible=false;}
  function dispose(){

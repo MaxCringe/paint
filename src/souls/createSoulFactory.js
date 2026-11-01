@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 import { buildSoulFlameGeometry } from './buildSoulFlameGeometry.js';
 
 // Create collectible soul flames. Their values are still added to the shared coin registry.
@@ -14,6 +15,16 @@ export function createSoulFactory(scene, coins) {
   const soulSparkGeometry=new THREE.IcosahedronGeometry(.033,0);
   
   
+  function updateVisuals(){
+   const v=getEffectVisualProfile('souls');
+   soulOuterMaterial.opacity=v.outerOpacity/100;
+   soulInnerMaterial.opacity=v.innerOpacity/100;
+   soulAuraMaterial.opacity=v.haloOpacity/100;
+   soulAuraMaterial.color.set(v.haloColor);
+   for(const coin of coins){
+    for(const spark of coin.sparks)spark.mesh.scale.setScalar(spark.baseSize*v.sparkSize/100);
+   }
+  }
   function makeSoul(lane,z,y=1.2){
    const g=new THREE.Group();
    g.position.set((lane-1)*2.55,y,z);
@@ -46,7 +57,8 @@ export function createSoulFactory(scene, coins) {
     const mesh=new THREE.Mesh(soulSparkGeometry,soulSparkMaterials[i% soulSparkMaterials.length]);
     const s={mesh,x:(Math.random()-.5)*.65,y:.08+Math.random()*.78,z:(Math.random()-.5)*.26,phase:Math.random()*Math.PI*2};
     mesh.position.set(s.x,s.y,s.z);
-    mesh.scale.setScalar(.55+Math.random()*.8);
+    s.baseSize=.55+Math.random()*.8;
+    mesh.scale.setScalar(s.baseSize);
     g.add(mesh);
     sparks.push(s);
    }
@@ -59,6 +71,8 @@ export function createSoulFactory(scene, coins) {
     for(const mesh of [aura,outer,inner,side])mesh.geometry.dispose();
    };
    coins.push({g,lane,z,got:false,baseY:y,phase,flames:[outer,inner,side],aura,sparks});
+   updateVisuals();
   }
+  makeSoul.updateVisuals=updateVisuals;
   return makeSoul;
 }

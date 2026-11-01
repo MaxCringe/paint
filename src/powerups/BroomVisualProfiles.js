@@ -25,7 +25,8 @@ function sanitizeMode(mode,values){
 }
 function loadSaved(){
  try{
-  const saved=JSON.parse(localStorage.getItem(BROOM_TUNING_STORAGE_KEY)||'null');
+  const saved=import.meta.env?.VITE_ENABLE_EFFECT_EDITOR==='false'
+   ?null:JSON.parse(localStorage.getItem(BROOM_TUNING_STORAGE_KEY)||'null');
   if(saved&&typeof saved==='object')
    return Object.fromEntries(modes.map(m=>[m,sanitizeMode(m,saved[m])]));
  }catch{}

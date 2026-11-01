@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 
 // Pickup-only aura settings; opacity is a 0–1 value (88% = 10% brighter than 80%).
 const PICKUP_GLOW_COLOR=0xb59ae5;
@@ -124,12 +125,17 @@ export function createWitchHatFactory(scene,hats,torso) {
   h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10;
   h.visual.rotation.y=t*.0018+h.phase;
   h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065;
-  const pulse=Math.sin(t*.004+h.phase);
-  h.glow.scale.set(2.75*(1+pulse*.065),2.55*(1+pulse*.065),1);
+  const v=getEffectVisualProfile('hat');
+  glowMat.color.set(v.glowColor);
+  glowMat.opacity=v.glowOpacity/100;
+  h.visual.position.y=.74+Math.sin(t*.003+h.phase)*.10*(v.bobHeight/100-1);
+  h.visual.rotation.z=Math.sin(t*.002+h.phase)*.065*v.wobble/100;
+  const pulse=Math.sin(t*.004+h.phase),size=v.glowSize/100;
+  h.glow.scale.set(2.75*size*(1+pulse*.065),2.55*size*(1+pulse*.065),1);
  }
  function animateWearable(t,active){
   wearable.visible=active;
-  if(active)wearable.rotation.z=Math.sin(t*.004)*.035;
+  if(active)wearable.rotation.z=Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100;
  }
  return {makeHat,animateHat,animateWearable};
 }

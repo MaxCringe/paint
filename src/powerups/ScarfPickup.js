@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 import {createScarfRules,SCARF_TEST_MODE,SCARF_TEST_SPAWN_CHANCE} from '../systems/ScarfRules.js';
 import {createScarfModelFactory} from './ScarfModel.js';
 
@@ -21,9 +22,10 @@ export function createScarfPickup(scene){
  function clearBurst(){if(burstEffect){scene.remove(burstEffect.sprite);burstEffect.material.dispose()}burstEffect=null}
  function burst(position){
   clearBurst();
-  const material=aura.clone();material.depthTest=false;material.opacity=.95;
+  const v=getEffectVisualProfile('scarf');
+  const material=aura.clone();material.depthTest=false;material.opacity=v.burstOpacity/100;
   const sprite=new THREE.Sprite(material);
-  sprite.position.set(position.x,position.y+1.45,position.z);sprite.scale.set(2.5,2.5,1);
+  sprite.position.set(position.x,position.y+1.45,position.z);sprite.scale.setScalar(2.5*v.burstSize/100);
   scene.add(sprite);burstEffect={sprite,material,timer:.65};
  }
  function reset(){clearPickup();clearBurst();rules.reset();firstTestOffer=true}
@@ -55,23 +57,27 @@ export function createScarfPickup(scene){
   }
  }
  function update(dt,t,speed,lane,runnerX,onCollect){
+  const v=getEffectVisualProfile('scarf');
+  aura.color.set(v.glowColor);
+  aura.opacity=v.glowOpacity/100;
   if(burstEffect){
    burstEffect.timer-=dt;
    const r=Math.max(0,burstEffect.timer/.65);
-   burstEffect.material.opacity=r*.95;
-   burstEffect.sprite.scale.setScalar(2.5+(1-r)*2);
+   burstEffect.material.opacity=r*v.burstOpacity/100;
+   burstEffect.material.color.set(v.glowColor);
+   burstEffect.sprite.scale.setScalar((2.5+(1-r)*2)*v.burstSize/100);
    if(burstEffect.timer<=0)clearBurst();
   }
   if(!pickup)return;
   const p=pickup;
   p.group.position.z+=speed*dt;
-  p.visual.position.y=1.68+Math.sin(t*.0035+p.phase)*.14;
+  p.visual.position.y=1.68+Math.sin(t*.0035+p.phase)*.14*v.floatHeight/100;
   // A full, continuous 360-degree rotation, not the old back-and-forth sway.
   p.visual.rotation.y=t*.0015+p.phase;
   p.visual.rotation.x=Math.sin(t*.0017+p.phase)*.075;
   p.visual.rotation.z=Math.sin(t*.0028+p.phase)*.065;
   const scale=1+Math.sin(t*.006+p.phase)*.08;
-  p.halo.scale.set(3.5*scale,3.1*scale,1);
+  p.halo.scale.set(3.5*scale*v.glowSize/100,3.1*scale*v.glowSize/100,1);
   if(p.group.position.z>=1&&p.group.position.z<=3.8&&p.lane===lane&&Math.abs(runnerX-(lane-1)*2.55)<1.05){
    if(rules.collect()){burst({x:p.group.position.x,y:0,z:p.group.position.z});onCollect?.()}
    clearPickup();
