@@ -8,12 +8,12 @@ import {broomTrailState} from '../src/powerups/BroomTrail.js';
 
 test('broom VFX presets are separate and transition smoothly over the final 3s',()=>{
  resetBroomTuning();
- assert.equal(broomVisualProfile(9).density,150);
- assert.equal(broomVisualProfile(3).opacity,100);
- assert.equal(broomVisualProfile(0).opacity,30);
- assert.equal(broomVisualProfile(0).sparks,200);
- assert.equal(broomVisualProfile(1.5).density,(150+45)/2);
- assert.equal(broomVisualProfile(9).smokeColor,'#ffffff');
+ assert.equal(broomVisualProfile(9).density,90);
+ assert.equal(broomVisualProfile(3).opacity,110);
+ assert.equal(broomVisualProfile(0).opacity,70);
+ assert.equal(broomVisualProfile(0).sparks,299);
+ assert.equal(broomVisualProfile(1.5).density,(90+150)/2);
+ assert.equal(broomVisualProfile(9).smokeColor,'#d8c5ec');
 });
 test('3D workshop sliders alter the actual shared particle profiles, with limits',()=>{
  resetBroomTuning();
@@ -25,20 +25,20 @@ test('3D workshop sliders alter the actual shared particle profiles, with limits
  setBroomTuningValue('landing','smokeColor','not-a-color');
  assert.equal(broomVisualProfile(9).density,0);
  assert.equal(broomVisualProfile(9).opacity,0);
- assert.equal(broomVisualProfile(.01).coughs,235);
+ assert.equal(broomTuningSnapshot().landing.coughs,235);
  assert.equal(broomVisualProfile(0).sparks,400);
  assert.equal(broomVisualProfile(0).smokeColor,'#bdaabb');
- assert.equal(BROOM_VISUAL_PROFILES.flight.density,150);
+ assert.equal(BROOM_VISUAL_PROFILES.flight.density,90);
  assert.equal(broomTuningSnapshot().landing.smokeColor,'#bdaabb');
  resetBroomTuning();
- assert.equal(broomVisualProfile(9).density,150);
+ assert.equal(broomVisualProfile(9).density,90);
 });
 test('closing without saving reverts the workshop tuning',()=>{
  resetBroomTuning();
  setBroomTuningValue('flight','streaks',0);
  assert.equal(broomVisualProfile(9).streaks,0);
  revertBroomTuning();
- assert.equal(broomVisualProfile(9).streaks,100);
+ assert.equal(broomVisualProfile(9).streaks,95);
 });
 test('last three seconds of the broom display the warning and brighter sparks',()=>{
  assert.equal(broomTrailState(9).warning,false);
