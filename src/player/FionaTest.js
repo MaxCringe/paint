@@ -149,9 +149,16 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   return {ok:true,message:'Просмотр: '+(SLOTS.get(id)?.label||'Смерть от рыбы')+
    (source?' — '+source:' — Python/NumPy')+'. Физика забега не меняется.'};
  }
- function die(reason='other'){
+ function die(reason='other',{onBroom=false}={}){
   if(!active)return 0;
   dead=true;manualSlot=null;manualSeconds=0;oneShot=null;
+  if(onBroom&&reason==='tree'){
+   // Ground-only tree-hit/death clips must never play during broom flight.
+   // Keep the last airborne pose and end the run without a running reaction.
+   awaitingDeath=false;
+   mixer.timeScale=0;
+   return 0;
+  }
   // Fish has its own complete death animation. Do not chain generic death.
   const isFish=reason==='fish'&&actions.has('fishDeathFBX');
   awaitingDeath=!isFish&&reason==='tree'&&actions.has('hitTree')&&actions.has('death');
@@ -189,6 +196,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    :'Старый бег: исходные Python-повороты, сохранён для сравнения.'};
  }
  function reset(){
+  mixer.timeScale=1; // Resume animations after a broom collision.
   dead=false;awaitingDeath=false;manualSlot=null;manualSeconds=0;
   oneShot=null;baseState='run';airborneSlot='jump';
   previous={jumping:false,sliding:false,broom:false,ultimate:false};
