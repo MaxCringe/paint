@@ -133,7 +133,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  function trigger(id){
   // Souls are absorbed passively; never interrupt running, jumping or flight.
   // Guard this at the animation-controller layer as well as in game.js.
-  if(id==='soulPickup'||id==='hatPickup')return false;
+  if(id==='soulPickup'||id==='hatPickup'||id==='scarfPickup')return false;
   // Lane changes are lateral movement, not standalone one-shot clips.
   // A clamped moveLeft/moveRight clip freezes Fiona mid-stride until the
   // base state changes. Keep the current run/flight/jump animation playing.
