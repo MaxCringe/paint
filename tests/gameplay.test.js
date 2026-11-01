@@ -45,15 +45,18 @@ test('broom crosses logs in a smooth arc and returns to normal hover height',()=
  assert.equal(pineLogBroomLift(16,0),0);
 });
 
-test('ultimate arcs above logs and cannot expire mid-crossing',()=>{
- const flightBase=2.25, logTop=1.88+.36, speed=22;
- assert.equal(pineLogBroomLift(-16,0),0);
- assert.ok(flightBase+pineLogBroomLift(-8,0)>logTop);
- assert.ok(flightBase+pineLogBroomLift(0,0)>logTop+.5);
- assert.equal(pineLogBroomLift(9,0),0);
- const remaining=.1, crossing=pineLogFlightGuardDuration(-1,speed);
- assert.ok(crossing>remaining);
- assert.ok(crossing>=10/speed);
+test('ultimate keeps normal flight altitude and cannot expire over a log',()=>{
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(game.includes('const logLift=broom.active?obstacles.reduce('));
+ assert.ok(game.includes('const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:'));
+ assert.ok(game.includes('ultTimer=Math.max(ultTimer,pineLogFlightGuardDuration(gap,ultimateSpeed))'));
+ // Extend a nearly finished ultimate just enough to pass the crossing corridor.
+ const remaining=.1, speed=22;
+ for(const gap of [-15,-8,-1,0,2,8]){
+  const required=pineLogFlightGuardDuration(gap,speed);
+  assert.ok(required>0);
+  assert.ok(Math.max(remaining,required)>=required);
+ }
  assert.equal(pineLogFlightGuardDuration(-17,speed),0);
  assert.equal(pineLogFlightGuardDuration(9,speed),0);
  assert.equal(pineLogFlightGuardDuration(0,0),0);

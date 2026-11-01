@@ -292,10 +292,10 @@ function frame(t){requestAnimationFrame(frame);
     footstepTimer-=dt;
     if(footstepTimer<=0){audio.play('step');footstepTimer=Math.max(.24,.42*15/speed)}
    }else footstepTimer=.12;
-   // Both broom and ultimate arc ABOVE pine logs instead of clipping through them.
-   const logLift=(ultActive||broom.active)?obstacles.reduce((lift,o)=>
+   // Only the low broom climbs over logs; ultimate keeps its normal flight height.
+   const logLift=broom.active?obstacles.reduce((lift,o)=>
     o.type==='pineLog'?Math.max(lift,pineLogBroomLift(o.g.position.z,runner.position.z)):lift,0):0;
-   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14+logLift:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
+   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);

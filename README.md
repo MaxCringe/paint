@@ -57,7 +57,7 @@ Run `npm test` to check jump, broom, lava collision and speed rules plus the two
 ## Current mechanics
 
 - Three-lane endless runner with pine-tree obstacles
-- Suspended pine logs block all three lanes: slide to pass underneath; broom and ultimate flight automatically rise over the log and finish crossing before descending, while upright trees remain dangerous.
+- Suspended pine logs block all three lanes: slide to pass underneath; the broom climbs over the log, while ultimate flight keeps its normal height and is extended only if necessary to finish crossing safely. Upright trees remain dangerous.
 - Slippery cat-urine puddles and occasional fish obstacles
 - Collectible blue soul flames
 - Ultimate flight activates after collecting 100 souls
