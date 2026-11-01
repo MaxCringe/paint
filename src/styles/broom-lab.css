@@ -1,0 +1,90 @@
+/* Temporary 3D broom VFX workshop — ash/copper aesthetic. */
+#broom-lab{
+ position:fixed;inset:0;z-index:60;display:grid;place-items:center;
+ padding:clamp(10px,2vw,26px);color:#f5e8d8;text-shadow:none;
+ background:rgba(12,7,13,.90);font-family:Inter,system-ui,sans-serif;
+ pointer-events:auto;
+}
+#broom-lab.hidden{display:none!important}
+.broom-lab-shell{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,385px);
+ grid-template-rows:auto minmax(0,1fr);gap:14px;
+ width:min(1160px,100%);height:min(820px,96dvh);min-height:0;
+ padding:18px;background:#1b151c;
+ border:1px solid #80565e;border-radius:18px;
+ box-shadow:0 26px 90px #000d,0 0 0 1px #e8b47716 inset;
+}
+.broom-lab-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.broom-lab-eyebrow{display:block;color:#e8b477;font-size:10px;font-weight:850;letter-spacing:.15em}
+.broom-lab-head h2{margin:6px 0 0;font-size:clamp(15px,2vw,25px);letter-spacing:.045em}
+#broom-lab button{min-width:0;box-shadow:none;transform:none;border:1px solid #80565e;
+ background:#382831;color:#f5e8d8;border-radius:11px;touch-action:manipulation;
+ font-size:12px;font-weight:800;letter-spacing:.025em;padding:10px 13px}
+#broom-lab button:hover{background:#513b45}
+#broom-lab button:focus-visible,
+#broom-lab input:focus-visible{outline:2px solid #e8b477;outline-offset:3px}
+#broom-lab .broom-lab-close{width:42px;height:42px;padding:0;font-size:19px;flex:0 0 auto}
+.broom-lab-stage{
+ position:relative;min-height:0;overflow:hidden;
+ border:1px solid #6a4b5d;border-radius:13px;
+ background:radial-gradient(ellipse at 50% 45%,#543145,#180e1b 73%);
+}
+#broom-lab-preview{position:absolute;inset:0}
+#broom-lab-preview canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#broom-lab-preview canvas:active{cursor:grabbing}
+.broom-lab-stage-label{
+ position:absolute;top:11px;left:10px;right:10px;
+ font-size:10px;letter-spacing:.055em;font-weight:750;color:#e1c9d2;
+ text-align:center;pointer-events:none;background:#21131bb5;
+ padding:8px 6px;border-radius:8px
+}
+.broom-lab-preview-bar{
+ position:absolute;left:12px;right:12px;bottom:12px;
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ background:#211620d9;padding:10px 12px;border:1px solid #e8b47740;
+ border-radius:10px;pointer-events:none;font-size:11px;font-weight:800;
+ letter-spacing:.06em
+}
+#broom-lab-remaining{font-size:20px;color:#e8b477;font-variant-numeric:tabular-nums}
+.broom-lab-controls{
+ min-height:0;overflow-y:auto;overscroll-behavior:contain;
+ scrollbar-width:thin;scrollbar-color:#80565e transparent;
+ padding:2px 8px 8px 2px;touch-action:pan-y
+}
+.broom-lab-caption{font-size:12px;line-height:1.55;color:#c5aca9;margin:3px 0 12px}
+.broom-lab-modes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+#broom-lab .broom-lab-modes button{padding:10px 7px;font-size:10px}
+#broom-lab .broom-lab-modes button.selected{background:#e8b477;border-color:#e8b477;color:#271815}
+.broom-lab-fields{display:grid;gap:7px}
+.broom-lab-field{display:block;padding:10px;border:1px solid #67434f;border-radius:10px;background:#2c2028}
+.broom-lab-field-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.broom-lab-field-head strong{font-size:12px}
+.broom-lab-field output{color:#e8b477;font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.broom-lab-field-hint{display:block;margin:4px 0 8px;color:#baa3ac;font-size:10px}
+.broom-lab-field input[type=range]{display:block;width:100%;height:18px;margin:0;
+ cursor:pointer;accent-color:#e8b477;touch-action:pan-x}
+.broom-lab-color{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:11px 1px 3px;
+ padding:9px 11px;background:#2c2028;border:1px solid #67434f;border-radius:10px;
+ font-size:12px;font-weight:800}
+#broom-lab-color-input{width:58px;height:34px;cursor:pointer;background:transparent;border:0;padding:2px}
+.broom-lab-message{font-size:11px;line-height:1.5;color:#e8b477;min-height:31px;margin:9px 0}
+.broom-lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#broom-lab .broom-lab-actions button{padding:11px 6px;font-size:10px}
+#broom-lab #broom-lab-save{background:#e8b477;color:#271815;border-color:#e8b477}
+#broom-lab #broom-lab-reset{grid-column:1/-1}
+.broom-lab-footnote{font-size:10px;line-height:1.45;color:#af97a0;margin:11px 0 0}
+#menu-open-broom-lab{margin:2px 0 14px;border:1px solid #e8b477ad!important}
+@media(max-width:730px){
+ #broom-lab{padding:6px}
+ .broom-lab-shell{
+  grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(230px,36dvh) minmax(0,1fr);
+  gap:9px;height:99dvh;width:100%;padding:11px;border-radius:13px
+ }
+ .broom-lab-head{grid-column:auto}
+ .broom-lab-eyebrow{font-size:8px}
+ .broom-lab-head h2{font-size:16px}
+ .broom-lab-stage-label{font-size:8px}
+ .broom-lab-controls{padding-right:5px}
+ .broom-lab-caption{margin:2px 0 8px}
+}
+@media(prefers-reduced-motion:reduce){#broom-lab *{scroll-behavior:auto}}
