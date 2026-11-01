@@ -227,10 +227,10 @@ function end(reason='other'){
  showDeathResult();
 }
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');if(useTestFiona)testAvatar?.trigger(d<0?'moveLeft':'moveRight')}}
-function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active){
+function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!broom.active&&!slideAction.active){
   if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
  }}
-function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
+function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 const {fpsDisplay}=createOverlays();
 const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onTestRunVariant:variant=>testAvatar?.setRunVariant(variant),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
 createGameInput({
