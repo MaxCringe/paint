@@ -121,16 +121,21 @@ export function createBroomTrail(runner,glowTexture){
   runner.add(mesh);
   return {mesh,material};
  }
- const wisps=batch(smokeTexture(),WISPS,.37,THREE.NormalBlending,3);
+ // Separate sprite batch: smoke during flight and failure "coughs" have
+ // independently editable colors without duplicating scene objects per frame.
+ const smokeMap=smokeTexture();
+ const wisps=batch(smokeMap,BASE_WISPS,.37,THREE.NormalBlending,3);
+ const coughs=batch(smokeMap,WISPS-BASE_WISPS,.37,THREE.NormalBlending,3);
  const streaks=batch(streakTexture(),STREAKS,.65,THREE.AdditiveBlending,4);
  const sparks=batch(sparkTexture(),SPARKS,.75,THREE.AdditiveBlending,5);
  const smokePalette=[0xd0c1d9,0xbdb1ca,0xe1d5e7,0xb1a4bd];
  const streakPalette=[0xe2ceff,0xc4b4ef,0xf3d8ff];
  const sparkPalette=[0xffe4ac,0xffbb6c,0xffda91,0xfff6e8];
- for(let i=0;i<WISPS;i++)wisps.mesh.setColorAt(i,new THREE.Color(smokePalette[i%4]));
+ for(let i=0;i<BASE_WISPS;i++)wisps.mesh.setColorAt(i,new THREE.Color(smokePalette[i%4]));
+ for(let i=0;i<WISPS-BASE_WISPS;i++)coughs.mesh.setColorAt(i,new THREE.Color(smokePalette[(i+1)%4]));
  for(let i=0;i<STREAKS;i++)streaks.mesh.setColorAt(i,new THREE.Color(streakPalette[i%3]));
  for(let i=0;i<SPARKS;i++)sparks.mesh.setColorAt(i,new THREE.Color(sparkPalette[i%4]));
- for(const b of [wisps,streaks,sparks])b.mesh.instanceColor.needsUpdate=true;
+ for(const b of [wisps,coughs,streaks,sparks])b.mesh.instanceColor.needsUpdate=true;
  const headMaterial=new THREE.SpriteMaterial({
   map:glowTexture,color:0xdec5ff,transparent:true,opacity:.25,
   depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,toneMapped:false
@@ -148,7 +153,7 @@ export function createBroomTrail(runner,glowTexture){
   mesh.setMatrixAt(i,dummy.matrix);
  }
  function hide(){
-  for(const b of [wisps,streaks,sparks])b.mesh.visible=false;
+  for(const b of [wisps,coughs,streaks,sparks])b.mesh.visible=false;
   head.visible=false;
  }
  function update(remaining,timeMs){
@@ -167,35 +172,34 @@ export function createBroomTrail(runner,glowTexture){
   const length=visual.length/100;
   // The ordinary trail is airy: sparse moving filaments + faint translucent wisps.
   // The failure phase adds *separate* puffs rather than multiplying a grey fog.
-  const normalPopulation=Math.min(BASE_WISPS,Math.round(8*visual.density/100));
-  for(let i=0;i<WISPS;i++){
-   if(i<BASE_WISPS){
-    const age=fract((i+.35)/BASE_WISPS+t*.24);
-    const envelope=Math.sin(Math.PI*age);
-    const enabled=i<normalPopulation;
-    const radius=enabled?(.21+age*.22)*envelope*size*(1-.27*fatigue):0;
-    place(wisps.mesh,i,
-     .12+age*.32+Math.sin(t*1.55+i*2.25)*(.05+.07*age),
-     .57+age*.12+Math.cos(t*1.3+i*1.9)*.05,
-     1.58+age*2.3*length,
-     radius*1.18,radius*.87,Math.sin(t*.5+i)*.30);
-   }else{
-    // Eight recycled sprites form staggered, expanding bursts at the bristle tip.
-    const j=i-BASE_WISPS,phase=state.coughPhase+(j%4)*.07+Math.floor(j/4)*.5;
-    const age=fract(phase);
-    const envelope=Math.sin(Math.PI*age);
-    const radius=state.warning?
-     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size)*visual.coughs/100*coughBeat:0;
-    place(wisps.mesh,i,
-     .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
-     .61+age*.32+Math.cos(j*3.1)*.065,
-     1.60+age*(.58+.75*length),
-     radius*1.16,radius*.93,Math.sin(j*2.5+age*5)*.65);
-   }
+  const normalPopulation=Math.min(BASE_WISPS,Math.round(BASE_WISPS*visual.density/200));
+  for(let i=0;i<BASE_WISPS;i++){
+   const age=fract((i+.35)/BASE_WISPS+t*.24);
+   const envelope=Math.sin(Math.PI*age);
+   const radius=i<normalPopulation?(.21+age*.22)*envelope*size*(1-.27*fatigue):0;
+   place(wisps.mesh,i,
+    .12+age*.32+Math.sin(t*1.55+i*2.25)*(.05+.07*age),
+    .57+age*.12*visual.smokeRise/100+Math.cos(t*1.3+i*1.9)*.05,
+    1.58+age*2.3*length,
+    radius*1.18,radius*.87,Math.sin(t*.5+i)*.30);
+  }
+  for(let j=0;j<WISPS-BASE_WISPS;j++){
+   const phase=state.coughPhase+(j%4)*.07+Math.floor(j/4)*.5;
+   const age=fract(phase),envelope=Math.sin(Math.PI*age);
+   const radius=state.warning?
+    (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size)*visual.coughs/100*coughBeat:0;
+   place(coughs.mesh,j,
+    .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
+    .61+age*.32*visual.smokeRise/100+Math.cos(j*3.1)*.065,
+    1.60+age*(.58+.75*length),
+    radius*1.16,radius*.93,Math.sin(j*2.5+age*5)*.65);
   }
   wisps.mesh.instanceMatrix.needsUpdate=true;
+  coughs.mesh.instanceMatrix.needsUpdate=true;
   wisps.material.opacity=(.37+.19*fatigue)*visual.opacity/100;
   wisps.material.color.set(visual.smokeColor);
+  coughs.material.opacity=wisps.material.opacity;
+  coughs.material.color.set(visual.coughColor);
   // Slender magical airflow streaks replace the old thick persistent smoke.
   for(let i=0;i<STREAKS;i++){
    const age=fract((i+.4)/STREAKS+t*(.29+(i%3)*.034));
@@ -211,6 +215,7 @@ export function createBroomTrail(runner,glowTexture){
   }
   streaks.mesh.instanceMatrix.needsUpdate=true;
   streaks.material.opacity=.67*(1-.38*fatigue)*visual.streaks/100;
+  streaks.material.color.set(visual.streakColor);
   // Subtle airborne motes during flight; clustered, increasingly bright gold
   // sputters in the final three seconds, then an immediate safe stop.
   for(let i=0;i<SPARKS;i++){
@@ -220,8 +225,8 @@ export function createBroomTrail(runner,glowTexture){
    const visible=state.warning||i<4;
    const life=Math.sin(Math.PI*age)*Math.pow(1-age,.65);
    const amount=visible?life*(state.warning?.62+.38*fatigue:.32)*stallBeat*sparkBurstSize:0;
-   const spread=state.warning?(.18+1.06*age):(.09+.33*age);
-   const w=(.09+(i%4)*.026)*size*amount;
+   const spread=(state.warning?(.18+1.06*age):(.09+.33*age))*visual.sparkSpread/100;
+   const w=(.09+(i%4)*.026)*size*amount*visual.sparkSize/100;
    const h=w*(1.1+(i%3)*.36);
    place(sparks.mesh,i,
     .11+Math.sin(i*2.399)*spread,
@@ -233,11 +238,14 @@ export function createBroomTrail(runner,glowTexture){
   sparks.material.opacity=Math.min(1,
    (.31+.69*fatigue)*Math.sqrt(visual.sparks/100))*
    (state.stalling?Math.min(1,1.15*stallBeat):1);
+  sparks.material.color.set(visual.sparkColor);
   headMaterial.opacity=(.28+.21*fatigue+
    .12*fatigue*Math.max(0,Math.sin(state.coughPhase*Math.PI*2)))*
-   (state.stalling?Math.min(1,.04+1.15*stallBeat):1);
-  head.scale.set(.51*size*(1+.20*fatigue),.42*size*(1+.20*fatigue),1);
-  for(const b of [wisps,streaks,sparks])b.mesh.visible=true;
+   (state.stalling?Math.min(1,.04+1.15*stallBeat):1)*visual.glowIntensity/100;
+  headMaterial.color.set(visual.glowColor);
+  head.scale.set(.51*size*(1+.20*fatigue)*visual.glowSize/100,
+   .42*size*(1+.20*fatigue)*visual.glowSize/100,1);
+  for(const b of [wisps,coughs,streaks,sparks])b.mesh.visible=true;
   head.visible=true;
  }
  return {update,hide};
