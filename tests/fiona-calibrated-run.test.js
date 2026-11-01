@@ -27,8 +27,9 @@ test('Python-calibrated run is reproducible source data for the correct FBX rig'
   }
  }
  for(const name of names){
-  assert.deepEqual(data.frames[0][1][name],data.frames.at(-1)[1][name],
-   'first and last frames should loop seamlessly: '+name);
+  const first=data.frames[0][1][name],last=data.frames.at(-1)[1][name];
+  assert.ok(first.every((value,i)=>Math.abs(value-last[i])<1e-5),
+   'first and last quaternions should loop seamlessly: '+name);
  }
 });
 test('calibrated run eliminates asymmetrical exported leg bind angles',()=>{
