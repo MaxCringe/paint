@@ -1,182 +1,202 @@
 import * as THREE from 'three';
 import {broomVisualProfile} from './BroomVisualProfiles.js';
 
-// A narrow, translucent exhaust follows the broom. In the last three seconds the smoke
-// chokes into gaps and the last magic escapes as short, dying sparks.
-// Deliberately use standard Three.js materials rather than fragile custom
-// shaders: two batched InstancedMeshes, shared textures and no per-frame meshes.
+// WebGL-compatible magical-wisp / spark-burst preset, adapted for KNOTTY PINE.
+// A light, fast-moving wake in flight; distinct "cough" puffs and amber sparks
+// during the last three seconds. No imported assets or runtime allocations.
+const WARN_SECONDS=3;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fract=v=>v-Math.floor(v);
+const smooth=v=>v*v*(3-2*v);
+
 export function broomTrailState(remaining){
- const time=Math.max(0,Number.isFinite(remaining)?remaining:0);
- const active=time>0;
- const warning=active&&time<=3;
- const fraction=Math.min(1,time/3);
+ const seconds=Math.max(0,Number.isFinite(remaining)?remaining:0);
+ const active=seconds>0, warning=active&&seconds<=WARN_SECONDS;
+ const fatigue=warning?smooth(clamp((WARN_SECONDS-seconds)/WARN_SECONDS,0,1)):0;
+ const elapsed=warning?WARN_SECONDS-seconds:0;
+ // Integrated emission phase: coughs accelerate smoothly from 2 to 4 per second.
  return {
-  active,
-  warning,
-  length:warning?.18+.82*fraction:1,
-  strength:warning?.25+.75*fraction:1,
-  instability:warning?1-fraction:0
+  active,warning,fatigue,
+  coughPhase:2*elapsed+elapsed*elapsed/3,
+  sparkIntensity:warning?.35+.65*fatigue:.12
  };
 }
 
-// Build smoke using several overlapping soft, irregular tufts. Transparent
-// borders are fully clear, with no square card or sharp particle outline.
-function makeSmokeTexture(){
+// Procedural atlas-free textures: no square quads, no CDN, no new dependencies.
+function smokeTexture(){
  const canvas=document.createElement('canvas');
  canvas.width=canvas.height=128;
  const ctx=canvas.getContext('2d');
- for(let i=0;i<9;i++){
-  const angle=i*2.39996;
-  const x=64+Math.cos(angle)*(i%3===0?16:23);
-  const y=64+Math.sin(angle)*(i%3===0?13:21);
-  const radius=27+(i%4)*5;
-  const gradient=ctx.createRadialGradient(x,y,1,x,y,radius);
-  gradient.addColorStop(0,'rgba(246,239,255,.22)');
-  gradient.addColorStop(.33,'rgba(213,194,255,.14)');
-  gradient.addColorStop(.68,'rgba(146,117,198,.04)');
-  gradient.addColorStop(1,'rgba(146,117,198,0)');
-  ctx.fillStyle=gradient;
-  ctx.fillRect(0,0,128,128);
+ const blobs=[
+  [57,61,36,.33],[76,58,33,.27],[46,79,29,.24],
+  [71,82,34,.24],[52,42,23,.19],[88,77,24,.18]
+ ];
+ for(const [x,y,r,alpha] of blobs){
+  const g=ctx.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,`rgba(245,236,252,${alpha})`);
+  g.addColorStop(.40,`rgba(199,179,218,${alpha*.57})`);
+  g.addColorStop(1,'rgba(153,139,172,0)');
+  ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
- const texture=new THREE.CanvasTexture(canvas);
- texture.colorSpace=THREE.SRGBColorSpace;
- return texture;
+ const tex=new THREE.CanvasTexture(canvas);
+ tex.colorSpace=THREE.SRGBColorSpace;
+ return tex;
 }
-function makeSparkTexture(){
+function streakTexture(){
+ const canvas=document.createElement('canvas');
+ canvas.width=128;canvas.height=64;
+ const ctx=canvas.getContext('2d');
+ // Tapered magical speed streak, not an opaque rectangular smoke card.
+ const shape=ctx.createRadialGradient(62,32,1,62,32,59);
+ shape.addColorStop(0,'rgba(241,228,255,.92)');
+ shape.addColorStop(.46,'rgba(189,170,242,.36)');
+ shape.addColorStop(1,'rgba(151,142,199,0)');
+ ctx.save();ctx.translate(64,32);ctx.scale(1,.13);ctx.translate(-64,-32);
+ ctx.fillStyle=shape;ctx.fillRect(0,-220,128,500);ctx.restore();
+ const tex=new THREE.CanvasTexture(canvas);
+ tex.colorSpace=THREE.SRGBColorSpace;
+ return tex;
+}
+function sparkTexture(){
  const canvas=document.createElement('canvas');
  canvas.width=canvas.height=64;
  const ctx=canvas.getContext('2d');
- const gradient=ctx.createRadialGradient(32,32,1,32,32,31);
- gradient.addColorStop(0,'rgba(255,255,255,1)');
- gradient.addColorStop(.20,'rgba(245,229,255,.94)');
- gradient.addColorStop(.45,'rgba(184,146,255,.52)');
- gradient.addColorStop(1,'rgba(184,146,255,0)');
- ctx.fillStyle=gradient;ctx.fillRect(0,0,64,64);
- const texture=new THREE.CanvasTexture(canvas);
- texture.colorSpace=THREE.SRGBColorSpace;
- return texture;
+ const g=ctx.createRadialGradient(32,32,0,32,32,31);
+ g.addColorStop(0,'rgba(255,255,255,1)');
+ g.addColorStop(.16,'rgba(255,239,193,.98)');
+ g.addColorStop(.46,'rgba(255,186,100,.63)');
+ g.addColorStop(1,'rgba(255,126,58,0)');
+ ctx.fillStyle=g;ctx.fillRect(0,0,64,64);
+ const tex=new THREE.CanvasTexture(canvas);
+ tex.colorSpace=THREE.SRGBColorSpace;
+ return tex;
 }
 
 export function createBroomTrail(runner,glowTexture){
- // Capacity for 150% smoke. Geometry and materials remain shared across frames.
- const BASE_SMOKE_COUNT=14,SMOKE_COUNT=22,SPARK_COUNT=16;
+ const WISPS=20,STREAKS=12,SPARKS=24,BASE_WISPS=12;
  const plane=new THREE.PlaneGeometry(1,1);
- const smokeMaterial=new THREE.MeshBasicMaterial({
-  map:makeSmokeTexture(),side:THREE.DoubleSide,
-  transparent:true,opacity:.53,depthWrite:false,depthTest:true,
-  blending:THREE.NormalBlending,toneMapped:false
- });
- const smoke=new THREE.InstancedMesh(plane,smokeMaterial,SMOKE_COUNT);
- smoke.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
- smoke.frustumCulled=false;
- smoke.renderOrder=3;
- smoke.visible=false;
- runner.add(smoke);
-
- const sparkMaterial=new THREE.MeshBasicMaterial({
-  map:makeSparkTexture(),side:THREE.DoubleSide,
-  transparent:true,opacity:.83,depthWrite:false,depthTest:true,
-  blending:THREE.AdditiveBlending,toneMapped:false
- });
- const sparks=new THREE.InstancedMesh(plane,sparkMaterial,SPARK_COUNT);
- sparks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
- sparks.frustumCulled=false;
- sparks.renderOrder=4;
- sparks.visible=false;
- runner.add(sparks);
- const dummy=new THREE.Object3D();
- const smokeColors=[0xece5ff,0xc7b3f3,0xab96e5,0xdcd5f9];
- const sparkColors=[0xffffff,0xd9c6ff,0xb79bff];
- for(let i=0;i<SMOKE_COUNT;i++)smoke.setColorAt(i,new THREE.Color(smokeColors[i%4]));
- for(let i=0;i<SPARK_COUNT;i++)sparks.setColorAt(i,new THREE.Color(sparkColors[i%3]));
- smoke.instanceColor.needsUpdate=true;
- sparks.instanceColor.needsUpdate=true;
-
+ function batch(texture,count,opacity,blending,order){
+  const material=new THREE.MeshBasicMaterial({
+   map:texture,side:THREE.DoubleSide,transparent:true,
+   opacity,depthTest:true,depthWrite:false,blending,toneMapped:false
+  });
+  const mesh=new THREE.InstancedMesh(plane,material,count);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled=false;
+  mesh.renderOrder=order;
+  mesh.visible=false;
+  runner.add(mesh);
+  return {mesh,material};
+ }
+ const wisps=batch(smokeTexture(),WISPS,.37,THREE.NormalBlending,3);
+ const streaks=batch(streakTexture(),STREAKS,.65,THREE.AdditiveBlending,4);
+ const sparks=batch(sparkTexture(),SPARKS,.75,THREE.AdditiveBlending,5);
+ const smokePalette=[0xd0c1d9,0xbdb1ca,0xe1d5e7,0xb1a4bd];
+ const streakPalette=[0xe2ceff,0xc4b4ef,0xf3d8ff];
+ const sparkPalette=[0xffe4ac,0xffbb6c,0xffda91,0xfff6e8];
+ for(let i=0;i<WISPS;i++)wisps.mesh.setColorAt(i,new THREE.Color(smokePalette[i%4]));
+ for(let i=0;i<STREAKS;i++)streaks.mesh.setColorAt(i,new THREE.Color(streakPalette[i%3]));
+ for(let i=0;i<SPARKS;i++)sparks.mesh.setColorAt(i,new THREE.Color(sparkPalette[i%4]));
+ for(const b of [wisps,streaks,sparks])b.mesh.instanceColor.needsUpdate=true;
  const headMaterial=new THREE.SpriteMaterial({
-  map:glowTexture,color:0xe6cfff,transparent:true,opacity:.48,
-  depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,
-  toneMapped:false
+  map:glowTexture,color:0xdec5ff,transparent:true,opacity:.25,
+  depthWrite:false,depthTest:true,blending:THREE.AdditiveBlending,toneMapped:false
  });
- const headGlow=new THREE.Sprite(headMaterial);
- headGlow.position.set(0,.65,1.54);
- headGlow.scale.set(.82,.68,1);
- headGlow.visible=false;
- runner.add(headGlow);
-
- // Facing the behind-the-runner camera, with gently tumbling wisps.
- function orient(time,twist=0){
-  dummy.rotation.set(-.46,0,twist);
+ const head=new THREE.Sprite(headMaterial);
+ head.position.set(0,.62,1.52);
+ head.visible=false;
+ runner.add(head);
+ const dummy=new THREE.Object3D();
+ function place(mesh,i,x,y,z,w,h,angle=0,tilt=-.46){
+  dummy.position.set(x,y,z);
+  dummy.rotation.set(tilt,0,angle);
+  dummy.scale.set(Math.max(.00001,w),Math.max(.00001,h),1);
+  dummy.updateMatrix();
+  mesh.setMatrixAt(i,dummy.matrix);
+ }
+ function hide(){
+  for(const b of [wisps,streaks,sparks])b.mesh.visible=false;
+  head.visible=false;
  }
  function update(remaining,timeMs){
   const state=broomTrailState(remaining);
+  if(!state.active){hide();return;}
   const visual=broomVisualProfile(remaining);
-  smoke.visible=state.active;
-  sparks.visible=state.active;
-  headGlow.visible=state.active;
-  if(!state.active)return;
-  const t=timeMs*.001,inst=state.instability;
-  // Keep indices stable; the final instance gently fades rather than popping out.
-  const smokePopulation=BASE_SMOKE_COUNT*visual.density/100;
-  // The stream begins at the broom's straw tip (local +Z), then lifts off
-  // over the road rather than vanishing below the camera's lower edge.
-  for(let i=0;i<SMOKE_COUNT;i++){
-   const seed=(i+.5)/SMOKE_COUNT;
-   const age=(seed+t*.23)%1;
-   const phase=i*2.37+t*.74;
-   const fade=(Math.min(1,age*10))*(Math.min(1,(1-age)*3));
-   // A dying broom coughs in separate puffs, leaving increasingly wide gaps.
-   const choking=state.warning&&Math.sin(i*2.8+t*(8+inst*6))>.20;
-   const gapFactor=choking?1-inst*.98:1;
-   const densityFade=Math.min(1,Math.max(0,smokePopulation-i));
-   const radius=(.27+age*.27)*(.92+.11*Math.sin(i*3.1))
-               *state.strength*Math.max(.08,gapFactor)*Math.max(.09,fade)
-               *visual.size/100*Math.sqrt(densityFade);
-   dummy.position.set(
-    .13+age*.42+Math.sin(phase+age*7)*(.055+age*.11),
-    .54+age*.22+Math.sin(phase*.8)*.035,
-    1.58+age*2.35*state.length*visual.length/100
-   );
-   orient(t,Math.sin(t*.48+i*1.13)*.19);
-   dummy.scale.set(Math.max(.00001,radius*1.15),Math.max(.00001,radius*.86),1);
-   dummy.updateMatrix();
-   smoke.setMatrixAt(i,dummy.matrix);
-  }
-  smoke.instanceMatrix.needsUpdate=true;
-  smokeMaterial.opacity=Math.min(1,.53*Math.max(.15,state.strength)*visual.opacity/100);
-
-  // Small ambient embers during normal flight; they intensify as the smoke
-  // breaks up and begin gasping out near the end of the last second.
-  const sparkEnergy=state.warning?(.35+.65*inst):.18;
-  const gasp=state.warning?1-.84*Math.max(0,(inst-.70)/.30):1;
-  sparkMaterial.opacity=Math.min(1,.83*visual.sparks/100*sparkEnergy)*gasp;
-  for(let i=0;i<SPARK_COUNT;i++){
-    const seed=(i+.25)/SPARK_COUNT;
-    const age=(t*(1.0+(i%5)*.21)+seed*17.3)%1;
-    const phase=i*2.43+t*1.6;
-    const stutter=Math.max(0,Math.sin(t*(13+(i%3)*3)+i*3.1));
-    const life=Math.pow(1-age,1.8);
-    const size=(.14+.17*(i%3)/2)*life*(.27+.73*stutter)
-      *(state.warning?.55+.45*inst:.55)*Math.sqrt(visual.sparks/100);
-    dummy.position.set(
-     .20+age*.44+Math.sin(phase)*(.10+.18*age),
-     .54+age*.22+Math.cos(phase*1.3)*.09,
-     1.58+age*(1.5+.85*state.length*visual.length/100)
-    );
-    orient(t,i*.38+t*.5);
-    dummy.scale.setScalar(Math.max(.0001,size));
-    dummy.updateMatrix();
-    sparks.setMatrixAt(i,dummy.matrix);
+  const t=timeMs*.001;
+  const fatigue=state.fatigue;
+  const size=visual.size/100;
+  const length=visual.length/100;
+  // The ordinary trail is airy: sparse moving filaments + faint translucent wisps.
+  // The failure phase adds *separate* puffs rather than multiplying a grey fog.
+  const normalPopulation=Math.min(BASE_WISPS,Math.round(8*visual.density/100));
+  for(let i=0;i<WISPS;i++){
+   if(i<BASE_WISPS){
+    const age=fract((i+.35)/BASE_WISPS+t*.24);
+    const envelope=Math.sin(Math.PI*age);
+    const enabled=i<normalPopulation;
+    const radius=enabled?(.21+age*.22)*envelope*size*(1-.27*fatigue):0;
+    place(wisps.mesh,i,
+     .12+age*.32+Math.sin(t*1.55+i*2.25)*(.05+.07*age),
+     .57+age*.12+Math.cos(t*1.3+i*1.9)*.05,
+     1.58+age*2.3*length,
+     radius*1.18,radius*.87,Math.sin(t*.5+i)*.30);
+   }else{
+    // Eight recycled sprites form staggered, expanding bursts at the bristle tip.
+    const j=i-BASE_WISPS,phase=state.coughPhase+(j%4)*.07+Math.floor(j/4)*.5;
+    const age=fract(phase);
+    const envelope=Math.sin(Math.PI*age);
+    const radius=state.warning?
+     (.24+.51*age)*envelope*(.68+.32*fatigue)*Math.max(.72,size):0;
+    place(wisps.mesh,i,
+     .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
+     .61+age*.32+Math.cos(j*3.1)*.065,
+     1.60+age*(.58+.75*length),
+     radius*1.16,radius*.93,Math.sin(j*2.5+age*5)*.65);
    }
-   sparks.instanceMatrix.needsUpdate=true;
-  const cough=state.warning?1-inst*(.13+.20*(.5+.5*Math.sin(t*12))):1;
-  headMaterial.opacity=.48*state.strength*cough*visual.opacity/100;
-  const scale=.82*Math.max(.28,state.length)*visual.size/100;
-  headGlow.scale.set(scale,scale*.84,1);
- }
- function hide(){
-  smoke.visible=false;
-  sparks.visible=false;
-  headGlow.visible=false;
+  }
+  wisps.mesh.instanceMatrix.needsUpdate=true;
+  wisps.material.opacity=state.warning?.34+.22*fatigue:.37*visual.opacity/100;
+  // Slender magical airflow streaks replace the old thick persistent smoke.
+  for(let i=0;i<STREAKS;i++){
+   const age=fract((i+.4)/STREAKS+t*(.29+(i%3)*.034));
+   const envelope=Math.sin(Math.PI*age);
+   const fade=1-.74*fatigue;
+   const w=.07*(.8+(i%3)*.2)*size*envelope*fade;
+   const h=(.54+age*.75)*length*envelope*fade;
+   place(streaks.mesh,i,
+    -.08+Math.sin(i*2.4)*(.14+.17*age),
+    .56+Math.cos(i*1.71)*.07+age*.11,
+    1.59+age*2.1*length,
+    w,h,Math.sin(i*1.9+t*.7)*.17,1.05);
+  }
+  streaks.mesh.instanceMatrix.needsUpdate=true;
+  streaks.material.opacity=.67*(1-.38*fatigue);
+  // Subtle airborne motes during flight; clustered, increasingly bright gold
+  // sputters in the final three seconds, then an immediate safe stop.
+  for(let i=0;i<SPARKS;i++){
+   const burstAge=fract(state.coughPhase+(i%8)*.035+Math.floor(i/8)/3);
+   const normalAge=fract(t*(.42+(i%3)*.09)+i*.237);
+   const age=state.warning?burstAge:normalAge;
+   const visible=state.warning||i<4;
+   const life=Math.sin(Math.PI*age)*Math.pow(1-age,.65);
+   const amount=visible?life*(state.warning?.62+.38*fatigue:.32):0;
+   const spread=state.warning?(.18+1.06*age):(.09+.33*age);
+   const w=(.09+(i%4)*.026)*size*amount;
+   const h=w*(1.1+(i%3)*.36);
+   place(sparks.mesh,i,
+    .11+Math.sin(i*2.399)*spread,
+    .61+Math.cos(i*2.1)*spread*.28+age*.15-age*age*.23,
+    1.6+age*(state.warning?1.75:1.05),
+    w,h,i*1.77+t*2);
+  }
+  sparks.mesh.instanceMatrix.needsUpdate=true;
+  sparks.material.opacity=Math.min(1,
+   (state.warning?.66+.34*fatigue:.31)*Math.sqrt(visual.sparks/100));
+  headMaterial.opacity=(state.warning?.28+.25*fatigue:.28)*
+   (state.warning?.7+.3*Math.max(0,Math.sin(state.coughPhase*Math.PI*2)) :1);
+  head.scale.set(.51*size*(1+.20*fatigue),.42*size*(1+.20*fatigue),1);
+  for(const b of [wisps,streaks,sparks])b.mesh.visible=true;
+  head.visible=true;
  }
  return {update,hide};
 }
