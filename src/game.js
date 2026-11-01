@@ -184,7 +184,7 @@ async function startFionaTest(files){
  testAvatar.setActive(true);
  setClassicVisible(false);
  attachWearableToHead(testAvatar.headBone);
- menu.showFionaPreviewTools(true,testAvatar.available);
+ menu.showFionaPreviewTools(true,testAvatar.available,testAvatar.prototypeIds);
  start();
 }
 function startFromMenu(){

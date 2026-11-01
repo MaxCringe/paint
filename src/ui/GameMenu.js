@@ -1,3 +1,4 @@
+import { resolveFionaAssets } from '../player/FionaAssetCache.js';
 import { FIONA_ANIMATION_SLOTS } from '../player/FionaAnimationSlots.js';
 
 // Shared start and pause menu; game-over results now have a dedicated panel.
@@ -99,7 +100,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     previews.append(button);
     previewButtons.set(slot.id,button);
   }
-  function showFionaPreviewTools(enabled,loaded=new Set()){
+  function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set()){
     previewPanel.classList.toggle('hidden',!enabled);
     if(!enabled){previewPanel.open=false;return;}
     const names=new Set(loaded);
@@ -109,27 +110,27 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const has=names.has(slot.id);
       button.disabled=!has;
       button.classList.toggle('fiona-test-preview-loaded',has);
-      button.title=has?'Показать '+slot.label:'FBX пока не выбран';
+      button.title=has?(prototypeIds.has(slot.id)?'ПРОТОТИП: '+slot.label:'FBX: '+slot.label):'Анимация пока недоступна';
+      button.textContent=slot.label+(prototypeIds.has(slot.id)?' · прототип':'');
       if(has)count++;
     }
-    previewStatus.textContent='Загружено анимаций: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
-      '. Нажми на доступную кнопку для визуальной проверки.';
+    previewStatus.textContent='Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
+      ' (прототипов: '+prototypeIds.size+'). Проверяй их прямо в тестовом забеге.';
   }
   testLaunch.addEventListener('click',async()=>{
     const modelFile=$('fiona-model-file').files?.[0];
     const runFile=$('fiona-run-file').files?.[0];
     const jumpFile=$('fiona-jump-file').files?.[0];
-    if(!modelFile||!runFile||!jumpFile){
-      testStatus.textContent='Выбери три FBX: модель, бег и прыжок.';return;
-    }
-    testLaunch.disabled=true;testStatus.textContent='Проверяю модель и анимации…';
+    testLaunch.disabled=true;testStatus.textContent='Ищу Фиону и проверяю анимации…';
     try{
       const animationFiles={run:runFile,jump:jumpFile};
       for(const [id,input] of animationInputs){
         if(input.files?.[0])animationFiles[id]=input.files[0];
       }
-      await onStartTest({modelFile,animationFiles,turn:$('fiona-test-turn').checked});
-      testStatus.textContent='Фиона загружена. Тестовый забег запущен.';
+      const resolved=await resolveFionaAssets({modelFile,animationFiles});
+      await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
+      const remembered=await resolved.remember();
+      testStatus.textContent='Тест запущен. '+(remembered?'Файлы сохранены в браузере.':'Кэш браузера недоступен.');
     }catch(error){
       console.error('Fiona test load failed',error);
       testStatus.textContent='Ошибка: '+(error?.message||String(error));

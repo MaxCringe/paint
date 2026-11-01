@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { FIONA_ANIMATION_SLOTS } from './FionaAnimationSlots.js';
+import { generateFionaPrototypeClips } from './FionaPrototypeMotions.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -45,6 +46,16 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
   const [id]=entries[i];
   clips.set(id,extractClip(sourceAnimations[i],id,bones));
  }
+ // Keep the model's own Idle/Run/Wave where relevant before adding authored prototypes.
+ const embeddedNames={Idle:'idle',Run:'run'};
+ for(const clip of (model.animations||[])){
+  const id=embeddedNames[clip.name]||embeddedNames[clip.name?.split('|').pop()];
+  if(id&&!clips.has(id))clips.set(id,clip.clone());
+ }
+ const importedIds=new Set(clips.keys());
+ const generated=generateFionaPrototypeClips(bones,model,clips);
+ for(const [id,clip] of generated)clips.set(id,clip);
+ const prototypeIds=new Set(generated.keys());
  const headBone=[...bones.values()].find(b=>/^(?:mixamorig:)?Head$/i.test(b.name))||null;
  const avatar=new THREE.Group(),facing=new THREE.Group();
  avatar.add(facing);facing.add(model);
@@ -121,7 +132,9 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
   manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(id).duration+.18);
   oneShot=null;
   play(id,{force:true,once:!SLOTS.get(id)?.loop});
-  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+' ('+manualSeconds.toFixed(1)+' с). Механика забега не меняется.'};
+  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+
+   (prototypeIds.has(id)?' — процедурный прототип.':' — FBX-анимация.')+
+   ' Механика забега не меняется.'};
  }
  function die(reason='other'){
   if(!active)return;
@@ -208,6 +221,6 @@ export async function loadFionaTest({runner,modelFile,animationFiles={},runFile,
    }
   });
  }
- return {setActive,playJump,trigger,preview,die,update,reset,dispose,headBone,available,
+ return {setActive,playJump,trigger,preview,die,update,reset,dispose,headBone,available,prototypeIds,importedIds,
   get loadedCount(){return available.size;}};
 }
