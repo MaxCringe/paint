@@ -228,6 +228,9 @@ function togglePause(){
  }
 }
 function frame(t){requestAnimationFrame(frame);
+  // The 3D broom workshop has its own renderer. Keep the unseen main
+  // WebGL scene still to avoid doubling GPU work, without progressing the run.
+  if(document.body.classList.contains('broom-lab-open')){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  // Keep the final rendered frame completely still, including lava and fire animations.
  if(state==='paused'){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  if(fpsSampleStart===null)fpsSampleStart=t;
