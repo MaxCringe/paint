@@ -64,9 +64,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(bone)broomJoints[key]={bone,rest:bone.quaternion.clone()};
  }
  let broomSeatBlend=0;
- const broomSeatAngles={hips:[-.18,0,0],spine:[.22,0,0],
-  leftUpperLeg:[-1.32,0,-.10],rightUpperLeg:[-1.32,0,.10],
-  leftLowerLeg:[1.42,0,0],rightLowerLeg:[1.42,0,0],
+ const broomSeatAngles={hips:[-.28,0,0],spine:[.30,0,0],
+  leftUpperLeg:[-1.50,0,-.12],rightUpperLeg:[-1.50,0,.12],
+  leftLowerLeg:[1.65,0,0],rightLowerLeg:[1.65,0,0],
   leftArm:[-.95,0,-.22],rightArm:[-.95,0,.22],
   leftForeArm:[-.38,0,0],rightForeArm:[-.38,0,0]};
  const broomSeatTarget=new THREE.Quaternion();
@@ -260,6 +260,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   const seatTarget=broom&&!ultimate?1:0;
   broomSeatBlend+=(seatTarget-broomSeatBlend)*Math.min(1,dt*(seatTarget?7:9));
   if(broomSeatBlend>.0001){
+   // Do not blend the running cycle into flight: the reference is the FBX bind pose.
+   // This prevents alternating running legs from making Fiona stand on the broom.
    for(const [key,joint] of Object.entries(broomJoints)){
     const [x,y,z]=broomSeatAngles[key];
     broomSeatTarget.copy(joint.rest).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z,'XYZ')));
@@ -268,7 +270,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   }
   // Python clips animate bones, not entire meshes. No squashing or root displacement.
   avatar.rotation.x+=(0-avatar.rotation.x)*Math.min(1,dt*12);
-  avatar.position.y+=(-.48*broomSeatBlend-avatar.position.y)*Math.min(1,dt*9);
+  avatar.position.y+=(-.62*broomSeatBlend-avatar.position.y)*Math.min(1,dt*9);
  }
  function dispose(){
   mixer.stopAllAction();mixer.uncacheRoot(model);
