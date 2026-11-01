@@ -4,9 +4,9 @@ export const SCARF_TEST_MODE=false;
 export const SCARF_TEST_SPAWN_CHANCE=.22;
 export const REVIVAL_PROTECTION_SECONDS=3;
 export function createScarfRules(){
- let next=0,held=false,used=false;
+ let next=0,held=false;
  const randomOffset=()=>Math.random()*SCARF_INTERVAL_METRES;
- function reset(){next=randomOffset();held=false;used=false;}
+ function reset(){next=randomOffset();held=false;}
  function milestone(metres){
   if(!Number.isFinite(metres)||metres<next)return false;
   // Advance to a fresh random position in the next kilometre, even if
@@ -17,12 +17,12 @@ export function createScarfRules(){
    const nextKilometre=Math.floor(next/SCARF_INTERVAL_METRES)+1;
    next=nextKilometre*SCARF_INTERVAL_METRES+randomOffset();
   }
-  return !held&&!used;
+  return true;
  }
- function collect(){if(held||used)return false;held=true;return true;}
- function consume(){if(!held||used)return false;held=false;used=true;return true;}
+ function collect(){if(held)return false;held=true;return true;}
+ function consume(){if(!held)return false;held=false;return true;}
  reset();
  return {reset,milestone,collect,consume,
-  get held(){return held},get used(){return used},get canRevive(){return held&&!used},
-  get canSpawn(){return !held&&!used}};
+  get held(){return held},get used(){return false},get canRevive(){return held},
+  get canSpawn(){return true}};
 }
