@@ -30,7 +30,7 @@ export function getBroomDuckPose(duck=0, flightBlend=1){
 
 export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) {
  if (!BROOM_ENABLED) return {
-  spawn(){}, advancePickups(){}, tick(){}, applyPose(){}, guardPineLog(){},
+  spawn(){}, advancePickups(){}, tick(){}, preview(){}, applyPose(){}, guardPineLog(){},
   reset(){}, cancel(){}, immuneTo(){return false;},
   get active(){return false;}, get remaining(){return 0;},
   get hoverHeight(){return 0;}
@@ -184,6 +184,18 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
    mounted.scale.setScalar(blend);
   }
  }
+ // The dedicated effect lab uses exactly the in-game broom model and VFX.
+ // No timer is consumed, no gameplay state/collisions are changed.
+ function preview(remaining,t){
+  blend=1;
+  mounted.visible=true;
+  mounted.scale.setScalar(1);
+  mounted.position.y=.37+Math.sin(t*.0037)*.025;
+  mounted.rotation.z=Math.sin(t*.0028)*.028;
+  mounted.rotation.x=Math.sin(t*.0033)*.025;
+  applyPose(0);
+  trail.update(Math.max(.001,remaining),t);
+ }
  function advancePickups(dt,t,speed,lane,runnerX,{canCollect=true,onCollect=()=>{}}={}){
   for(let i=pickups.length-1;i>=0;i--){
    const p=pickups[i];
@@ -227,7 +239,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   return remaining>0&&broomIgnoresHazard(type);
  }
  return {
-  spawn,advancePickups,tick,applyPose,reset,cancel,immuneTo,guardPineLog,
+  spawn,advancePickups,tick,preview,applyPose,reset,cancel,immuneTo,guardPineLog,
   get active(){return remaining>0;},
   get remaining(){return remaining;},
   get hoverHeight(){
