@@ -38,8 +38,8 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
   return menu?.classList.contains('hidden')||status.startsWith('Ошибка:');
  },{timeout:90_000});
  const status=await page.locator('#fiona-test-status').textContent();
- expect(await page.locator('#center').getAttribute('class'),
-  'DEV Fiona failed to start; status: '+status+'; page errors: '+errors.join(' | ')).toMatch(/hidden/);
+ expect(await page.locator('#center').evaluate(node=>node.classList.contains('hidden')),
+  'DEV Fiona failed to start; status: '+status+'; page errors: '+errors.join(' | ')).toBe(true);
  const tools=page.locator('#fiona-test-tools');
  await expect(tools).toBeVisible({timeout:30_000});
  await tools.locator('summary').click();
