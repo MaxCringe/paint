@@ -3,6 +3,7 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { FIONA_ANIMATION_SLOTS } from './FionaAnimationSlots.js';
 import { fetchPythonFionaMotionData, createPythonFionaClips } from './FionaPythonMotions.js';
 import { fetchCalibratedRunData, createCalibratedRunClip } from './FionaCalibratedRun.js';
+import { loadFionaFBXClips } from './FionaImportedFBX.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -28,8 +29,13 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  // The old 23 Python motions remain untouched. Only a second RUN clip is
  // added; the A/B switch is restricted to this DEV avatar.
  clips.set('runCalibrated',createCalibratedRunClip(bones,calibratedData));
+ // Keep the original Python/NumPy actions as reversible fallbacks.
+ const importResult=await loadFionaFBXClips(bones);
+ for(const [id,clip] of importResult.clips){
+  clips.set(id==='run'?'runFBX':id==='jump'?'jumpFBX':'flyFBX',clip);
+ }
  const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
- const importedIds=new Set();
+ const importedIds=new Set(importResult.clips.keys());
  const headBone=[...bones.values()].find(b=>/^(?:mixamorig:)?Head$/i.test(b.name))||null;
  const avatar=new THREE.Group(),facing=new THREE.Group();
  avatar.add(facing);facing.add(model);
@@ -48,14 +54,18 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const actions=new Map([...clips].map(([id,clip])=>[id,mixer.clipAction(clip)]));
  let currentAction=null,currentName=null,baseState='run',oneShot=null;
  let active=false,dead=false,manualSlot=null,manualSeconds=0,airborneSlot='jump';
- let runVariant='calibrated';
+ let runVariant=importedIds.has('run')?'fbx':'calibrated';
  let previous={jumping:false,sliding:false,broom:false,ultimate:false};
  let awaitingDeath=false;
  const available=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
 
  function resolve(id){
-  if(id==='run'&&runVariant==='calibrated'&&actions.has('runCalibrated'))
-   return 'runCalibrated';
+  if(id==='run'){
+   if(runVariant==='fbx'&&actions.has('runFBX'))return 'runFBX';
+   if(runVariant==='calibrated'&&actions.has('runCalibrated'))return 'runCalibrated';
+  }
+  if(id==='jump'&&actions.has('jumpFBX'))return 'jumpFBX';
+  if((id==='broomFly'||id==='ultimateFly')&&actions.has('flyFBX'))return 'flyFBX';
   if(actions.has(id))return id;
   if(id==='doubleJump'&&actions.has('jump'))return 'jump';
   if(id==='broomDuck'&&actions.has('broomFly'))return 'broomFly';
@@ -71,7 +81,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  const loop=once===null?(resolved==='runCalibrated'||Boolean(SLOTS.get(resolved)?.loop)):!once;
+  const loop=once===null?(['runCalibrated','runFBX','flyFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop)):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
   action.fadeIn(.13).play();
@@ -103,14 +113,16 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  }
  function preview(id){
   if(!active)return {ok:false,message:'Сначала запусти тестовый забег.'};
-  if(!actions.has(id))return {ok:false,message:'Python-анимация не найдена: '+(SLOTS.get(id)?.label||id)};
+  if(!actions.has(resolve(id)))return {ok:false,message:'Анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
   manualSeconds=Math.max(SLOTS.get(id)?.loop?2.7:1.2,clips.get(resolve(id)).duration+.18);
   oneShot=null;
   play(id,{force:true,once:!SLOTS.get(id)?.loop});
-  const version=id==='run'?(runVariant==='calibrated'?' (новый калиброванный бег)':' (старый бег)'):'';
-  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+version+' — Python/NumPy. Механика забега не меняется.'};
+  const selected=resolve(id);
+  const source=selected==='runFBX'?'Fast Run.fbx':selected==='jumpFBX'?'Running Jump.fbx':selected==='flyFBX'?'Flying.fbx':null;
+  return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+
+   (source?' — '+source:' — Python/NumPy')+'. Физика забега не меняется.'};
  }
  function die(reason='other'){
   if(!active)return;
@@ -134,12 +146,15 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   }
  });
  function setRunVariant(value){
-  if(value!=='calibrated'&&value!=='original')return {ok:false,message:'Неизвестный вариант бега.'};
-  if(value===runVariant)return {ok:true,message:'Уже выбран '+(value==='calibrated'?'новый':'старый')+' бег.'};
+  if(!['fbx','calibrated','original'].includes(value))return {ok:false,message:'Неизвестный вариант бега.'};
+  if(value==='fbx'&&!importedIds.has('run'))return {ok:false,message:'Fast Run.fbx не удалось применить к этому скелету.'};
+  if(value===runVariant)return {ok:true,message:'Этот вариант бега уже выбран.'};
   runVariant=value;
   if(active&&!dead&&(baseState==='run'&&!oneShot||manualSlot==='run'))
    play('run',{force:true,once:manualSlot==='run'?false:null});
-  return {ok:true,message:value==='calibrated'
+  return {ok:true,message:value==='fbx'
+   ?'FBX-бег: Fast Run.fbx (реальные ключи, перенос на скелет Фионы).'
+   :value==='calibrated'
    ?'Новый бег: калибровка костей по FBX, цикл 0,70 с.'
    :'Старый бег: исходные Python-повороты, сохранён для сравнения.'};
  }
@@ -184,7 +199,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    }
   }
   previous=current;
-  for(const name of ['run','runCalibrated']){
+  for(const name of ['run','runCalibrated','runFBX']){
    const run=actions.get(name);
    if(run)run.setEffectiveTimeScale(clamp(speed/15,.8,1.85));
   }
@@ -207,5 +222,6 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  }
  return {setActive,playJump,trigger,preview,die,update,reset,dispose,setRunVariant,
   get runVariant(){return runVariant;},headBone,available,prototypeIds,importedIds,
+  importedFiles:importResult.reports,importErrors:importResult.errors,
   get loadedCount(){return available.size;}};
 }

@@ -74,7 +74,7 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     if(result?.ok)syncRunCompareButtons(button.dataset.fionaRunVariant);
     previewStatus.textContent=result?.message||'Тестовая Фиона пока не запущена.';
   });
-  syncRunCompareButtons('calibrated');
+  syncRunCompareButtons('fbx');
   const previewButtons=new Map();
   const animationGroups=new Map();
   for(const slot of FIONA_ANIMATION_SLOTS){
@@ -90,10 +90,12 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     previews.append(button);
     previewButtons.set(slot.id,button);
   }
-  function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set()){
+  function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set(),importedIds=new Set(),importedFiles=[],importErrors=[],runVariant='fbx'){
     previewPanel.classList.toggle('hidden',!enabled);
     if(!enabled){previewPanel.open=false;return;}
-    syncRunCompareButtons('calibrated');
+    syncRunCompareButtons(runVariant);
+    const fbxButton=runCompareButtons.find(b=>b.dataset.fionaRunVariant==='fbx');
+    if(fbxButton)fbxButton.disabled=!importedIds.has('run');
     const names=new Set(loaded);
     let count=0;
     for(const slot of FIONA_ANIMATION_SLOTS){
@@ -101,21 +103,26 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
       const has=names.has(slot.id);
       button.disabled=!has;
       button.classList.toggle('fiona-test-preview-loaded',has);
-      button.title=has?'Python/NumPy: '+slot.label:'Анимация пока недоступна';
-      button.textContent=slot.label+(prototypeIds.has(slot.id)?' · Python':'');
+      const isImported=importedIds.has(slot.id)||(importedIds.has('fly')&&['broomFly','ultimateFly'].includes(slot.id));
+      button.title=has?(isImported?'FBX: '+slot.label:'Python/NumPy: '+slot.label):'Анимация пока недоступна';
+      button.textContent=slot.label+(isImported?' · FBX':prototypeIds.has(slot.id)?' · Python':'');
       if(has)count++;
     }
-    previewStatus.textContent='Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
-      ' (сгенерировано на Python: '+prototypeIds.size+'). Проверяй в тестовом забеге.';
+    previewPanel.dataset.fbxImported=String(importedFiles.length);
+    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/3 ('+
+      importedFiles.map(r=>r.file+': '+r.boneCount+' костей').join('; ')+'). '+
+      'Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
+      (importErrors.length?' Ошибки: '+importErrors.join(' | '):'')+'.';
   }
   testLaunch.addEventListener('click',async()=>{
     const modelFile=$('fiona-model-file').files?.[0];
     testLaunch.disabled=true;testStatus.textContent='Ищу Фиону и проверяю анимации…';
     try{
       const resolved=await resolveFionaAssets({modelFile});
-      await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
+      const avatar=await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
       testStatus.textContent='Тест запущен: модель '+(resolved.origin==='website'?'из GitHub':'с компьютера')+
-        ', анимации Python/NumPy (23).';
+        ', FBX '+avatar.importedFiles.length+'/3, остальные движения Python.'+
+        (avatar.importErrors.length?' Ошибки: '+avatar.importErrors.join(' | '):'');
     }catch(error){
       console.error('Fiona test load failed',error);
       testStatus.textContent='Ошибка: '+(error?.message||String(error));

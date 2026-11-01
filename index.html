@@ -51,7 +51,7 @@
   <div id="menu-fiona-test" class="menu-page hidden">
     <h2>ТЕСТ НОВОЙ ФИОНЫ</h2>
     <p class="desc">Новая модель Фионы и 23 авторские Python-анимации загружаются автоматически. Нажми «Запустить» — больше не нужно выбирать Run Forward и Jump.</p>
-    <p class="fiona-test-hint">В тестовом забеге доступны два варианта бега: новый, откалиброванный под скелет Фионы, и прежний Python-бег для сравнения. Остальные 22 движения пока не менялись. Раскрой панель «Анимации Фионы · DEV» во время забега.</p>
+    <p class="fiona-test-hint">Тестируем загруженные FBX: Fast Run (бег), Running Jump (прыжок), Flying (полёт на метле и во время ульты). Остальные движения — Python. В DEV-панели можно сравнивать три варианта бега.</p>
     <details class="fiona-test-optional">
       <summary>Другая версия модели (необязательно)</summary>
       <label class="fiona-test-label" for="fiona-model-file">Модель со скелетом (.fbx)</label>
@@ -144,8 +144,9 @@
    <summary>✦ Анимации Фионы · DEV</summary>
    <div class="fiona-test-run-comparison" role="group" aria-label="Сравнить бег Фионы">
      <span>СРАВНЕНИЕ БЕГА</span>
-     <button type="button" data-fiona-run-variant="calibrated" aria-pressed="true">Новый · скелет</button>
-     <button type="button" data-fiona-run-variant="original" aria-pressed="false">Старый · Python</button>
+     <button type="button" data-fiona-run-variant="fbx" aria-pressed="true">Fast Run · FBX</button>
+     <button type="button" data-fiona-run-variant="calibrated" aria-pressed="false">Python · скелет</button>
+     <button type="button" data-fiona-run-variant="original" aria-pressed="false">Python · старый</button>
    </div>
    <p>Просмотр движения не изменяет физику, препятствия и способности.</p>
    <div id="fiona-test-preview-actions"></div>

@@ -185,8 +185,9 @@ async function startFionaTest(files){
  testAvatar.setActive(true);
  setClassicVisible(false);
  attachWearableToHead(testAvatar.headBone);
- menu.showFionaPreviewTools(true,testAvatar.available,testAvatar.prototypeIds);
+ menu.showFionaPreviewTools(true,testAvatar.available,testAvatar.prototypeIds,testAvatar.importedIds,testAvatar.importedFiles,testAvatar.importErrors,testAvatar.runVariant);
  start();
+ return testAvatar;
 }
 function startFromMenu(){
  if(state!=='paused')restoreClassicFiona();

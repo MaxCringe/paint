@@ -1,5 +1,4 @@
-// Optional test character model. All animations now come from Python-generated
-// data bundled under public/models/fiona/animations/; no Mixamo asset cache.
+// Optional Fiona DEV model; FBX motions and Python fallbacks load in FionaTest.
 const MODEL_URL='/models/fiona/rigged-model%20(1)%20(1).fbx';
 
 export async function resolveFionaAssets({modelFile}={}){
