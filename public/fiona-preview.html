@@ -14,7 +14,7 @@ aside{padding:18px;background:#19161c;border-right:1px solid #463b37;overflow-y:
 p{font-size:14px;line-height:1.55;color:#c7c1c2}label{display:block;font-size:14px;margin:15px 0 7px}
 input[type=file]{width:100%;padding:10px;border:1px solid #735b4f;border-radius:9px;background:#29252c}
 button{background:#7c5d48;color:#fff;border:0;border-radius:8px;padding:9px 12px;cursor:pointer}
-button:hover{background:#986b49}
+button:hover{background:#986b49}button:disabled{opacity:.38;cursor:not-allowed}#anim-info{color:#e9b981}
 #info{white-space:pre-wrap;font-size:13px;background:#262029;line-height:1.6;padding:12px;border-radius:8px;margin:16px 0}
 .warning{color:#ffbb8a}.success{color:#a3e1ad}
 #stage{position:relative;min-height:380px}
@@ -34,6 +34,16 @@ button:hover{background:#986b49}
 <p>Выбери ZIP, который ты скачал в Tripo. Файл обрабатывается прямо в твоём браузере, никуда не загружается.</p>
 <label for="file">Архив Tripo (.zip), FBX или GLB</label>
 <input id="file" type="file" accept=".zip,.fbx,.glb">
+<label for="run-file">2. Анимация бега — Run Forward.fbx</label>
+<input id="run-file" type="file" accept=".fbx">
+<label for="jump-file">3. Анимация прыжка — Jump.fbx</label>
+<input id="jump-file" type="file" accept=".fbx">
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+<button type="button" id="play-idle" disabled>Стоять</button>
+<button type="button" id="play-run" disabled>▶ Бег</button>
+<button type="button" id="play-jump" disabled>↥ Прыжок</button>
+</div>
+<p id="anim-info">Сначала загрузи Фиону, затем отдельно файлы бега и прыжка. Ничего не отправляется на сервер.</p>
 <div id="info" role="status">Ожидаю файл. Скелет и анимации будут проверены после открытия.</div>
 <button type="button" id="reset">Сбросить камеру</button>
 <p>Важно: «Bind Pose» в FBX не означает наличие рабочего скелета. Скелет определяется по костям и привязке меша к ним.</p>
@@ -66,6 +76,61 @@ const grid=new THREE.GridHelper(7,22,0x74584a,0x423945);scene.add(grid);
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;
 let model=null;let objectUrls=[];let mixer=null;let clipNames=[];
+let embeddedClips=[], importedRun=null, importedJump=null, currentAction=null;
+const runInput=document.getElementById('run-file');
+const jumpInput=document.getElementById('jump-file');
+const idleButton=document.getElementById('play-idle');
+const runButton=document.getElementById('play-run');
+const jumpButton=document.getElementById('play-jump');
+const animInfo=document.getElementById('anim-info');
+function embedded(name){return embeddedClips.find(c=>new RegExp(name,'i').test(c.name));}
+function setAnimInfo(message){animInfo.textContent=message;}
+function updateAnimButtons(){
+ idleButton.disabled=!mixer||!embedded('idle|bind|walk');
+ runButton.disabled=!mixer||!(importedRun||embedded('run'));
+ jumpButton.disabled=!mixer||!importedJump;
+}
+function playClip(clip,once=false){
+ if(!mixer||!clip)return;
+ const action=mixer.clipAction(clip);
+ if(currentAction&&currentAction!==action)currentAction.fadeOut(.16);
+ action.reset();action.enabled=true;action.setEffectiveTimeScale(1);action.setEffectiveWeight(1);
+ action.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);
+ action.clampWhenFinished=once;
+ action.fadeIn(.16).play();
+ currentAction=action;
+ setAnimInfo((once?'Прыжок':'Воспроизведение')+': '+clip.name);
+}
+idleButton.addEventListener('click',()=>playClip(embedded('idle|bind|walk')));
+runButton.addEventListener('click',()=>playClip(importedRun||embedded('run')));
+jumpButton.addEventListener('click',()=>playClip(importedJump,true));
+async function loadExternalAnimation(input,label){
+ const file=input.files?.[0];if(!file)return;
+ if(!mixer||!model){
+  setAnimInfo('Сначала загрузи файл модели Фионы со скелетом.');
+  input.value='';return;
+ }
+ setAnimInfo('Открываю '+file.name+'…');
+ try{
+  const root=new FBXLoader().parse(await file.arrayBuffer(),'');
+  const clip=root.animations?.[0];
+  if(!clip||!clip.tracks.length)throw new Error('FBX не содержит анимации.');
+  const modelBoneNames=new Set();
+  model.traverse(o=>{if(o.isBone)modelBoneNames.add(o.name);});
+  const usedBones=new Set(clip.tracks.map(t=>t.name.split('.')[0]).filter(n=>modelBoneNames.has(n)));
+  if(usedBones.size<8)throw new Error('Названия костей не совпадают с моделью: '+usedBones.size+' совпадений.');
+  const prepared=clip.clone();prepared.name=label;
+  if(label==='Run Forward')importedRun=prepared;
+  else importedJump=prepared;
+  updateAnimButtons();
+  setAnimInfo(label+' загружен. Совпадающих костей: '+usedBones.size+'/'+modelBoneNames.size+'.');
+  playClip(prepared,label==='Jump');
+ }catch(err){
+  console.error(err);setAnimInfo('Не получилось загрузить '+label+': '+(err?.message||String(err)));
+ }
+}
+runInput.addEventListener('change',()=>loadExternalAnimation(runInput,'Run Forward'));
+jumpInput.addEventListener('change',()=>loadExternalAnimation(jumpInput,'Jump'));
 function resetView(){camera.position.set(3,2.1,4.2);controls.target.set(0,1.2,0);controls.update();}
 resetView();
 document.getElementById('reset').addEventListener('click',resetView);
@@ -84,6 +149,9 @@ render();
 function resetModel(){
  if(model){scene.remove(model);model.traverse(o=>{if(o.geometry)o.geometry.dispose();});model=null;}
  for(const url of objectUrls)URL.revokeObjectURL(url);objectUrls=[];mixer=null;
+ embeddedClips=[];importedRun=null;importedJump=null;currentAction=null;
+ runInput.value='';jumpInput.value='';updateAnimButtons();
+ setAnimInfo('Сначала загрузи Фиону, затем Run Forward и Jump.');
 }
 function urlFor(bytes,mime){
  const url=URL.createObjectURL(new Blob([bytes],{type:mime}));objectUrls.push(url);return url;
@@ -114,15 +182,25 @@ function inspect(object, animations, filename){
    for(const m of [].concat(o.material||[]))if(m)materials.add(m);
   }
  });
- clipNames=(animations||object.animations||[]).map(a=>a.name||'Без имени');
+ embeddedClips=animations||object.animations||[];
+ clipNames=embeddedClips.map(a=>a.name||'Без имени');
  const hasRig=skinned>0 && bones>0;
  const warning=hasRig?'✓ Обнаружен рабочий скелет':'⚠ Скелет НЕ обнаружен: пока это статичная модель';
  status.textContent='Файл: '+filename+'\nМешей: '+meshes+'\nТреугольников: '+tris.toLocaleString('ru')+'\nМатериалов: '+materials.size+'\nКостей: '+bones+'\nSkinnedMesh: '+skinned+'\nАнимаций: '+clipNames.length+'\n\n'+warning+
  (clipNames.length?'\n\nКлипы: '+clipNames.join(', '):'');
  status.className=hasRig?'success':'warning';
- if(clipNames.length && hasRig){
+ if(hasRig){
    mixer=new THREE.AnimationMixer(object);
-   mixer.clipAction((animations||object.animations)[0]).play();
+   mixer.addEventListener('finished',event=>{
+     if(event.action===currentAction){
+       const run=importedRun||embedded('run');
+       if(run)playClip(run);
+     }
+   });
+   updateAnimButtons();
+   const initial=embedded('idle')||embedded('bind')||embeddedClips[0];
+   if(initial)playClip(initial);
+   else setAnimInfo('Скелет загружен. Выбери анимацию Run Forward или Jump.');
  }
  resetView();
 }
