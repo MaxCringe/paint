@@ -232,7 +232,7 @@ function togglePause(){
 function frame(t){requestAnimationFrame(frame);
   // The 3D broom workshop has its own renderer. Keep the unseen main
   // WebGL scene still to avoid doubling GPU work, without progressing the run.
-  if(document.body.classList.contains('broom-lab-open')){last=t;fpsSampleStart=null;fpsFrames=0;return;}
+  if((document.body.classList.contains('broom-lab-open')||document.body.classList.contains('effect-editor-open'))){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  // Keep the final rendered frame completely still, including lava and fire animations.
  if(state==='paused'){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  if(fpsSampleStart===null)fpsSampleStart=t;
@@ -380,6 +380,7 @@ function frame(t){requestAnimationFrame(frame);
    if(hats[i].g.parent)scene.remove(hats[i].g);
    hats.splice(i,1);
   }
+  makeSoul.updateVisuals?.();
   for(const c of coins){
    const phase=c.phase||c.z*.2;
    // While the hat is worn, attract souls from ALL three lanes.
