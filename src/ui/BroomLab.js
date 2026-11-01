@@ -180,6 +180,7 @@ export function createBroomLab(){
    return;
   }
   active=true;lastFocus=document.activeElement;
+  document.body.classList.add('broom-lab-open');
   document.getElementById('center')?.classList.add('hidden');
   overlay.classList.remove('hidden');
   select('flight');
@@ -190,6 +191,7 @@ export function createBroomLab(){
  function close(){
   if(!active)return;
   active=false;cancelAnimationFrame(frameId);
+  document.body.classList.remove('broom-lab-open');
   revertBroomTuning();
   broom.reset();
   overlay.classList.add('hidden');
