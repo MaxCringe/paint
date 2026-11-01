@@ -14,6 +14,20 @@ export const BROOM_CONFIG = Object.freeze({
 });
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+// Tuck forward around Fiona's waist pivot, keeping the broom and the rest
+// of the character at their natural proportions rather than squashing them.
+export function getBroomDuckPose(duck=0, flightBlend=1){
+ const blend=clamp(flightBlend,0,1);
+ const d=clamp(duck,0,1)*blend;
+ return {
+  waistPitch:.17*blend-1.65*d, // Lean nearly horizontal at full crouch
+  waistHeight:1-.21*d,
+  waistForward:-.10*d,
+  armPitch:1.13+.12*d,        // Hands stay near the broom shaft
+  legPitch:1.23+.19*d         // Knees tuck in toward the broom
+ };
+}
+
 export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) {
  if (!BROOM_ENABLED) return {
   spawn(){}, advancePickups(){}, tick(){}, applyPose(){}, guardPineLog(){},
@@ -145,6 +159,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  function cancel(){
   remaining=0;blend=0;
   mounted.visible=false;torso.rotation.x=0;
+  torso.position.y=1;torso.position.z=0;
   trail.hide();
  }
  function reset(){
@@ -190,17 +205,25 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
    if(p.g.position.z>13){scene.remove(p.g);pickups.splice(i,1);}
   }
  }
- function applyPose(){
-  if(blend<=0){torso.rotation.x=0;return;}
-  // Blend from the running cycle to a low seated witch-riding pose.
-  torso.rotation.x=.17*blend;
-  armL.rotation.x+=(1.13-armL.rotation.x)*blend;
-  armR.rotation.x+=(1.13-armR.rotation.x)*blend;
-  legL.rotation.x+=(1.23-legL.rotation.x)*blend;
-  legR.rotation.x+=(1.23-legR.rotation.x)*blend;
+ function applyPose(duck=0){
+  if(blend<=0){
+   torso.rotation.x=0;
+   torso.position.y=1;torso.position.z=0;
+   return;
+  }
+  // The upper body folds from the waist; hands reach forward and knees tuck.
+  // The mounted broom stays level, and the character is never squashed.
+  const pose=getBroomDuckPose(duck,blend);
+  torso.rotation.x=pose.waistPitch;
+  torso.position.y=pose.waistHeight;
+  torso.position.z=pose.waistForward;
+  armL.rotation.x+=(pose.armPitch-armL.rotation.x)*blend;
+  armR.rotation.x+=(pose.armPitch-armR.rotation.x)*blend;
+  legL.rotation.x+=(pose.legPitch-legL.rotation.x)*blend;
+  legR.rotation.x+=(pose.legPitch-legR.rotation.x)*blend;
  }
  function immuneTo(type){
-  // Upright pine trunks remain dangerous; suspended logs are flown over.
+  // Upright pine trunks remain dangerous; suspended logs are ducked under.
   return remaining>0&&broomIgnoresHazard(type);
  }
  return {

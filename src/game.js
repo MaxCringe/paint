@@ -300,14 +300,13 @@ function frame(t){requestAnimationFrame(frame);
    const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck;
    const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
-  runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck);runner.position.z=2.3;
+  runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
-  runner.rotation.x=ultActive?-.12:(sliding?-.55:-.18*broomDuck);
+  runner.rotation.x=ultActive?-.12:(sliding?-.55:0);
   ultimateAura.update(t,ultActive);
   const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
-  broom.applyPose();
-  // Curl forward only when flying beneath a log.
-  if(broomDuck>0)torso.rotation.x+=.47*broomDuck;
+  // The waist, arms and legs flex naturally while the full-size broom remains level.
+  broom.applyPose(broomDuck);
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   for(const o of obstacles){
    const previousZ=o.g.position.z;

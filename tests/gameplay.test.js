@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createDoubleJump} from '../src/player/DoubleJump.js';
-import {BROOM_CONFIG} from '../src/powerups/BroomRide.js';
+import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
 import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
@@ -45,11 +45,22 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
  assert.equal(pineLogBroomDuck(9,0),0);
  assert.equal(pineLogBroomDuck(16,0),0);
  assert.ok(game.includes("const broomDuck=broom.active?obstacles.reduce("));
- assert.ok(game.includes("runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck)"));
+ assert.ok(game.includes("runner.scale.y=ultActive?1:(sliding?.58:1)"));
+ assert.ok(game.includes("runner.rotation.x=ultActive?-.12:(sliding?-.55:0)"));
+ assert.ok(game.includes("broom.applyPose(broomDuck)"));
+ assert.ok(!game.includes("runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck)"));
  assert.ok(game.includes("const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck"));
  assert.ok(!game.includes('pineLogBroomLift'));
- // Conservative approximate model height stays beneath the log's lower edge (1.52).
- assert.ok(.20+.50*2.45<1.52);
+ // A proper body bend changes the torso joint, not the full character's scale.
+ const normal=getBroomDuckPose(0), tucked=getBroomDuckPose(1);
+ assert.equal(normal.waistHeight,1);
+ assert.equal(normal.waistPitch,.17);
+ assert.ok(tucked.waistPitch< -1.4);
+ assert.ok(tucked.waistHeight<normal.waistHeight);
+ assert.ok(tucked.armPitch>normal.armPitch);
+ assert.ok(tucked.legPitch>normal.legPitch);
+ assert.equal(getBroomDuckPose(0).waistPitch,normal.waistPitch);
+ assert.equal(getBroomDuckPose(1,0).waistHeight,1);
  const normal=.77;
  assert.equal(normal*(1-pineLogBroomDuck(-16,0))+.20*pineLogBroomDuck(-16,0),normal);
 });
