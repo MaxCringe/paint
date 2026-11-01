@@ -7,6 +7,7 @@ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
 const html=read('index.html');
 const game=read('src/game.js');
 const menu=read('src/ui/GameMenu.js');
+const input=read('src/systems/GameInput.js');
 
 test('one main menu has start, conditional resume, help and settings',()=>{
  for(const id of ['center','menu-main','menu-help','menu-settings','resume','start','menu-open-help','menu-open-settings','pause-button'])
@@ -24,8 +25,9 @@ test('mobile gameplay uses swipes; redundant arrows and repeated hints are gone'
  assert.ok(!html.includes('id="hint"'));
  for(const id of ['help-pc','help-mobile','vibration-toggle','fps-toggle'])
   assert.ok(html.includes('id="'+id+'"'),id);
- assert.ok(game.includes("renderer.domElement.addEventListener('pointerup'"));
- assert.ok(game.includes("move(dx>0?1:-1)"));
+ assert.ok(input.includes("canvas.addEventListener('pointerup'"));
+ assert.ok(game.includes('createGameInput({'));
+ assert.ok(input.includes("onMove(dx>0?1:-1)"));
  assert.ok(!game.includes("$('left')"));
  assert.ok(!game.includes('pauseOverlay'));
 });

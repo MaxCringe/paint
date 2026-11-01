@@ -30,6 +30,7 @@ import { createAudioControls } from './ui/AudioControls.js';
 import { createGameMenu } from './ui/GameMenu.js';
 import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
+import { createGameInput } from './systems/GameInput.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
 const audio=createGameAudio();
@@ -210,14 +211,19 @@ function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.a
   if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
  }}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
-function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(state==='playing')togglePause();else if(!menu.escape()&&state==='paused')togglePause();}return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;
- // Holding jump must not consume the second jump through keyboard auto-repeat.
- if(e.repeat&&['ArrowUp','KeyW','Space','ArrowDown','KeyS'].includes(e.code))return;
- if(state==='over')return; if(state!=='playing'){if(!menu.isSubpageOpen()&&(e.code==='Enter'||e.code==='Space'))start();return}if(e.code==='ArrowLeft'||e.code==='KeyA')move(-1);if(e.code==='ArrowRight'||e.code==='KeyD')move(1);if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='Space')jump();if(e.code==='ArrowDown'||e.code==='KeyS')slide()}
-window.addEventListener('keydown',actionKey);
-let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 const {fpsDisplay}=createOverlays();
 const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+createGameInput({
+ canvas:renderer.domElement,
+ getState:()=>state,
+ isSubpageOpen:menu.isSubpageOpen,
+ onStart:start,
+ onMove:move,onJump:jump,onSlide:slide,
+ onEscape:()=>{
+  if(state==='playing')togglePause();
+  else if(!menu.escape()&&state==='paused')togglePause();
+ }
+});
 const gameOver=createGameOver({
  onRevive:()=>{
   if(state!=='over'||!scarfPickup.revive(runner.position))return;
