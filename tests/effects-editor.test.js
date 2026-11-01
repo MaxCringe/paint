@@ -105,3 +105,10 @@ test('appearance colors are independently addressable and survive local resets',
  assert.equal(getEffectVisualProfile('broomModel').woodColor,'#553522');
  resetEffectVisuals();
 });
+
+test('component tint defaults preserve natural broom appearance rather than flattening straw tones',()=>{
+ assert.equal(EFFECT_VISUAL_DEFAULTS.broomModel.bristlesColor,'#b38e60');
+ assert.equal(EFFECT_VISUAL_DEFAULTS.broomModel.woodColor,'#553522');
+ assert.equal(EFFECT_VISUAL_DEFAULTS.hat.bandColor,'#30251d');
+ assert.equal(EFFECT_VISUAL_DEFAULTS.scarf.clothTint,'#ffffff');
+});

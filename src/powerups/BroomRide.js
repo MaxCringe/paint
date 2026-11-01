@@ -51,7 +51,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  const gripGeo = new THREE.CylinderGeometry(.047,.047,.20,8);
  const capGeo = new THREE.SphereGeometry(.055,8,6);
  const bristlePositions = [], bristleColors = [];
- const shades = [0x9c754a,0xba955f,0x80603f,0xc2a073,0xa98652,0x745035];
+ const shades = [0xb2b2b2,0xe5e5e5,0x969696,0xf2f2f2,0xc7c7c7,0x898989];
  // A fuller broom head made of three staggered layers of crossed straw ribbons.
  // One shared BufferGeometry for all road pickups and Fiona's mounted broom.
  // No additional meshes or draw calls; tweak ring counts/spread to change fullness.

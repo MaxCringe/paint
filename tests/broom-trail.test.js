@@ -138,3 +138,14 @@ test('different colors of smoke, coughs, streaks, sparks and tip glow use distin
  assert.ok(ride.includes('if(showTrail)trail.update('));
  assert.ok(ride.includes('else trail.hide()'));
 });
+
+test('neutral particle textures and straw variation support true independent recoloring',()=>{
+ const fx=readFileSync(new URL('../src/powerups/BroomTrail.js',import.meta.url),'utf8');
+ const ride=readFileSync(new URL('../src/powerups/BroomRide.js',import.meta.url),'utf8');
+ for(const code of ['rgba(255,255,255,${alpha})','rgba(255,255,255,.98)','rgba(255,255,255,.63)']){
+  assert.ok(fx.includes(code),code);
+ }
+ assert.ok(ride.includes('bristleMat.color.set(v.bristlesColor)'));
+ assert.equal(BROOM_VISUAL_PROFILES.flight.sparkColor,'#ffc17c');
+ assert.equal(BROOM_VISUAL_PROFILES.flight.streakColor,'#dbcbff');
+});

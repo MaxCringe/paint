@@ -66,9 +66,9 @@ function smokeTexture(){
  ];
  for(const [x,y,r,alpha] of blobs){
   const g=ctx.createRadialGradient(x,y,0,x,y,r);
-  g.addColorStop(0,`rgba(245,236,252,${alpha})`);
-  g.addColorStop(.40,`rgba(199,179,218,${alpha*.57})`);
-  g.addColorStop(1,'rgba(153,139,172,0)');
+  g.addColorStop(0,`rgba(255,255,255,${alpha})`);
+  g.addColorStop(.40,`rgba(255,255,255,${alpha*.57})`);
+  g.addColorStop(1,'rgba(255,255,255,0)');
   ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
  }
  const tex=new THREE.CanvasTexture(canvas);
@@ -81,9 +81,9 @@ function streakTexture(){
  const ctx=canvas.getContext('2d');
  // Tapered magical speed streak, not an opaque rectangular smoke card.
  const shape=ctx.createRadialGradient(62,32,1,62,32,59);
- shape.addColorStop(0,'rgba(241,228,255,.92)');
- shape.addColorStop(.46,'rgba(189,170,242,.36)');
- shape.addColorStop(1,'rgba(151,142,199,0)');
+ shape.addColorStop(0,'rgba(255,255,255,.92)');
+ shape.addColorStop(.46,'rgba(255,255,255,.36)');
+ shape.addColorStop(1,'rgba(255,255,255,0)');
  ctx.save();ctx.translate(64,32);ctx.scale(1,.13);ctx.translate(-64,-32);
  ctx.fillStyle=shape;ctx.fillRect(0,-220,128,500);ctx.restore();
  const tex=new THREE.CanvasTexture(canvas);
@@ -96,9 +96,9 @@ function sparkTexture(){
  const ctx=canvas.getContext('2d');
  const g=ctx.createRadialGradient(32,32,0,32,32,31);
  g.addColorStop(0,'rgba(255,255,255,1)');
- g.addColorStop(.16,'rgba(255,239,193,.98)');
- g.addColorStop(.46,'rgba(255,186,100,.63)');
- g.addColorStop(1,'rgba(255,126,58,0)');
+ g.addColorStop(.16,'rgba(255,255,255,.98)');
+ g.addColorStop(.46,'rgba(255,255,255,.63)');
+ g.addColorStop(1,'rgba(255,255,255,0)');
  ctx.fillStyle=g;ctx.fillRect(0,0,64,64);
  const tex=new THREE.CanvasTexture(canvas);
  tex.colorSpace=THREE.SRGBColorSpace;
@@ -128,9 +128,9 @@ export function createBroomTrail(runner,glowTexture){
  const coughs=batch(smokeMap,WISPS-BASE_WISPS,.37,THREE.NormalBlending,3);
  const streaks=batch(streakTexture(),STREAKS,.65,THREE.AdditiveBlending,4);
  const sparks=batch(sparkTexture(),SPARKS,.75,THREE.AdditiveBlending,5);
- const smokePalette=[0xd0c1d9,0xbdb1ca,0xe1d5e7,0xb1a4bd];
- const streakPalette=[0xe2ceff,0xc4b4ef,0xf3d8ff];
- const sparkPalette=[0xffe4ac,0xffbb6c,0xffda91,0xfff6e8];
+ const smokePalette=[0xe9e9e9,0xd0d0d0,0xffffff,0xc3c3c3];
+ const streakPalette=[0xffffff,0xdcdcdc,0xf1f1f1];
+ const sparkPalette=[0xffffff,0xe1e1e1,0xf3f3f3,0xffffff];
  for(let i=0;i<BASE_WISPS;i++)wisps.mesh.setColorAt(i,new THREE.Color(smokePalette[i%4]));
  for(let i=0;i<WISPS-BASE_WISPS;i++)coughs.mesh.setColorAt(i,new THREE.Color(smokePalette[(i+1)%4]));
  for(let i=0;i<STREAKS;i++)streaks.mesh.setColorAt(i,new THREE.Color(streakPalette[i%3]));

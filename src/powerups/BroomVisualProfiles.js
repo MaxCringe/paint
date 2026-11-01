@@ -1,7 +1,7 @@
 // Live visual-only presets for the real Three.js broom trail.
 export const BROOM_VISUAL_PROFILES=Object.freeze({
- flight:Object.freeze({density:180,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#ffffff',sparkColor:'#ffffff',glowColor:'#dec5ff'}),
- landing:Object.freeze({density:150,opacity:70,size:150,length:50,streaks:39,coughs:250,sparks:299,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#ffffff',sparkColor:'#ffffff',glowColor:'#dec5ff'})
+ flight:Object.freeze({density:180,opacity:110,size:150,length:90,streaks:95,coughs:150,sparks:150,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#dbcbff',sparkColor:'#ffc17c',glowColor:'#dec5ff'}),
+ landing:Object.freeze({density:150,opacity:70,size:150,length:50,streaks:39,coughs:250,sparks:299,smokeRise:100,sparkSpread:100,sparkSize:100,glowSize:100,glowIntensity:100,smokeColor:'#d8c5ec',coughColor:'#d8c5ec',streakColor:'#dbcbff',sparkColor:'#ffc17c',glowColor:'#dec5ff'})
 });
 export const BROOM_LANDING_TRANSITION_SECONDS=3;
 export const BROOM_TUNING_STORAGE_KEY='knottyPineBroomVisualLabV1';
