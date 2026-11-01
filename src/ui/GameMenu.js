@@ -110,7 +110,8 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
     }
     previewPanel.dataset.fbxImported=String(importedFiles.length);
     previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/3 ('+
-      importedFiles.map(r=>r.file+': '+r.boneCount+' костей').join('; ')+'). '+
+      importedFiles.map(r=>r.file+' → '+r.sourceClip+': '+r.boneCount+' костей; доступные клипы ['+
+        r.allClips.map(c=>c.name+':'+c.duration+'с').join(', ')+']').join('; ')+'). '+
       'Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
       (importErrors.length?' Ошибки: '+importErrors.join(' | '):'')+'.';
   }

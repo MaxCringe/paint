@@ -47,7 +47,9 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  const importedRun=page.locator('[data-fiona-run-variant="fbx"]');
  const newRun=page.locator('[data-fiona-run-variant="calibrated"]');
  const oldRun=page.locator('[data-fiona-run-variant="original"]');
- expect(await page.locator('#fiona-test-preview-status').textContent()).toContain('FBX-файлы: 3/3');
+ const fbxStatus=await page.locator('#fiona-test-preview-status').textContent();
+ console.log('FBX IMPORT STATUS:',fbxStatus);
+ expect(fbxStatus).toContain('FBX-файлы: 3/3');
  await expect(tools).toHaveAttribute('data-fbx-imported','3');
  await expect(importedRun).toHaveAttribute('aria-pressed','true');
  await oldRun.click();

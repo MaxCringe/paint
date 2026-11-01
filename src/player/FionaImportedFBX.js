@@ -97,10 +97,15 @@ export async function loadFionaFBXClips(targetBones){
   try{
    model=loader.parse(bytes,URL);
    const sourceBones=validatedSourceBones(model);
-   const sourceClip=model.animations?.find(c=>c.tracks?.some(t=>t.name.endsWith('.quaternion')));
+   const allClips=(model.animations||[]).filter(c=>c.tracks?.some(t=>t.name.endsWith('.quaternion')));
+   const sourceClip=allClips.find(c=>new RegExp(asset.id==='run'?'fast.?run|running':asset.id==='jump'?'running.?jump|jump':'flying|fly','i').test(c.name))
+    ||allClips.find(c=>c.tracks.length>=6&&c.duration>.3)
+    ||allClips[0];
    if(!sourceClip)throw new Error(asset.file+': нет скелетных дорожек вращения');
    const result=retargetFionaFBXClip(sourceClip,sourceBones,targetBones,asset.action);
-   return {...asset,...result,originalDuration:sourceClip.duration};
+   return {...asset,...result,originalDuration:sourceClip.duration,
+    sourceClip:sourceClip.name,
+    allClips:allClips.map(c=>({name:c.name,duration:+c.duration.toFixed(3),tracks:c.tracks.length}))};
   }finally{
    if(model)disposeForeignModel(model);
   }
@@ -111,7 +116,8 @@ export async function loadFionaFBXClips(targetBones){
   if(outcome.status==='fulfilled'){
    const x=outcome.value;
    clips.set(asset.id,x.clip);
-   reports.push({file:x.file,id:x.id,boneCount:x.boneCount,mainJointCount:x.mainJointCount,duration:x.clip.duration});
+   reports.push({file:x.file,id:x.id,boneCount:x.boneCount,mainJointCount:x.mainJointCount,
+    duration:x.clip.duration,sourceClip:x.sourceClip,allClips:x.allClips});
   }else{
    errors.push(asset.file+': '+String(outcome.reason?.message||outcome.reason));
   }
