@@ -57,6 +57,11 @@
     <input class="fiona-test-file" type="file" id="fiona-run-file" accept=".fbx">
     <label class="fiona-test-label" for="fiona-jump-file">3. Прыжок — Jump.fbx</label>
     <input class="fiona-test-file" type="file" id="fiona-jump-file" accept=".fbx">
+    <details class="fiona-test-optional">
+      <summary>Остальные движения — добавить FBX по желанию</summary>
+      <p class="fiona-test-hint">Необязательные слоты. Новые анимации можно подставлять постепенно, не переделывая игру.</p>
+      <div id="fiona-test-animation-slots"></div>
+    </details>
     <label class="fiona-test-label fiona-test-orientation"><input type="checkbox" id="fiona-test-turn" checked> Развернуть модель на 180°</label>
     <p id="fiona-test-status" role="status" aria-live="polite">Выбери три файла и запусти тест.</p>
     <button id="fiona-test-launch" type="button" class="menu-action menu-primary">ЗАПУСТИТЬ ТЕСТОВЫЙ ЗАБЕГ</button>
@@ -140,6 +145,12 @@
   </div>
  </section>
  <button id="pause-button" class="hidden" type="button" aria-label="Пауза, открыть меню" title="Пауза">⏸</button>
+ <details id="fiona-test-tools" class="hidden" aria-label="Проверка анимаций Фионы">
+   <summary>✦ Анимации Фионы · DEV</summary>
+   <p>Просмотр движения не изменяет физику, препятствия и способности.</p>
+   <div id="fiona-test-preview-actions"></div>
+   <p id="fiona-test-preview-status" role="status" aria-live="polite">Выбери действие для просмотра.</p>
+ </details>
 </div>
 
 <script type="module" src="/src/main.js"></script>

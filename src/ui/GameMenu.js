@@ -1,6 +1,8 @@
+import { FIONA_ANIMATION_SLOTS } from '../player/FionaAnimationSlots.js';
+
 // Shared start and pause menu; game-over results now have a dedicated panel.
 // Continue is visible only when a live run has been paused.
-export function createGameMenu({onStart,onResume,onPause,onStartTest,haptics,fpsDisplay}){
+export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTest,haptics,fpsDisplay}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
   main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings'),fionaTest:$('menu-fiona-test')
@@ -55,6 +57,64 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,haptics,fps
  $('menu-open-settings').addEventListener('click',()=>openPage('settings'));
   $('menu-open-fiona-test').addEventListener('click',()=>openPage('fionaTest'));
   const testStatus=$('fiona-test-status'),testLaunch=$('fiona-test-launch');
+  const optionalRoot=$('fiona-test-animation-slots');
+  const previews=$('fiona-test-preview-actions');
+  const previewPanel=$('fiona-test-tools');
+  const previewStatus=$('fiona-test-preview-status');
+  const animationInputs=new Map();
+  const previewButtons=new Map();
+  const animationGroups=new Map();
+  for(const slot of FIONA_ANIMATION_SLOTS){
+    if(slot.id!=='run'&&slot.id!=='jump'){
+      let container=animationGroups.get(slot.group);
+      if(!container){
+        const details=document.createElement('details');
+        details.className='fiona-test-group';
+        const summary=document.createElement('summary');
+        summary.textContent=slot.group;
+        container=document.createElement('div');
+        details.append(summary,container);
+        optionalRoot.append(details);
+        animationGroups.set(slot.group,container);
+      }
+      const label=document.createElement('label');
+      label.className='fiona-test-label';
+      label.htmlFor='fiona-animation-'+slot.id;
+      label.textContent=slot.label;
+      const input=document.createElement('input');
+      input.type='file';input.accept='.fbx';input.className='fiona-test-file';
+      input.id='fiona-animation-'+slot.id;
+      container.append(label,input);
+      animationInputs.set(slot.id,input);
+    }
+    const button=document.createElement('button');
+    button.type='button';button.className='fiona-test-preview-button';
+    button.textContent=slot.label;
+    button.title='Нет загруженной FBX-анимации';
+    button.disabled=true;
+    button.addEventListener('click',()=>{
+      const result=onPreviewTest?.(slot.id);
+      previewStatus.textContent=result?.message||'Предпросмотр недоступен.';
+    });
+    previews.append(button);
+    previewButtons.set(slot.id,button);
+  }
+  function showFionaPreviewTools(enabled,loaded=new Set()){
+    previewPanel.classList.toggle('hidden',!enabled);
+    if(!enabled){previewPanel.open=false;return;}
+    const names=new Set(loaded);
+    let count=0;
+    for(const slot of FIONA_ANIMATION_SLOTS){
+      const button=previewButtons.get(slot.id);
+      const has=names.has(slot.id);
+      button.disabled=!has;
+      button.classList.toggle('fiona-test-preview-loaded',has);
+      button.title=has?'Показать '+slot.label:'FBX пока не выбран';
+      if(has)count++;
+    }
+    previewStatus.textContent='Загружено анимаций: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
+      '. Нажми на доступную кнопку для визуальной проверки.';
+  }
   testLaunch.addEventListener('click',async()=>{
     const modelFile=$('fiona-model-file').files?.[0];
     const runFile=$('fiona-run-file').files?.[0];
@@ -64,7 +124,11 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,haptics,fps
     }
     testLaunch.disabled=true;testStatus.textContent='Проверяю модель и анимации…';
     try{
-      await onStartTest({modelFile,runFile,jumpFile,turn:$('fiona-test-turn').checked});
+      const animationFiles={run:runFile,jump:jumpFile};
+      for(const [id,input] of animationInputs){
+        if(input.files?.[0])animationFiles[id]=input.files[0];
+      }
+      await onStartTest({modelFile,animationFiles,turn:$('fiona-test-turn').checked});
       testStatus.textContent='Фиона загружена. Тестовый забег запущен.';
     }catch(error){
       console.error('Fiona test load failed',error);
@@ -107,5 +171,5 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,haptics,fps
   if(page==='main')return false;
   openPage('main');return true;
  }
- return {show,hide,showGameOver,escape,isSubpageOpen:()=>page!=='main'};
+ return {show,hide,showGameOver,escape,showFionaPreviewTools,isSubpageOpen:()=>page!=='main'};
 }

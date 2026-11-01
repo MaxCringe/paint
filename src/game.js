@@ -170,6 +170,7 @@ function restoreClassicFiona(){
  useTestFiona=false;
  attachWearableToHead();
  testAvatar?.setActive(false);
+ menu.showFionaPreviewTools(false);
  setClassicVisible(true);
 }
 async function startFionaTest(files){
@@ -183,6 +184,7 @@ async function startFionaTest(files){
  testAvatar.setActive(true);
  setClassicVisible(false);
  attachWearableToHead(testAvatar.headBone);
+ menu.showFionaPreviewTools(true,testAvatar.available);
  start();
 }
 function startFromMenu(){
@@ -201,11 +203,11 @@ function start(){
  }
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
-function end(reason='other'){broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';if(!useTestFiona){best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);}menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
-function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move')}}
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+function end(reason='other'){if(useTestFiona)testAvatar?.die(reason);broom.cancel();ultimateAura.reset();haptics.play('hit');audio.play(reason==='tree'?'treeHit':'death');music.pause();updateHud(true);state='over';if(!useTestFiona){best=Math.max(best,Math.floor(distance));bestSouls=Math.max(bestSouls,coinCount);localStorage.setItem('knottyPineBest',best);localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls);}menu.showGameOver();gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive})}
+function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');if(useTestFiona)testAvatar?.trigger(d<0?'moveLeft':'moveRight')}}
 function jump(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!slideAction.active){
-  if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump();
+  if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
  }}
 function slide(){if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(state==='playing')togglePause();else if(!menu.escape()&&state==='paused')togglePause();}return}if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','KeyA','KeyD','KeyW','KeyS'].includes(e.code))e.preventDefault();if(state==='paused')return;
@@ -215,7 +217,7 @@ function actionKey(e){if(e.code==='Escape'){e.preventDefault();if(!e.repeat){if(
 window.addEventListener('keydown',actionKey);
 let touchX=0,touchY=0;renderer.domElement.addEventListener('pointerdown',e=>{touchX=e.clientX;touchY=e.clientY});renderer.domElement.addEventListener('pointerup',e=>{if(state!=='playing')return;const dx=e.clientX-touchX,dy=e.clientY-touchY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);else if(dy<0)jump();else slide()});
 const {fpsDisplay}=createOverlays();
-const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
 const gameOver=createGameOver({
  onRevive:()=>{
   if(state!=='over'||!scarfPickup.revive(runner.position))return;
@@ -226,6 +228,7 @@ const gameOver=createGameOver({
   // Ignore the hazard that killed Fiona while she reappears.
   for(const o of obstacles)if(Math.abs(o.g.position.z-runner.position.z)<7)o.passed=true;
   state='playing';menu.hide();music.resume();
+  if(useTestFiona){testAvatar?.reset();testAvatar?.trigger('revive');}
   popToast('VITALUM VITALIS — ФИОНА ВОСКРЕСЛА');updateHud(true);
  },
  onRetry:()=>{
@@ -342,7 +345,7 @@ function frame(t){requestAnimationFrame(frame);
   torso.rotation.z=( (lane-1)*2.55-runner.position.x)*-.05;
   // Anatomical crouch: knees flex, feet stay grounded and hat follows the head.
   applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch);
-  if(useTestFiona)testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,ultimate:ultActive,speed:travelSpeed});
+  if(useTestFiona)testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultActive,slip:slipT>0,speed:travelSpeed});
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z+=travelSpeed*dt;
@@ -388,7 +391,7 @@ function frame(t){requestAnimationFrame(frame);
   });
   if(state==='playing')scarfPickup.update(dt,t,travelSpeed,lane,runner.position.x,()=>{
    audio.play('hat');haptics.play('item');
-   popToast('ПЛАТОК МИСТИ — ОДНО ВОСКРЕШЕНИЕ');updateHud(true);
+   if(useTestFiona)testAvatar?.trigger('scarfPickup');popToast('ПЛАТОК МИСТИ — ОДНО ВОСКРЕШЕНИЕ');updateHud(true);
   });
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){
@@ -397,7 +400,7 @@ function frame(t){requestAnimationFrame(frame);
    if(!h.passed&&h.g.position.z>1.2){
     h.passed=true;
     if(h.lane===lane&&Math.abs(runner.position.x-(lane-1)*2.55)<1.05){
-     h.collected=true;magnetTime=10;audio.play('hat');haptics.play('item');
+     h.collected=true;magnetTime=10;audio.play('hat');haptics.play('item');if(useTestFiona)testAvatar?.trigger('hatPickup');
      scene.remove(h.g);
      animateWearable(t,true);
      popToast('ВЕДЬМИНА ШЛЯПА — МАГНИТ 10 СЕКУНД');
@@ -457,7 +460,7 @@ function frame(t){requestAnimationFrame(frame);
    const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
     c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
    if(!c.g.userData.got&&(magnetCaught||normalCaught)){
-    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(!useTestFiona&&coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
+    c.g.userData.got=true;audio.play('soul');haptics.play('soul');if(useTestFiona)testAvatar?.trigger('soulPickup');coinCount++;if(!useTestFiona&&coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}
@@ -467,6 +470,9 @@ function frame(t){requestAnimationFrame(frame);
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
   updateHud();
+ }else if(state==='over'&&useTestFiona){
+  // Death clip may continue after gameplay stops; no physics or counters advance.
+  testAvatar?.update(dt);
  }
  // Camera follows gently; maintain forward view
  camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);camera.lookAt(runner.position.x*.2,1.05,-5);

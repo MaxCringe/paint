@@ -103,3 +103,18 @@
 #menu-fiona-test .fiona-test-orientation input{width:16px;height:16px}
 #menu-fiona-test #fiona-test-status{font-size:11px;line-height:1.5;color:#d6d29a;min-height:32px;margin:10px 0}
 #menu-fiona-test #fiona-test-launch:disabled{opacity:.55;cursor:wait}
+
+/* Isolated optional FBX slots, folded to keep the regular menu compact. */
+#menu-fiona-test .fiona-test-optional{margin:12px 0;padding:10px;border:1px solid #91c5ac4f;border-radius:10px;background:#10271f}
+#menu-fiona-test .fiona-test-optional summary,#menu-fiona-test .fiona-test-group summary{cursor:pointer;text-align:left;font-weight:800;color:#d7eeb8;font-size:12px;line-height:1.6}
+#menu-fiona-test .fiona-test-group{margin-top:10px;border-top:1px solid #91c5ac35;padding:10px 4px 0}
+#menu-fiona-test .fiona-test-hint{font-size:11px;line-height:1.5;color:#bdd8c7;margin:10px 0}
+#fiona-test-tools{position:fixed;z-index:60;left:12px;bottom:12px;width:min(320px,calc(100vw - 24px));max-height:63dvh;overflow:auto;border:1px solid #8db79c88;border-radius:12px;background:#081c19f0;box-shadow:0 12px 35px #000b;padding:10px;color:#dbf1de;scrollbar-width:thin}
+#fiona-test-tools summary{cursor:pointer;font-size:12px;font-weight:900;letter-spacing:.05em}
+#fiona-test-tools p{font-size:10px;line-height:1.5;margin:9px 0;color:#bfd5cb}
+#fiona-test-preview-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#fiona-test-preview-actions button{padding:7px 5px;min-height:32px;border-radius:7px;border:1px solid #91c5ac53;background:#214238;color:#d4f5dc;font-size:10px;font-weight:750;cursor:pointer}
+#fiona-test-preview-actions button:disabled{opacity:.35;cursor:not-allowed}
+#fiona-test-preview-actions button.fiona-test-preview-loaded{border-color:#91d2ae}
+body.menu-open #fiona-test-tools,body.game-over-open #fiona-test-tools{display:none!important}
+@media(max-width:650px){#fiona-test-tools{bottom:66px;left:8px;width:min(290px,calc(100vw - 16px));max-height:45dvh}}
