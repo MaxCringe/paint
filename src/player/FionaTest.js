@@ -26,13 +26,13 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  if(!skinned||bones.size<8)throw new Error('Модель Фионы не содержит привязанного скелета.');
  // Do not read the FBX-embedded animations or user-supplied Mixamo clips.
  const clips=createPythonFionaClips(bones,generatedData);
- // The old 23 Python motions remain untouched. Only a second RUN clip is
- // added; the A/B switch is restricted to this DEV avatar.
+ // The old Python clips are retained as DEV fallbacks.
+ // FBX replaces only running and the first jump; flight stays procedural.
  clips.set('runCalibrated',createCalibratedRunClip(bones,calibratedData));
  // Keep the original Python/NumPy actions as reversible fallbacks.
  const importResult=await loadFionaFBXClips(bones);
  for(const [id,clip] of importResult.clips){
-  clips.set(id==='run'?'runFBX':id==='jump'?'jumpFBX':'flyFBX',clip);
+  clips.set(id==='run'?'runFBX':'jumpFBX',clip);
  }
  const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
  const importedIds=new Set(importResult.clips.keys());
@@ -65,7 +65,6 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    if(runVariant==='calibrated'&&actions.has('runCalibrated'))return 'runCalibrated';
   }
   if(id==='jump'&&actions.has('jumpFBX'))return 'jumpFBX';
-  if((id==='broomFly'||id==='ultimateFly')&&actions.has('flyFBX'))return 'flyFBX';
   if(actions.has(id))return id;
   if(id==='doubleJump'&&actions.has('jump'))return 'jump';
   if(id==='broomDuck'&&actions.has('broomFly'))return 'broomFly';
@@ -81,7 +80,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  const loop=once===null?(['runCalibrated','runFBX','flyFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop)):!once;
+  const loop=once===null?(['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop)):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
   action.fadeIn(.13).play();
@@ -99,6 +98,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   }
  }
  function trigger(id){
+  // Souls are absorbed passively; never interrupt running, jumping or flight.
+  // Guard this at the animation-controller layer as well as in game.js.
+  if(id==='soulPickup')return false;
   if(!active||dead||!actions.has(id)||manualSlot)return false;
   oneShot=id;
   play(id,{force:true,once:true});
@@ -113,6 +115,11 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  }
  function preview(id){
   if(!active)return {ok:false,message:'Сначала запусти тестовый забег.'};
+  if(id==='soulPickup'){
+   // No soul-pickup pose, even when clicked from the DEV animation panel.
+   if(!dead){manualSlot=null;manualSeconds=0;oneShot=null;playBase();}
+   return {ok:true,message:'Сбор души — без анимации: Фиона продолжает текущее движение.'};
+  }
   if(!actions.has(resolve(id)))return {ok:false,message:'Анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
@@ -120,7 +127,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   oneShot=null;
   play(id,{force:true,once:!SLOTS.get(id)?.loop});
   const selected=resolve(id);
-  const source=selected==='runFBX'?'Fast Run.fbx':selected==='jumpFBX'?'Running Jump.fbx':selected==='flyFBX'?'Flying.fbx':null;
+  const source=selected==='runFBX'?'Fast Run.fbx':selected==='jumpFBX'?'Running Jump.fbx':null;
   return {ok:true,message:'Просмотр: '+SLOTS.get(id).label+
    (source?' — '+source:' — Python/NumPy')+'. Физика забега не меняется.'};
  }

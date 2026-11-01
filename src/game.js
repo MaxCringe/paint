@@ -473,7 +473,7 @@ function frame(t){requestAnimationFrame(frame);
    const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
     c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
    if(!c.g.userData.got&&(magnetCaught||normalCaught)){
-    c.g.userData.got=true;audio.play('soul');haptics.play('soul');if(useTestFiona)testAvatar?.trigger('soulPickup');coinCount++;if(!useTestFiona&&coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
+    c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(!useTestFiona&&coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
    }
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}

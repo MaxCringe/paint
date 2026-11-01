@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import {FIONA_FBX_FILES,fionaBoneKey,retargetFionaFBXClip} from '../src/player/FionaImportedFBX.js';
 
 const joints=['Hips','Spine','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm'];
-test('three uploaded FBX clips map to running, jumping and flying',()=>{
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),['Fast Run.fbx','Running Jump.fbx','Flying.fbx']);
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),['run','jump','fly']);
+test('only approved FBX clips map to running and jumping',()=>{
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),['Fast Run.fbx','Running Jump.fbx']);
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),['run','jump']);
  assert.equal(fionaBoneKey('mixamorig:Hips'),'hips');
  assert.equal(fionaBoneKey('Armature|mixamorig:LeftArm'),'leftarm');
 });
@@ -49,4 +49,19 @@ test('incompatible FBX skeleton is rejected instead of pretending to play',()=>{
  }
  assert.throws(()=>retargetFionaFBXClip(new THREE.AnimationClip('wrong',1,tracks),src,dst,'bad'),
   /скелеты несовместимы/);
+});
+
+test('rejected flight FBX is not referenced or downloaded',async()=>{
+ const {readFileSync,existsSync}=await import('node:fs');
+ const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
+ const loader=read('src/player/FionaImportedFBX.js');
+ const fiona=read('src/player/FionaTest.js');
+ const game=read('src/game.js');
+ assert.ok(!existsSync(new URL('../public/models/fiona/animations/fbx/Flying.fbx',import.meta.url)));
+ assert.ok(!loader.includes("file:'Flying.fbx'"));
+ assert.ok(!fiona.includes("actions.has('flyFBX')"));
+ assert.ok(fiona.includes("id==='soulPickup')return false"));
+ assert.ok(!game.includes("testAvatar?.trigger('soulPickup')"));
+ // Original soul reward and sound remain, and nothing else blocks the run.
+ assert.ok(game.includes("audio.play('soul');haptics.play('soul');coinCount++"));
 });

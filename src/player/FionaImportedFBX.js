@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-// These are user-uploaded FBX assets, used by the optional character DEV run only.
-// Two gameplay flight states deliberately share the same uploaded Flying clip.
+// User-approved FBX assets for the optional Fiona DEV run only.
+// Flying.fbx was rejected and removed; flight uses the Python fallback.
 export const FIONA_FBX_FILES=Object.freeze([
  {id:'run',file:'Fast Run.fbx',action:'runFBX'},
- {id:'jump',file:'Running Jump.fbx',action:'jumpFBX'},
- {id:'fly',file:'Flying.fbx',action:'flyFBX'}
+ {id:'jump',file:'Running Jump.fbx',action:'jumpFBX'}
 ]);
 const URL='/models/fiona/animations/fbx/';
 const MIN_MAJOR_JOINTS=4;
@@ -98,7 +97,7 @@ export async function loadFionaFBXClips(targetBones){
    model=loader.parse(bytes,URL);
    const sourceBones=validatedSourceBones(model);
    const allClips=(model.animations||[]).filter(c=>c.tracks?.some(t=>t.name.endsWith('.quaternion')));
-   const sourceClip=allClips.find(c=>new RegExp(asset.id==='run'?'fast.?run|running':asset.id==='jump'?'running.?jump|jump':'flying|fly','i').test(c.name))
+   const sourceClip=allClips.find(c=>new RegExp(asset.id==='run'?'fast.?run|running':'running.?jump|jump','i').test(c.name))
     ||allClips.find(c=>c.tracks.length>=6&&c.duration>.3)
     ||allClips[0];
    if(!sourceClip)throw new Error(asset.file+': нет скелетных дорожек вращения');

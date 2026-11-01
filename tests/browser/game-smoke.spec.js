@@ -49,8 +49,8 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  const oldRun=page.locator('[data-fiona-run-variant="original"]');
  const fbxStatus=await page.locator('#fiona-test-preview-status').textContent();
  console.log('FBX IMPORT STATUS:',fbxStatus);
- expect(fbxStatus).toContain('FBX-файлы: 3/3');
- await expect(tools).toHaveAttribute('data-fbx-imported','3');
+ expect(fbxStatus).toContain('FBX-файлы: 2/2');
+ await expect(tools).toHaveAttribute('data-fbx-imported','2');
  await expect(importedRun).toHaveAttribute('aria-pressed','true');
  await oldRun.click();
  await expect(oldRun).toHaveAttribute('aria-pressed','true');
@@ -68,7 +68,9 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await controls.filter({hasText:'Прыжок'}).first().click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Running Jump.fbx');
  await controls.filter({hasText:'Полёт на метле'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Flying.fbx');
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
+ await controls.filter({hasText:'Сбор души'}).first().click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('без анимации');
  const attempts=await page.evaluate(()=>localStorage.getItem('knottyPineRunsStarted'));
  expect(attempts,'DEV test must not count as a real run').toBeNull();
  await page.keyboard.press('Escape');
