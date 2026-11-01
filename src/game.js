@@ -4,6 +4,7 @@ import { animateSoulFlame } from './souls/animateSoulFlame.js';
 import { SOULS_PER_ULT, ULT_DURATION } from './config.js';
 import { createLavaRiverFactory } from './obstacles/LavaRiver.js';
 import { createFishFactory } from './obstacles/Fish.js';
+import { createPineLogFactory } from './obstacles/PineLog.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
 import { createFiona } from './player/Fiona.js';
 import { createDoubleJump } from './player/DoubleJump.js';
@@ -20,7 +21,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier } from './systems/HazardRules.js';
+import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomLift } from './systems/HazardRules.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
 import { createRunRecordTracker } from './systems/RunRecords.js';
@@ -137,8 +138,10 @@ function makeFish(lane,z){
 const makeSoul = createSoulFactory(scene, coins);
 
 const makeLavaRiver = createLavaRiverFactory(scene, obstacles);
+const makePineLog = createPineLogFactory(scene, obstacles, trunkMat);
 const makeSegment = createSegmentGenerator({
   makeLavaRiver,
+  makePineLog,
   makeFish,
   makePuddle,
   makeObstacle,
@@ -249,6 +252,15 @@ function frame(t){requestAnimationFrame(frame);
   if(ultTimer>0)ultTimer=Math.max(0,ultTimer-dt);
   if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT)activateUltimate();
   const ultActive=ultTimer>0;
+  // Finish flying over a suspended log if the broom's timer is about to expire.
+  if(broom.active){
+   const broomSpeed=speed*BROOM_CONFIG.speedMultiplier;
+   for(const o of obstacles){
+    if(o.type!=='pineLog')continue;
+    const gap=o.g.position.z-runner.position.z;
+    if(gap>=-16&&gap<9)broom.guardPineLog((9-gap)/broomSpeed+.03);
+   }
+  }
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
@@ -269,11 +281,14 @@ function frame(t){requestAnimationFrame(frame);
     footstepTimer-=dt;
     if(footstepTimer<=0){audio.play('step');footstepTimer=Math.max(.24,.42*15/speed)}
    }else footstepTimer=.12;
-   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broom.hoverHeight:doubleJump.height);
+   // The broom automatically arcs ABOVE pine logs instead of clipping through them.
+   const logLift=broom.active?obstacles.reduce((lift,o)=>
+    o.type==='pineLog'?Math.max(lift,pineLogBroomLift(o.g.position.z,runner.position.z)):lift,0):0;
+   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broom.hoverHeight+logLift:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.scale.y=ultActive?1:(sliding?.58:1);runner.position.z=2.3;
   runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(slipT>0?Math.sin(t*.045)*.2:0);
-  runner.rotation.x=ultActive?-.12:0;
+  runner.rotation.x=ultActive?-.12:(sliding?-.55:0);
   ultimateAura.update(t,ultActive);
   const run= t*.012*travelSpeed/15;armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;legL.rotation.x=-Math.sin(run)*.72;legR.rotation.x=Math.sin(run)*.72;
   broom.applyPose();
@@ -304,6 +319,10 @@ function frame(t){requestAnimationFrame(frame);
    }
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
+    if(o.type==='pineLog'){
+     if(!clearsPineLog(sliding,broom.immuneTo('pineLog'),revivalShield>0)){end('tree');break}
+     continue;
+    }
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
      if(broom.immuneTo(o.type)||revivalShield>0)continue;
       if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}

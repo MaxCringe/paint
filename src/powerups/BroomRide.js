@@ -16,7 +16,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) {
  if (!BROOM_ENABLED) return {
-  spawn(){}, advancePickups(){}, tick(){}, applyPose(){},
+  spawn(){}, advancePickups(){}, tick(){}, applyPose(){}, guardPineLog(){},
   reset(){}, cancel(){}, immuneTo(){return false;},
   get active(){return false;}, get remaining(){return 0;},
   get hoverHeight(){return 0;}
@@ -152,6 +152,10 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   for(const p of pickups)scene.remove(p.g);
   pickups.length=0;
  }
+ function guardPineLog(seconds){
+  // Only extend an active ride enough to complete a log crossing.
+  if(remaining>0)remaining=Math.max(remaining,Math.max(0,seconds));
+ }
  function tick(dt,t){
   time=t;
   remaining=Math.max(0,remaining-dt);
@@ -196,11 +200,11 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
   legR.rotation.x+=(1.23-legR.rotation.x)*blend;
  }
  function immuneTo(type){
-  // Flying low still requires dodging pine trunks.
+  // Upright pine trunks remain dangerous; suspended logs are flown over.
   return remaining>0&&broomIgnoresHazard(type);
  }
  return {
-  spawn,advancePickups,tick,applyPose,reset,cancel,immuneTo,
+  spawn,advancePickups,tick,applyPose,reset,cancel,immuneTo,guardPineLog,
   get active(){return remaining>0;},
   get remaining(){return remaining;},
   get hoverHeight(){

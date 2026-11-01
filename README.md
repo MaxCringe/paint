@@ -32,6 +32,7 @@ Vite writes the production site to `dist/`. Wrangler runs the build before deplo
 - `src/player/Fiona.js` — Fiona's procedural 3D model and the body parts driven by the run animation.
 - `src/souls/createSoulFactory.js` — soul materials, collectible soul models, and their registration in the shared coin list.
 - `src/obstacles/LavaRiver.js` — lava materials, wide river geometry, glowing surface, charred boards, and riverbank flames.
+- `src/obstacles/PineLog.js` — full-width suspended pine log, shared mesh geometry, and roadside supports.
 - `src/systems/ObstacleManager.js` — existing random choices and probabilities for generating the next obstacle segment.
 - `src/souls/buildSoulFlameGeometry.js` — procedural soul-flame geometry.
 - `src/souls/animateSoulFlame.js` — animation of soul-flame meshes.
@@ -56,6 +57,7 @@ Run `npm test` to check jump, broom, lava collision and speed rules plus the two
 ## Current mechanics
 
 - Three-lane endless runner with pine-tree obstacles
+- Suspended pine logs block all three lanes: slide to pass underneath; broom flight automatically rises over the log, while upright trees remain dangerous.
 - Slippery cat-urine puddles and occasional fish obstacles
 - Collectible blue soul flames
 - Ultimate flight activates after collecting 100 souls

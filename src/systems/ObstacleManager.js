@@ -1,5 +1,5 @@
 // Keeps obstacle selection probabilities and spacing decisions outside the frame loop.
-export function createSegmentGenerator({ makeLavaRiver, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
+export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
   // Choose at most one pickup, only on a free lane.
   function maybePowerup(freeLanes,z){
    if(!freeLanes.length)return;
@@ -11,6 +11,8 @@ export function createSegmentGenerator({ makeLavaRiver, makeFish, makePuddle, ma
   return function makeSegment(z) {
     
      if(Math.random()<.13){makeLavaRiver(z);return}
+     // Full-width log owns its segment; nothing can be hidden inside it.
+     if(makePineLog&&Math.random()<.10){makePineLog(z);return}
      if(Math.random()<.88){
       const lane=(Math.random()*3)|0;
       if(Math.random()<.20)makeFish(lane,z);else if(Math.random()<.17)makePuddle(lane,z);else makeObstacle(lane,z,'knot');

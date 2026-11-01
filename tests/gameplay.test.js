@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createDoubleJump} from '../src/player/DoubleJump.js';
 import {BROOM_CONFIG} from '../src/powerups/BroomRide.js';
-import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier} from '../src/systems/HazardRules.js';
+import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomLift} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
  const events=[],j=createDoubleJump({onJump:n=>events.push(n),onLand:()=>events.push('land')});
@@ -21,11 +21,28 @@ test('double jump: two jumps, third blocked, landing resets',()=>{
  assert.equal(j.airborne,false);
 });
 
-test('broom can pass fish, puddles and lava, but not pine obstacles',()=>{
- for(const type of ['pee','fish','lava'])assert.equal(broomIgnoresHazard(type),true);
+test('broom can pass low hazards and fly above suspended logs, but not pine trunks',()=>{
+ for(const type of ['pee','fish','lava','pineLog'])assert.equal(broomIgnoresHazard(type),true);
  for(const type of ['knot','tree'])assert.equal(broomIgnoresHazard(type),false);
  assert.equal(BROOM_CONFIG.duration,9);
  assert.equal(BROOM_CONFIG.hoverHeight,.77);
+});
+
+test('full-width pine log requires sliding; jumping cannot clear it',()=>{
+ assert.equal(clearsPineLog(false,false,false),false);
+ assert.equal(clearsPineLog(true,false,false),true);
+ assert.equal(clearsPineLog(false,true,false),true);
+ assert.equal(clearsPineLog(false,false,true),true);
+});
+
+test('broom crosses logs in a smooth arc and returns to normal hover height',()=>{
+ assert.equal(pineLogBroomLift(-16,0),0);
+ assert.ok(pineLogBroomLift(-10,0)>0);
+ assert.ok(Math.abs(pineLogBroomLift(-4,0)-1.9)<1e-10);
+ assert.ok(Math.abs(pineLogBroomLift(2,0)-1.9)<1e-10);
+ assert.ok(pineLogBroomLift(6,0)>0);
+ assert.equal(pineLogBroomLift(9,0),0);
+ assert.equal(pineLogBroomLift(16,0),0);
 });
 
 test('lava jumps retain their original height threshold',()=>{
