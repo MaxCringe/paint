@@ -1,0 +1,47 @@
+import {test,expect} from '@playwright/test';
+
+function trackUnhandled(page){
+ const errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ return errors;
+}
+test('ordinary runner starts, pauses and resumes with a live WebGL scene',async({page})=>{
+ const errors=trackUnhandled(page);
+ await page.goto('/');
+ await expect(page.locator('#center')).toBeVisible();
+ await expect(page.locator('#menu-main')).toBeVisible();
+ const gl=await page.locator('canvas').first().evaluate(canvas=>
+  Boolean(canvas.getContext('webgl2')||canvas.getContext('webgl'))
+ );
+ expect(gl,'Chromium should provide software WebGL').toBe(true);
+ await page.locator('#start').click();
+ await expect(page.locator('#center')).toHaveClass(/hidden/);
+ await expect(page.locator('#pause-button')).toBeVisible();
+ await page.keyboard.press('ArrowUp');
+ await page.keyboard.press('Escape');
+ await expect(page.locator('#center')).toBeVisible();
+ await expect(page.locator('#resume')).toBeVisible();
+ await page.locator('#resume').click();
+ await expect(page.locator('#center')).toHaveClass(/hidden/);
+ expect(errors).toEqual([]);
+});
+
+test('Fiona DEV run loads hosted FBX and all 23 Python animations without updating real attempts',async({page})=>{
+ const errors=trackUnhandled(page);
+ await page.goto('/');
+ await page.locator('#menu-open-fiona-test').click();
+ await expect(page.locator('#menu-fiona-test')).toBeVisible();
+ await page.locator('#fiona-test-launch').click();
+ await expect(page.locator('#center')).toHaveClass(/hidden/,{timeout:90_000});
+ const tools=page.locator('#fiona-test-tools');
+ await expect(tools).toBeVisible({timeout:30_000});
+ await tools.locator('summary').click();
+ await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(23);
+ await page.locator('#fiona-test-preview-actions button').filter({hasText:'Бег'}).click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Python');
+ const attempts=await page.evaluate(()=>localStorage.getItem('knottyPineRunsStarted'));
+ expect(attempts,'DEV test must not count as a real run').toBeNull();
+ await page.keyboard.press('Escape');
+ await expect(page.locator('#resume')).toBeVisible();
+ expect(errors).toEqual([]);
+});
