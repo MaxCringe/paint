@@ -53,6 +53,23 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const center=bounds.getCenter(new THREE.Vector3());
  facing.position.set(-center.x,-bounds.min.y,-center.z);
  avatar.visible=false;runner.add(avatar);
+ // Seated broom pose is applied to the actual skinned FBX bones, not the hidden procedural Fiona.
+ const broomJoints={};
+ for(const [key,pattern] of Object.entries({hips:/hips$/i,spine:/spine$/i,
+  leftUpperLeg:/leftupleg$/i,rightUpperLeg:/rightupleg$/i,
+  leftLowerLeg:/leftleg$/i,rightLowerLeg:/rightleg$/i,
+  leftArm:/leftarm$/i,rightArm:/rightarm$/i,
+  leftForeArm:/leftforearm$/i,rightForeArm:/rightforearm$/i})){
+  const bone=[...bones.values()].find(b=>pattern.test(b.name.replace(/^mixamorig:/i,'')));
+  if(bone)broomJoints[key]={bone,rest:bone.quaternion.clone()};
+ }
+ let broomSeatBlend=0;
+ const broomSeatAngles={hips:[-.18,0,0],spine:[.22,0,0],
+  leftUpperLeg:[-1.32,0,-.10],rightUpperLeg:[-1.32,0,.10],
+  leftLowerLeg:[1.42,0,0],rightLowerLeg:[1.42,0,0],
+  leftArm:[-.95,0,-.22],rightArm:[-.95,0,.22],
+  leftForeArm:[-.38,0,0],rightForeArm:[-.38,0,0]};
+ const broomSeatTarget=new THREE.Quaternion();
  const mixer=new THREE.AnimationMixer(model);
  const actions=new Map([...clips].map(([id,clip])=>[id,mixer.clipAction(clip)]));
  let currentAction=null,currentName=null,baseState='run',oneShot=null;
@@ -195,6 +212,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   previous={jumping:false,sliding:false,broom:false,ultimate:false};
   mixer.stopAllAction();
   currentAction=null;currentName=null;
+  broomSeatBlend=0;
   avatar.rotation.set(0,0,0);avatar.position.y=0;
   if(active)play('run',{force:true});
  }
@@ -236,9 +254,21 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    if(run)run.setEffectiveTimeScale(clamp(speed/15,.8,1.85));
   }
   mixer.update(dt);
+  // Transition into a genuine seated posture: bent hips/knees, forward torso,
+  // arms reaching for the shaft. Apply after the mixer so flight clips cannot
+  // restore the standing pose. Fade out on landing without changing physics.
+  const seatTarget=broom&&!ultimate?1:0;
+  broomSeatBlend+=(seatTarget-broomSeatBlend)*Math.min(1,dt*(seatTarget?7:9));
+  if(broomSeatBlend>.0001){
+   for(const [key,joint] of Object.entries(broomJoints)){
+    const [x,y,z]=broomSeatAngles[key];
+    broomSeatTarget.copy(joint.rest).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z,'XYZ')));
+    joint.bone.quaternion.slerp(broomSeatTarget,broomSeatBlend);
+   }
+  }
   // Python clips animate bones, not entire meshes. No squashing or root displacement.
   avatar.rotation.x+=(0-avatar.rotation.x)*Math.min(1,dt*12);
-  avatar.position.y+=(0-avatar.position.y)*Math.min(1,dt*12);
+  avatar.position.y+=(-.48*broomSeatBlend-avatar.position.y)*Math.min(1,dt*9);
  }
  function dispose(){
   mixer.stopAllAction();mixer.uncacheRoot(model);
