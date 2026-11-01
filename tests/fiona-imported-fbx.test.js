@@ -4,13 +4,13 @@ import * as THREE from 'three';
 import {FIONA_FBX_FILES,fionaBoneKey,retargetFionaFBXClip} from '../src/player/FionaImportedFBX.js';
 
 const joints=['Hips','Spine','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm'];
-test('five FBX clips map fish to its exclusive death animation',()=>{
+test('six imported FBX clips distinguish ground slide and fish death',()=>{
  assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),[
   'Fast Run.fbx','Running Jump.fbx','Edge Slip.fbx',
-  'Standing React Death Right.fbx','Stumble Backwards.fbx'
+  'Standing React Death Right.fbx','Stumble Backwards.fbx','Crouched To Sprinting.fbx'
  ]);
  assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),
-  ['run','jump','slip','death','fishDeath']);
+  ['run','jump','slip','death','fishDeath','slide']);
  assert.equal(fionaBoneKey('mixamorig:Hips'),'hips');
  assert.equal(fionaBoneKey('Armature|mixamorig:LeftArm'),'leftarm');
 });
@@ -85,4 +85,19 @@ test('puddle is nonfatal and fish has its own final death animation with a delay
  assert.ok(game.includes("deathRevealRemaining=useTestFiona&&clipDuration>0"));
  assert.ok(game.includes("if(deathRevealRemaining===0)showDeathResult()"));
  assert.ok(game.includes("state='over'"));
+});
+
+test('ground-only log crouch uses a nonlooping FBX and never changes broom pose',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+ const controller=read('src/player/FionaTest.js');
+ const game=read('src/game.js');
+ assert.ok(controller.includes("if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX'"));
+ assert.ok(controller.includes("!['slipFBX','slideFBX'].includes(resolved)"));
+ assert.ok(controller.includes("id==='slide'&&(previous.broom||previous.ultimate)"));
+ assert.ok(controller.includes("previous.sliding&&!sliding&&!importedIds.has('slide')"));
+ assert.ok(controller.includes("ultimate?'ultimateFly':broom?(broomDuck>0.14?'broomDuck':'broomFly')"));
+ assert.ok(controller.includes("jumping?airborneSlot:sliding?'slide':slip?'slip':'run'"));
+ assert.ok(game.includes("if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne)"));
+ assert.ok(game.includes("const jumping=!ultActive&&!broom.active&&doubleJump.airborne, sliding=!ultActive&&!broom.active&&slideAction.active"));
 });

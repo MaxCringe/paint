@@ -49,8 +49,8 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  const oldRun=page.locator('[data-fiona-run-variant="original"]');
  const fbxStatus=await page.locator('#fiona-test-preview-status').textContent();
  console.log('FBX IMPORT STATUS:',fbxStatus);
- expect(fbxStatus).toContain('FBX-файлы: 5/5');
- await expect(tools).toHaveAttribute('data-fbx-imported','5');
+ expect(fbxStatus).toContain('FBX-файлы: 6/6');
+ await expect(tools).toHaveAttribute('data-fbx-imported','6');
  await expect(importedRun).toHaveAttribute('aria-pressed','true');
  await oldRun.click();
  await expect(oldRun).toHaveAttribute('aria-pressed','true');
@@ -71,6 +71,8 @@ test('Fiona DEV run loads hosted FBX and all 23 Python animations without updati
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
  await controls.filter({hasText:'Сбор души'}).first().click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('без анимации');
+ await controls.filter({hasText:'Подкат под бревном'}).first().click();
+ await expect(page.locator('#fiona-test-preview-status')).toContainText('Crouched To Sprinting.fbx');
  await controls.filter({hasText:'Скольжение на луже'}).first().click();
  await expect(page.locator('#fiona-test-preview-status')).toContainText('Edge Slip.fbx');
  await controls.filter({hasText:'Смерть'}).first().click();

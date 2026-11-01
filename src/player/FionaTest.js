@@ -33,7 +33,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const importResult=await loadFionaFBXClips(bones);
  for(const [id,clip] of importResult.clips){
   const name={run:'runFBX',jump:'jumpFBX',slip:'slipFBX',
-   death:'deathFBX',fishDeath:'fishDeathFBX'}[id];
+   death:'deathFBX',fishDeath:'fishDeathFBX',slide:'slideFBX'}[id];
   if(name)clips.set(name,clip);
  }
  const prototypeIds=new Set(FIONA_ANIMATION_SLOTS.map(slot=>slot.id));
@@ -68,6 +68,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   }
   if(id==='jump'&&actions.has('jumpFBX'))return 'jumpFBX';
   if(id==='slip'&&actions.has('slipFBX'))return 'slipFBX';
+  // Slide is ground-only. The broom and ultimate have distinct pose logic.
+  if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX';
   if(id==='death'&&actions.has('deathFBX'))return 'deathFBX';
   if(id==='fishDeath'&&actions.has('fishDeathFBX'))return 'fishDeathFBX';
   if(actions.has(id))return id;
@@ -85,7 +87,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  const loop=once===null?(resolved!=='slipFBX'&&
+  // Crouched To Sprinting is a transition and must never loop or restart
+  // within one slide; the gameplay slide timer still controls collision safety.
+  const loop=once===null?(!['slipFBX','slideFBX'].includes(resolved)&&
    (['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop))):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
@@ -126,17 +130,20 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    if(!dead){manualSlot=null;manualSeconds=0;oneShot=null;playBase();}
    return {ok:true,message:'Сбор души — без анимации: Фиона продолжает текущее движение.'};
   }
+  if(id==='slide'&&(previous.broom||previous.ultimate))
+   return {ok:false,message:'Подкат под бревном доступен только при беге, не на метле.'};
   if(!actions.has(resolve(id)))return {ok:false,message:'Анимация не найдена: '+(SLOTS.get(id)?.label||id)};
   dead=false;awaitingDeath=false;
   manualSlot=id;
-  manualSeconds=Math.max(SLOTS.get(id)?.loop&&id!=='slip'?2.7:1.2,clips.get(resolve(id)).duration+.18);
+  manualSeconds=Math.max(SLOTS.get(id)?.loop&&!['slip','slide'].includes(id)?2.7:1.2,clips.get(resolve(id)).duration+.18);
   oneShot=null;
-  play(id,{force:true,once:id==='fishDeath'||id==='slip'||!SLOTS.get(id)?.loop});
+  play(id,{force:true,once:['fishDeath','slip','slide'].includes(id)||!SLOTS.get(id)?.loop});
   const selected=resolve(id);
   const filenames={
    runFBX:'Fast Run.fbx',jumpFBX:'Running Jump.fbx',
    slipFBX:'Edge Slip.fbx',deathFBX:'Standing React Death Right.fbx',
-   fishDeathFBX:'Stumble Backwards.fbx'
+   fishDeathFBX:'Stumble Backwards.fbx',
+   slideFBX:'Crouched To Sprinting.fbx'
   };
   const source=filenames[selected]||null;
   return {ok:true,message:'Просмотр: '+(SLOTS.get(id)?.label||'Смерть от рыбы')+
@@ -211,7 +218,8 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
      else if(previous.broom&&!broom)trigger('broomLand');
      else if(!previous.ultimate&&ultimate)trigger('ultimateStart');
      else if(previous.ultimate&&!ultimate)trigger('ultimateEnd');
-     else if(previous.sliding&&!sliding)trigger('slideEnd');
+     else if(previous.sliding&&!sliding&&!importedIds.has('slide'))
+      trigger('slideEnd'); // The FBX slide already contains its exit to sprint.
      else if(previous.jumping&&!jumping)trigger('land');
     }
    }else{
