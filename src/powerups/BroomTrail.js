@@ -147,7 +147,7 @@ export function createBroomTrail(runner,glowTexture){
     const age=fract(phase);
     const envelope=Math.sin(Math.PI*age);
     const radius=state.warning?
-     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size):0;
+     (.24+.51*age)*envelope*(.68+.32*fatigue)*coughOnset*Math.max(.72,size)*visual.coughs/100:0;
     place(wisps.mesh,i,
      .10+Math.sin(j*2.7+age*7)*(.11+.28*age),
      .61+age*.32+Math.cos(j*3.1)*.065,
@@ -156,14 +156,15 @@ export function createBroomTrail(runner,glowTexture){
    }
   }
   wisps.mesh.instanceMatrix.needsUpdate=true;
-  wisps.material.opacity=.37*visual.opacity/100+.19*fatigue;
+  wisps.material.opacity=(.37+.19*fatigue)*visual.opacity/100;
+  wisps.material.color.set(visual.smokeColor);
   // Slender magical airflow streaks replace the old thick persistent smoke.
   for(let i=0;i<STREAKS;i++){
    const age=fract((i+.4)/STREAKS+t*(.29+(i%3)*.034));
    const envelope=Math.sin(Math.PI*age);
    const fade=1-.74*fatigue;
-   const w=.07*(.8+(i%3)*.2)*size*envelope*fade;
-   const h=(.54+age*.75)*length*envelope*fade;
+   const w=.07*(.8+(i%3)*.2)*size*envelope*fade*visual.streaks/100;
+   const h=(.54+age*.75)*length*envelope*fade*visual.streaks/100;
    place(streaks.mesh,i,
     -.08+Math.sin(i*2.4)*(.14+.17*age),
     .56+Math.cos(i*1.71)*.07+age*.11,
@@ -171,7 +172,7 @@ export function createBroomTrail(runner,glowTexture){
     w,h,Math.sin(i*1.9+t*.7)*.17,1.05);
   }
   streaks.mesh.instanceMatrix.needsUpdate=true;
-  streaks.material.opacity=.67*(1-.38*fatigue);
+  streaks.material.opacity=.67*(1-.38*fatigue)*visual.streaks/100;
   // Subtle airborne motes during flight; clustered, increasingly bright gold
   // sputters in the final three seconds, then an immediate safe stop.
   for(let i=0;i<SPARKS;i++){
