@@ -18,7 +18,11 @@ export function createSoulFactory(scene, coins) {
   let lastVisualSignature='';
   function updateVisuals(force=false){
    const v=getEffectVisualProfile('souls');
-   const signature=[v.outerOpacity,v.innerOpacity,v.haloOpacity,v.haloColor,v.sparkSize].join('|');
+   // Color edits must invalidate the cache too, not just opacity/scale.
+   const signature=[
+    v.outerOpacity,v.innerOpacity,v.haloOpacity,v.haloColor,v.sparkSize,
+    v.outerColor,v.innerColor,v.sparkAColor,v.sparkBColor,v.sparkCColor
+   ].join('|');
    if(!force&&signature===lastVisualSignature)return;
    lastVisualSignature=signature;
    soulOuterMaterial.opacity=v.outerOpacity/100;

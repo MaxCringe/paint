@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {
  EFFECT_EDITOR_AVAILABLE,EFFECT_VISUAL_SCHEMA,EFFECT_VISUAL_DEFAULTS,EFFECT_VISUAL_CONTROLS,
  effectVisualSnapshot,getEffectVisualProfile,setEffectVisualValue,
- resetEffectVisualCategory,revertEffectVisuals,resetEffectVisuals
+ resetEffectVisualCategory,revertEffectVisuals,resetEffectVisuals,
+ restoreOriginalAppearance,EFFECT_VISUAL_RESTORE_REVISION,RESTORED_VISUAL_CATEGORIES
 } from '../src/effects/EffectVisualProfiles.js';
 
 const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
@@ -124,4 +125,67 @@ test('restored non-broom defaults remain unchanged when editing broom effects',(
  assert.equal(EFFECT_VISUAL_DEFAULTS.ultimate.flameSpeed,100);
  assert.equal(EFFECT_VISUAL_DEFAULTS.scarf.glowOpacity,65);
  assert.equal(EFFECT_VISUAL_DEFAULTS.broomModel.woodColor,'#553522');
+});
+
+test('legacy persisted overrides restore soul, hat and ultimate defaults without changing broom material or scarf',()=>{
+ assert.equal(EFFECT_VISUAL_RESTORE_REVISION,1);
+ assert.deepEqual(RESTORED_VISUAL_CATEGORIES,['hat','souls','ultimate']);
+ const previouslySaved=JSON.parse(JSON.stringify(EFFECT_VISUAL_DEFAULTS));
+ previouslySaved.hat.glowOpacity=63;
+ previouslySaved.souls.haloOpacity=13;
+ previouslySaved.souls.outerOpacity=100;
+ previouslySaved.souls.innerOpacity=85;
+ previouslySaved.souls.sparkSize=220;
+ previouslySaved.ultimate.intensity=77;
+ previouslySaved.ultimate.flameSpeed=39;
+ previouslySaved.broomModel.woodColor='#123456';
+ previouslySaved.scarf.glowOpacity=40;
+ const restored=restoreOriginalAppearance(previouslySaved);
+ for(const category of RESTORED_VISUAL_CATEGORIES)
+  assert.deepEqual(restored[category],EFFECT_VISUAL_DEFAULTS[category],category);
+ assert.equal(restored.broomModel.woodColor,'#123456');
+ assert.equal(restored.scarf.glowOpacity,40);
+ assert.equal(previouslySaved.souls.sparkSize,220);
+ assert.equal(previouslySaved.hat.glowOpacity,63);
+});
+test('saved legacy browser profiles migrate exactly once; future intentional soul edits persist',async()=>{
+ const key='knottyPineEffectVisualWorkshopV1';
+ const earlier={
+  ...JSON.parse(JSON.stringify(EFFECT_VISUAL_DEFAULTS)),
+  hat:{...EFFECT_VISUAL_DEFAULTS.hat,glowOpacity:63},
+  souls:{...EFFECT_VISUAL_DEFAULTS.souls,haloOpacity:13,outerOpacity:100,innerOpacity:85,sparkSize:220},
+  ultimate:{...EFFECT_VISUAL_DEFAULTS.ultimate,intensity:77,flameSpeed:39},
+  broomModel:{...EFFECT_VISUAL_DEFAULTS.broomModel,woodColor:'#123456'}
+ };
+ const savedStorage=new Map([[key,JSON.stringify(earlier)]]);
+ const original=globalThis.localStorage;
+ globalThis.localStorage={
+  getItem:k=>savedStorage.get(k)??null,
+  setItem:(k,v)=>savedStorage.set(k,String(v)),
+  removeItem:k=>savedStorage.delete(k)
+ };
+ try{
+  const one=await import('../src/effects/EffectVisualProfiles.js?migration-first');
+  assert.equal(one.getEffectVisualProfile('souls').sparkSize,100);
+  assert.equal(one.getEffectVisualProfile('souls').innerOpacity,97);
+  assert.equal(one.getEffectVisualProfile('hat').glowOpacity,88);
+  assert.equal(one.getEffectVisualProfile('ultimate').flameSpeed,100);
+  assert.equal(one.getEffectVisualProfile('broomModel').woodColor,'#123456');
+  assert.equal(JSON.parse(savedStorage.get(key)).__appearanceRevision,1);
+  one.setEffectVisualValue('souls','sparkSize',126);
+  assert.equal(one.saveEffectVisuals(),true);
+  const two=await import('../src/effects/EffectVisualProfiles.js?migration-second');
+  assert.equal(two.getEffectVisualProfile('souls').sparkSize,126);
+  assert.equal(two.getEffectVisualProfile('hat').glowOpacity,88);
+  assert.equal(two.getEffectVisualProfile('broomModel').woodColor,'#123456');
+ }finally{
+  if(original===undefined)delete globalThis.localStorage;
+  else globalThis.localStorage=original;
+ }
+});
+test('soul material update signature observes independent color changes',()=>{
+ const soul=read('src/souls/createSoulFactory.js');
+ for(const part of ['v.outerColor,v.innerColor,v.sparkAColor,v.sparkBColor,v.sparkCColor']){
+  assert.ok(soul.includes(part),part);
+ }
 });

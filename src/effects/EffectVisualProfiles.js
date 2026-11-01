@@ -50,6 +50,17 @@ const KEY='knottyPineEffectVisualWorkshopV1';
 const CATEGORIES=Object.keys(EFFECT_VISUAL_DEFAULTS);
 const isColor=s=>typeof s==='string'&&/^#[a-f0-9]{6}$/i.test(s);
 const copy=x=>JSON.parse(JSON.stringify(x));
+// One-time migration: the previously exported six-category preset was applied
+// to hat, souls and ultimate by mistake. Restore ONLY those three categories
+// for browsers that saved the legacy preset. Broom and other local VFX survive.
+export const EFFECT_VISUAL_RESTORE_REVISION=1;
+export const RESTORED_VISUAL_CATEGORIES=Object.freeze(['hat','souls','ultimate']);
+export function restoreOriginalAppearance(savedValues){
+ const restored=copy(savedValues);
+ for(const category of RESTORED_VISUAL_CATEGORIES)
+  restored[category]=copy(EFFECT_VISUAL_DEFAULTS[category]);
+ return restored;
+}
 export const EFFECT_EDITOR_AVAILABLE=import.meta.env?.VITE_ENABLE_EFFECT_EDITOR!=='false';
 function initial(){
  if(EFFECT_EDITOR_AVAILABLE){
@@ -65,6 +76,19 @@ function initial(){
       else if(kind==='range'&&typeof value==='number'&&Number.isFinite(value))
        clean[category][key]=Math.max(min,Math.min(max,value));
      }
+    }
+    // Existing browser storage wins over defaults unless it is a legacy
+    // copy that was saved before the involuntary non-broom VFX change was
+    // rolled back. Mark this migration in the stored object so later edits
+    // to these effects are NOT erased on future visits.
+    if(saved.__appearanceRevision!==EFFECT_VISUAL_RESTORE_REVISION){
+     const restored=restoreOriginalAppearance(clean);
+     try{
+      localStorage.setItem(KEY,JSON.stringify({
+       ...restored,__appearanceRevision:EFFECT_VISUAL_RESTORE_REVISION
+      }));
+     }catch{}
+     return restored;
     }
     return clean;
    }
@@ -92,7 +116,12 @@ export function setEffectVisualValue(category,key,value){
 export function saveEffectVisuals(){
  if(!EFFECT_EDITOR_AVAILABLE)return false;
  saved=copy(draft);
- try{localStorage.setItem(KEY,JSON.stringify(saved));return true;}catch{return false;}
+ try{
+  localStorage.setItem(KEY,JSON.stringify({
+   ...saved,__appearanceRevision:EFFECT_VISUAL_RESTORE_REVISION
+  }));
+  return true;
+ }catch{return false;}
 }
 export function revertEffectVisuals(){draft=copy(saved);}
 export function resetEffectVisualCategory(category){
