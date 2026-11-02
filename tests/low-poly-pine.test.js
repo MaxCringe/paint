@@ -38,6 +38,22 @@ test('AI Studio grove pine has a tapered trunk, four crafted foliage tiers and a
  assert.equal(shadow.position.y,.015);
 });
 
+test('preview pines grow vertically without widening into the running lanes',()=>{
+ const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
+ assert.ok(world.includes('const pineModelScaleXZ=.50;'));
+ assert.ok(world.includes('const pineModelScaleY=.82;'));
+ assert.ok(world.includes('source.position.y*pineModelScaleY'));
+ assert.ok(world.includes('source.position.x*pineModelScaleXZ'));
+ assert.ok(world.includes('source.scale.y*pineModelScaleY'));
+ assert.ok(world.includes('source.scale.x*pineModelScaleXZ'));
+ assert.ok(world.includes('scale*(.92+Math.random()*.52)'));
+ assert.ok(world.includes('scale*(.82+Math.random()*.22)'));
+ // Original pine stays unchanged; render instances are still batched.
+ const pine=createLowPolyPine();
+ assert.equal(pine.children[0].position.y,2.4);
+ assert.ok(.82>.50);
+});
+
 test('forest instancing keeps wind, recycling and lane obstacles separate from visual pine swap',()=>{
  const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');

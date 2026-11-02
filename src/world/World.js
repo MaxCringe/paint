@@ -187,7 +187,10 @@ export function createWorld() {
   // One AI Studio model provides shared geometry/materials for every forest pine.
   // Each tree remains a lightweight transform proxy (wind and recycling unchanged).
   const pinePrototype=createLowPolyPine();
-  const pineModelScale=.50; // Original 4.8-unit model, fitted to the existing roadside grove.
+  // The original 4.8-unit pine is tall and slim in the forest: stretch its
+  // height without making its broad foliage cover the road.
+  const pineModelScaleXZ=.50;
+  const pineModelScaleY=.82;
   const pineGroups=[],pineBatches=[];
   function pinePart(parent,geometry,material){
    let batch=pineBatches.find(b=>b.geometry===geometry&&b.material===material);
@@ -198,16 +201,17 @@ export function createWorld() {
   }
   function tree(x,z,scale=1,recycleLength=180){
    const g=new THREE.Group();g.position.set(x,0,z);
-   // Keep the original height/width variation; a little yaw breaks repetition.
-   g.scale.set(scale*(.84+Math.random()*.30),scale*(.76+Math.random()*.48),scale*(.84+Math.random()*.30));
+   // Taller, varied mature pines with slightly slimmer crowns.
+   g.scale.set(scale*(.82+Math.random()*.22),scale*(.92+Math.random()*.52),scale*(.82+Math.random()*.22));
    g.rotation.y=Math.random()*Math.PI/3;
    g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);pineGroups.push(g);
    // Mirror the prototype's meshes as instanced transforms, not separate draws.
    for(const source of pinePrototype.children){
     const part=pinePart(g,source.geometry,source.material);
-    part.position.copy(source.position).multiplyScalar(pineModelScale);
+    // Scale positions AND geometry so foliage tiers stay attached to the trunk.
+    part.position.set(source.position.x*pineModelScaleXZ,source.position.y*pineModelScaleY,source.position.z*pineModelScaleXZ);
     part.rotation.copy(source.rotation);
-    part.scale.copy(source.scale).multiplyScalar(pineModelScale);
+    part.scale.set(source.scale.x*pineModelScaleXZ,source.scale.y*pineModelScaleY,source.scale.z*pineModelScaleXZ);
    }
    return g
   }
