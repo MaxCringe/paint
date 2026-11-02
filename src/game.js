@@ -22,7 +22,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
+import { lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
@@ -407,15 +407,18 @@ function frame(t){requestAnimationFrame(frame);
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
    if(o.type==='fish')animateFishOdor(o.g,t);
    if(o.type==='lava'){
+    const half=o.g.userData.halfDepth||2.95;
+    const before=previousZ-runner.position.z;
+    const after=o.g.position.z-runner.position.z;
     if(!ultActive&&!broom.immuneTo('lava')&&!o.passed){
-     const half=o.g.userData.halfDepth||.88;
-     const crossedFrontEdge=previousZ+half<runner.position.z&&o.g.position.z+half>=runner.position.z;
-     if(crossedFrontEdge){
-      o.passed=true;
+     // Check the entire river every frame: a jump that lands in lava is fatal.
+     if(lavaCrossingTouchesRunner(before,after,half)){
       if(!lavaJumpCleared(jumping,jumpY)&&revivalShield<=0){end();break}
-      invuln=Math.max(invuln,.22);
+      if(before< -half&&after>=-half)invuln=Math.max(invuln,.22);
      }
     }
+    // Do not mark a successful takeoff as a completed crossing.
+    if(after>half)o.passed=true;
     for(const bubble of (o.g.userData.bubbles||[])){
      const pulse=1+.28*Math.sin(t*.016+bubble.phase);
      bubble.mesh.scale.y=bubble.sy*pulse;

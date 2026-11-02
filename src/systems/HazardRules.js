@@ -1,6 +1,13 @@
 // Pure mechanics shared by the runner, broom and automated tests.
 export const broomIgnoresHazard=type=>type==='pee'||type==='fish'||type==='lava'||type==='pineLog';
 export const lavaJumpCleared=(jumping,height)=>Boolean(jumping)&&height>.62;
+// Lava occupies a full-depth corridor, not just its front edge.
+// Check the swept segment each frame so landing mid-river (or a frame skip)
+// cannot turn an initially safe jump into permanent immunity.
+export const lavaCrossingTouchesRunner=(previousGap,currentGap,halfDepth)=>
+ Number.isFinite(previousGap)&&Number.isFinite(currentGap)&&
+ Number.isFinite(halfDepth)&&halfDepth>0&&
+ previousGap<=halfDepth&&currentGap>=-halfDepth;
 
 // The small lane-specific pine has a 2.55-unit trunk, higher than the
 // horizontal log's upper surface. A genuine SECOND jump must carry Fiona's

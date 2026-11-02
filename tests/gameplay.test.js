@@ -6,7 +6,7 @@ import {createSlide,getSlidePose,getSlideLegPose,SLIDE_DURATION} from '../src/pl
 import * as THREE from 'three';
 import {createFiona} from '../src/player/Fiona.js';
 import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
-import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration,pineLogDoubleJumpCleared,pineLogCrossingTouchesRunner, PINE_LOG_DOUBLE_JUMP_CLEARANCE,PINE_LOG_COLLISION_HALF_DEPTH,smallPineDoubleJumpCleared,smallPineCrossingTouchesRunner,SMALL_PINE_DOUBLE_JUMP_CLEARANCE,SMALL_PINE_COLLISION_HALF_DEPTH} from '../src/systems/HazardRules.js';
+import {broomIgnoresHazard,lavaJumpCleared,lavaCrossingTouchesRunner,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration,pineLogDoubleJumpCleared,pineLogCrossingTouchesRunner, PINE_LOG_DOUBLE_JUMP_CLEARANCE,PINE_LOG_COLLISION_HALF_DEPTH,smallPineDoubleJumpCleared,smallPineCrossingTouchesRunner,SMALL_PINE_DOUBLE_JUMP_CLEARANCE,SMALL_PINE_COLLISION_HALF_DEPTH} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
  const events=[],j=createDoubleJump({onJump:n=>events.push(n),onLand:()=>events.push('land')});
@@ -177,6 +177,34 @@ test('lava jumps retain their original height threshold',()=>{
  assert.equal(lavaJumpCleared(true,.63),true);
  assert.equal(lavaJumpCleared(true,.62),false);
  assert.equal(lavaJumpCleared(false,2),false);
+});
+
+test('lava collision stays active until the far bank, even after an airborne entry',()=>{
+ const half=2.95;
+ assert.equal(lavaCrossingTouchesRunner(-4,-half-.01,half),false);
+ assert.equal(lavaCrossingTouchesRunner(-4,-half,half),true);
+ assert.equal(lavaCrossingTouchesRunner(-2,0,half),true);
+ assert.equal(lavaCrossingTouchesRunner(0,half+.1,half),true);
+ assert.equal(lavaCrossingTouchesRunner(half+.01,half+1,half),false);
+ assert.equal(lavaCrossingTouchesRunner(NaN,0,half),false);
+ assert.equal(lavaCrossingTouchesRunner(0,0,0),false);
+
+ const jump=createDoubleJump();
+ jump.jump();
+ for(let i=0;i<12;i++)jump.update(1/60);
+ assert.equal(lavaJumpCleared(jump.airborne,jump.height),true);
+ assert.equal(lavaCrossingTouchesRunner(-3.2,-2.7,half),true);
+ // Fiona can initially clear the front edge, then land in the same river.
+ for(let i=0;i<42;i++)jump.update(1/60);
+ assert.equal(jump.airborne,false);
+ assert.equal(lavaCrossingTouchesRunner(-.5,.1,half),true);
+ assert.equal(lavaJumpCleared(jump.airborne,jump.height),false);
+
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(game.includes('if(lavaCrossingTouchesRunner(before,after,half))'));
+ assert.ok(game.includes('if(!lavaJumpCleared(jumping,jumpY)&&revivalShield<=0){end();break}'));
+ assert.ok(game.includes('if(after>half)o.passed=true;'));
+ assert.ok(!game.includes('const crossedFrontEdge='));
 });
 
 test('ultimate moves faster than the broom, which moves faster than running',()=>{
