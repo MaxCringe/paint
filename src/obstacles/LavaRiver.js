@@ -37,78 +37,11 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    map:currentTexture,transparent:true,opacity:.54,depthWrite:false,
    side:THREE.DoubleSide,blending:THREE.AdditiveBlending,toneMapped:false
   });
-  // Soft fire cards overlay the old angular flame geometry; no shader or gameplay changes.
-  const fireCanvas=document.createElement('canvas');
-  fireCanvas.width=96;fireCanvas.height=192;
-  const fireCtx=fireCanvas.getContext('2d');
-  const halo=fireCtx.createRadialGradient(48,142,6,48,120,73);
-  halo.addColorStop(0,'rgba(255,130,19,.42)');
-  halo.addColorStop(.5,'rgba(255,65,9,.22)');
-  halo.addColorStop(1,'rgba(255,42,5,0)');
-  fireCtx.fillStyle=halo;fireCtx.fillRect(0,0,96,192);
-  // Uneven flame outline, with translucent orange edges and a smaller bright core.
-  fireCtx.beginPath();
-  fireCtx.moveTo(24,188);
-  fireCtx.bezierCurveTo(11,161,17,139,33,111);
-  fireCtx.bezierCurveTo(40,97,30,77,41,60);
-  fireCtx.bezierCurveTo(43,82,54,82,56,48);
-  fireCtx.bezierCurveTo(61,24,58,18,53,6);
-  fireCtx.bezierCurveTo(76,44,70,71,65,90);
-  fireCtx.bezierCurveTo(84,108,85,146,69,163);
-  fireCtx.bezierCurveTo(64,175,73,182,73,188);
-  fireCtx.closePath();
-  const outerHeat=fireCtx.createLinearGradient(0,12,0,188);
-  outerHeat.addColorStop(0,'rgba(255,186,41,.03)');
-  outerHeat.addColorStop(.35,'rgba(255,101,13,.65)');
-  outerHeat.addColorStop(.75,'rgba(255,78,6,.92)');
-  outerHeat.addColorStop(1,'rgba(245,38,4,.55)');
-  fireCtx.fillStyle=outerHeat;fireCtx.fill();
-  fireCtx.beginPath();
-  fireCtx.moveTo(38,187);
-  fireCtx.bezierCurveTo(27,162,39,141,46,123);
-  fireCtx.bezierCurveTo(54,109,44,100,53,76);
-  fireCtx.bezierCurveTo(62,107,53,121,63,137);
-  fireCtx.bezierCurveTo(73,156,61,173,59,187);
-  fireCtx.closePath();
-  const coreHeat=fireCtx.createLinearGradient(0,80,0,188);
-  coreHeat.addColorStop(0,'rgba(255,238,105,.0)');
-  coreHeat.addColorStop(.48,'rgba(255,195,46,.75)');
-  coreHeat.addColorStop(1,'rgba(255,246,147,.94)');
-  fireCtx.fillStyle=coreHeat;fireCtx.fill();
-
-  // The textured flames on scorched pines and lava banks must not show
-  // rectangular billboard edges. Fade alpha completely at all four sides.
-  // Process the small shared texture once, not on each animation frame.
-  const firePixels=fireCtx.getImageData(0,0,fireCanvas.width,fireCanvas.height);
-  const fireData=firePixels.data;
-  const smoothEdge=(distance,width)=>{
-   const t=Math.max(0,Math.min(1,distance/width));
-   return t*t*(3-2*t);
-  };
-  const fw=fireCanvas.width,fh=fireCanvas.height;
-  for(let y=0;y<fh;y++){
-   const fadeY=smoothEdge(y,10)*smoothEdge(fh-1-y,21);
-   for(let x=0;x<fw;x++){
-    const fadeX=smoothEdge(x,20)*smoothEdge(fw-1-x,20);
-    const alpha=(y*fw+x)*4+3;
-    fireData[alpha]=Math.round(fireData[alpha]*fadeX*fadeY);
-   }
-  }
-  fireCtx.putImageData(firePixels,0,0);
-  const fireTexture=new THREE.CanvasTexture(fireCanvas);
-  fireTexture.colorSpace=THREE.SRGBColorSpace;
-  const fireCardMaterial=new THREE.MeshBasicMaterial({
-   map:fireTexture,transparent:true,opacity:.93,side:THREE.DoubleSide,
-   depthWrite:false,alphaTest:.015,toneMapped:false
-  });
-  const fireCardGeometry=new THREE.PlaneGeometry(1,1);
-  function addLivingFlame(parent,x,groundY,z,width,height,phase){
-   // Collect identical flame cards instead of creating a separate GPU draw for each.
-   parent.userData.fireCards.push({x,groundY,z,width,height,phase});
-  }
+  // Retire legacy painted flames; lava stays molten and sparks remain.
+  // Only the shared FireStudio system burns real procedural pines.
   function makeLavaRiver(z){
    const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;
-   g.userData.bubbles=[];g.userData.fireCards=[];g.userData.treeSparkSources=[];scene.add(g);
+   g.userData.bubbles=[];g.userData.treeSparkSources=[];scene.add(g);
    const phase=Math.random()*6.28,steps=720;
    const center=x=>.28*Math.sin(x*.58+phase)+.16*Math.sin(x*1.37-phase*.7)+.07*Math.sin(x*2.65+phase*1.8);
    const half=x=>2.32+.24*Math.sin(x*.72+phase)+.13*Math.sin(x*2.05-phase);
@@ -260,69 +193,8 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    }
    const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;g.add(charMesh);
    // Soft layered flame cards replace the old hard-edged triangle flames.
-   // Denser overlapping flames follow both riverbanks and spill onto the pine.
-   // These are visual meshes only: lava collision geometry remains unchanged.
-   for(const side of [-1,1]){
-    for(let i=0;i<20;i++){
-     if(i%13===8)continue; // a few organic breaks, not a perfectly solid wall
-     const x=-4.20+(i+.5)*8.40/20+(Math.random()-.5)*.22;
-     const edge=center(x)+noise(x)+side*half(x);
-     const z=edge+side*(.10+Math.random()*.43);
-     addLivingFlame(g,x,-.01,z,.36+Math.random()*.23,
-      .65+Math.random()*.46,phase+i*1.93+side*.7);
-     if(i%2===0) addLivingFlame(g,x+.12,-.01,z+side*.15,
-      .29+Math.random()*.15,.39+Math.random()*.39,phase+i*3.12);
-     if(i%5===1) addLivingFlame(g,x-.12,-.01,z-side*.08,
-      .21,.34+Math.random()*.2,phase+i*2.7);
-    }
-   }
-   // Forest plants already travel at the same rate as each lava obstacle.
-   // Anchor the fire to this river at their current positions; removing the
-   // river automatically removes all of these temporary burning effects.
-   let burningTrees=0,burningUndergrowth=0;
-   for(const plant of scene.children){
-    if(!plant.userData.recycleLength)continue;
-    const x=plant.position.x;
-    if(Math.abs(x)>27)continue;
-    const plantZ=plant.position.z-z;
-    const riverMiddle=center(x)+noise(x);
-    if(Math.abs(plantZ-riverMiddle)>half(x)+.95)continue;
-    // ForestGenerator uses geometry-free instance proxies instead of Mesh children.
-    // Identify burning vegetation from its registered species.
-    const species=plant.userData.plantSpecies||'';
-    const isTree=species?species.startsWith('pine:'):plant.userData.windKind==='pine';
-    if(isTree){
-     // The new shared fire manager places flames on real pine-branch surfaces.
-     // Retain old bank/undergrowth flames, but avoid double-rendering tree fire.
-     if(onTreeFire)continue;
-     if(burningTrees>=7)continue;
-     burningTrees++;
-     const sx=plant.scale.x,sy=plant.scale.y;
-     g.userData.treeSparkSources.push({x,z:plantZ+.25,minY:.6*sy,maxY:4.0*sy});
-     // Flames climb from the trunk up through each tier to the pine's crown.
-     const heights=[.16,.88,1.7,2.44,3.16,3.84];
-     for(let level=0;level<heights.length;level++){
-      const side=level%2===0?-1:1;
-      const y=heights[level]*sy;
-      addLivingFlame(g,x+side*(.22+.045*level)*sx,y,
-       plantZ+.31+(level%3)*.04,
-       (.52+(level>1?.18:0))*sx,(level===5?.78:1.12)*sy,
-       phase+x+level*1.9);
-      if(level===2||level===4) addLivingFlame(g,x-side*.21*sx,y+.08*sy,
-       plantZ-.18,.43*sx,.8*sy,phase+x+level*2.7);
-     }
-    }else{
-     // Reserve a separate quota for ferns and grass so trees don't use every slot.
-     if(burningUndergrowth>=9)continue;
-     burningUndergrowth++;
-     const isFern=species.startsWith('fern:')||plant.userData.windKind==='fern-static';
-     const h=isFern?.62:.31;
-     addLivingFlame(g,x,0,plantZ+.14,.35*plant.scale.x,
-      h*plant.scale.y,phase+x+1.4);
-     if(h>.4) addLivingFlame(g,x+.16,0,plantZ-.14,.25*plant.scale.x,
-      h*.75*plant.scale.y,phase+x+3.3);
-    }
-   }
+   // No billboard flames on banks, undergrowth or scorched scenery.
+   // The molten surface, basalt, charred trees and embers remain.
    // Scorched, bare pines and dried-out shrubs at the edge of the molten banks.
    // They belong to this river group, not to the global forest/recycling system.
    const charwood=new THREE.MeshStandardMaterial({color:0x201b1a,roughness:1});
@@ -352,17 +224,8 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
        Math.sin(a)*spread),.58+j*.04,j%3===0);
     }
     g.add(tree);
-    if(stillBurning){
-     g.userData.treeSparkSources.push({x,z:z+.22,minY:.5,maxY:h});
-     // Several flame levels, including the high branches and blackened crown.
-     for(let j=0;j<4;j++){
-      addLivingFlame(g,x+Math.sin(seed+j*2.1)*.18,h*(.13+j*.23),
-       z+.22,.48+(j%2)*.08,.85,phase+seed+j*2.7);
-     }
-    }else{
-     // Low remaining embers show that the wood burned earlier.
-     addLivingFlame(g,x-.09,0,z+.17,.23,.3,phase+seed);
-    }
+    // Charred decorative wood emits sparks, never textured tongues.
+    if(stillBurning)g.userData.treeSparkSources.push({x,z:z+.22,minY:.5,maxY:h});
    }
    function burntShrub(x,z,h,seed,stillBurning){
     const shrub=new THREE.Group();shrub.position.set(x,.005,z);
@@ -373,7 +236,6 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
        Math.sin(a)*(.21+j*.035)),.35+(j%2)*.1,j%2===0);
     }
     g.add(shrub);
-    if(stillBurning) addLivingFlame(g,x,.005,z+.14,.34,h*.9,phase+seed);
    }
    // Only a handful of trees and shrubs per crossing keeps rendering manageable.
    for(const side of [-1,1]){
@@ -417,38 +279,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
     g.add(batch);
    }
 
-   // All soft flame cards for this river now render in ONE instanced draw call.
-   const cards=g.userData.fireCards;
-   const fireBatch=new THREE.InstancedMesh(fireCardGeometry,fireCardMaterial,cards.length*2);
-   const flamePivot=new THREE.Object3D();
-   function animateCards(t){
-    for(let i=0;i<cards.length;i++){
-     const f=cards[i];
-     const flicker=.88+.11*Math.sin(t*8.6+f.phase)+.065*Math.sin(t*13.9+f.phase*1.7);
-     const w=f.width*(.93+.07*Math.sin(t*6.7+f.phase)),h=f.height*flicker;
-     for(let j=0;j<2;j++){
-      flamePivot.position.set(
-       f.x+.035*Math.sin(t*4.5+f.phase+j*.4),
-       f.groundY+h*.48,
-       f.z+.025*Math.cos(t*3.2+f.phase+j));
-      flamePivot.rotation.set(0,j*Math.PI/2+Math.sin(t*2.1+f.phase)*.19,
-       .075*Math.sin(t*4.7+f.phase+j));
-      flamePivot.scale.set(w*(j?.73:1),h*(j?.87:1),1);
-      flamePivot.updateMatrix();
-      fireBatch.setMatrixAt(i*2+j,flamePivot.matrix);
-     }
-    }
-    fireBatch.instanceMatrix.needsUpdate=true;
-   }
-   animateCards(performance.now()*.001);
-   fireBatch.computeBoundingSphere();
-   fireBatch.renderOrder=8;
-   fireBatch.onBeforeRender=()=>animateCards(performance.now()*.001);
-   g.add(fireBatch);
-   // Legacy handle now refers to soft, crossed flame cards.
-   g.userData.bankFlames=fireBatch;
-   g.userData.bankFlamePhase=phase;
-   delete g.userData.fireCards;
+   // No legacy flame batch: GPU flames live on the real pines.
 
    // Extra crackling sparks use ONE particle draw, even above entire burning pines.
    const sparkCount=36,sparkPositions=new Float32Array(sparkCount*3),sparkColors=new Float32Array(sparkCount*3);
@@ -520,7 +351,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    g.userData.dispose=()=>{
     const owned=new Set();
     g.traverse(obj=>{
-     if(obj.geometry&&obj.geometry!==fireCardGeometry&&obj.geometry!==lavaBubbleGeo)
+     if(obj.geometry&&obj.geometry!==lavaBubbleGeo)
       owned.add(obj.geometry);
     });
     for(const geo of owned)geo.dispose();

@@ -418,7 +418,7 @@ function frame(t){requestAnimationFrame(frame);
      bubble.mesh.scale.y=bubble.sy*pulse;
      bubble.mesh.position.y=-.002+Math.max(0,Math.sin(t*.021+bubble.phase))*.018;
     }
-    if(o.g.userData.bankFlames){const f=o.g.userData.bankFlames;f.scale.y=.84+.20*(.5+.5*Math.sin(t*.038+o.g.userData.bankFlamePhase));}
+    // No legacy shoreline flame cards; molten river and ember sparks remain.
     continue;
    }
    if(o.type==='pineLog'){

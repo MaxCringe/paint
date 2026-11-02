@@ -5,6 +5,7 @@ import {createLavaRiverFactory} from '../src/obstacles/LavaRiver.js';
 import {createForestGenerator} from '../src/world/forest/ForestGenerator.js';
 import {createForestFireStudio} from '../src/systems/fire/ForestFireStudio.js';
 import {createLavaForestInteraction} from '../src/systems/fire/LavaForestInteraction.js';
+import {readFileSync} from 'node:fs';
 
 // The lava factory creates two procedural CanvasTexture objects. Geometry and
 // collision integration can be tested in Node without a WebGL/DOM renderer.
@@ -48,7 +49,10 @@ test('a real lava river constructs safely with instanced pine, fern and grass pr
   assert.equal(obstacles.length,1);
   assert.equal(obstacles[0].type,'lava');
   assert.equal(obstacles[0].g.userData.halfDepth,2.95);
-  assert.ok(obstacles[0].g.userData.bankFlames,'real river fire meshes were built');
+  assert.equal(obstacles[0].g.userData.bankFlames,undefined,
+   'retired shoreline flame billboards must not return');
+  assert.equal(obstacles[0].g.children.filter(c=>c.isPoints).length,1,
+   'retain a single bank ember/spark emitter');
   assert.ok(obstacles[0].g.children.length>4,'the river has actual 3D geometry');
   assert.doesNotThrow(()=>makeLavaRiver(-77),
    'later lava crossings must remain compatible with the same forest');
@@ -87,10 +91,12 @@ test('lava retains soft shoreline fire and ignites safely placed pines before Fi
   const g=obstacles[0].g;
   assert.ok(Math.abs(pine.position.z-g.position.z)>g.userData.halfDepth,
    'pine has been relocated outside lava before render');
-  assert.ok(g.userData.bankFlames,'smooth bank fire retained');
-  assert.ok(g.userData.bankFlames.isInstancedMesh,
-   'soft crossed cards replace old low-poly triangle banks');
-  assert.equal(g.userData.bankFlames.count%2,0);
+  assert.equal(g.userData.bankFlames,undefined,
+   'old plane flames are removed from the river');
+  assert.equal(g.children.filter(c=>c.isPoints).length,1,
+   'lava keeps its glowing embers and sparks');
+  assert.ok(g.children.some(c=>c.isMesh&&!c.isInstancedMesh&&c.geometry?.type==='BufferGeometry'),
+   'molten ribbons and basalt banks are still generated');
   // The first river reaches the approach zone, long before it hits Fiona.
   const travel=17;g.position.z+=travel;pine.position.z+=travel;
   interaction.update(2.3);
@@ -108,4 +114,19 @@ test('lava retains soft shoreline fire and ignites safely placed pines before Fi
   if(originalDocument===undefined)delete globalThis.document;
   else globalThis.document=originalDocument;
  }
+});
+
+test('legacy lava flame assets and all their spawn paths are permanently retired',()=>{
+ const source=readFileSync(new URL('../src/obstacles/LavaRiver.js',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ for(const name of ['addLivingFlame','fireCardGeometry','fireCardMaterial',
+  'fireCardTexture','fireBatch','flameGeo','bankFlames','fireCards',
+  'flameTips','lavaBankFlameMat']){
+  assert.ok(!source.includes(name),'legacy effect still used: '+name);
+ }
+ assert.ok(!game.includes('bankFlames'),'old animation path still used in game');
+ assert.ok(source.includes('g.userData.treeSparkSources.push'),
+  'decorative scorched tree sparks remain');
+ assert.ok(game.includes('lavaForest.update(runner.position.z)'),
+  'real procedural pine fire remains linked to lava approach');
 });
