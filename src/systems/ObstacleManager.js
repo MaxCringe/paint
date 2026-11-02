@@ -5,10 +5,19 @@
 export const HAZARD_SPACING=Object.freeze({
  lavaLog:52, fullWidth:32, laneRepeat:22, laneAfterFull:18
 });
-export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0 }) {
+// Keep lava as a regular recognizable biome hazard, not a rare random streak.
+// Distance is measured in monotonic segment progress, not recycled world z.
+export const LAVA_SPAWN=Object.freeze({
+ firstEligible:110,
+ firstGuaranteed:154,
+ minGap:132,
+ maxGap:220,
+ chance:.18
+});
+export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, makePuddle, makeObstacle, makeSoul, makeHat, makeBroom, broomChance=0, random=Math.random }) {
  const history=[];
- let progress=0;
- const reset=()=>{history.length=0;progress=0;};
+ let progress=0,lastLavaProgress=null;
+ const reset=()=>{history.length=0;progress=0;lastLavaProgress=null;};
  const near=(a,b,dist)=>Math.abs(a-b)<dist;
  const remember=(z,type,lane=-1)=>{
   history.push({z,type,lane});
@@ -26,8 +35,8 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
  });
  function maybePowerup(freeLanes,z){
   if(!freeLanes.length)return;
-  const roll=Math.random();
-  const lane=freeLanes[(Math.random()*freeLanes.length)|0];
+  const roll=random();
+  const lane=freeLanes[(random()*freeLanes.length)|0];
   if(roll<.075)makeHat(lane,z);
   else if(makeBroom&&roll<.075+broomChance)makeBroom(lane,z);
  }
@@ -39,16 +48,22 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
   // a monotonic progression or old entries block every future spawn.
   progress+=22;
   const p=progress;
-  if(Math.random()<.13&&safe(p,'lava')){
-   makeLavaRiver(z);remember(p,'lava');return;
+  const lavaGap=lastLavaProgress===null?Infinity:p-lastLavaProgress;
+  const lavaEligible=lastLavaProgress===null
+   ?p>=LAVA_SPAWN.firstEligible:lavaGap>=LAVA_SPAWN.minGap;
+  const lavaDue=lastLavaProgress===null
+   ?p>=LAVA_SPAWN.firstGuaranteed:lavaGap>=LAVA_SPAWN.maxGap;
+  if(lavaEligible&&safe(p,'lava')&&(lavaDue||random()<LAVA_SPAWN.chance)){
+   makeLavaRiver(z);remember(p,'lava');lastLavaProgress=p;return;
   }
-  if(makePineLog&&Math.random()<.10&&safe(p,'pineLog')){
+  // Once lava is due, defer a new log that could keep postponing it.
+  if(!lavaDue&&makePineLog&&random()<.10&&safe(p,'pineLog')){
    makePineLog(z);remember(p,'pineLog');return;
   }
   const free=[0,1,2].filter(l=>safe(p,'lane',l));
-  if(free.length&&Math.random()<.88){
-   const lane=free[(Math.random()*free.length)|0];
-   const roll=Math.random();
+  if(free.length&&random()<.88){
+   const lane=free[(random()*free.length)|0];
+   const roll=random();
    if(roll<.20)makeFish(lane,z);
    else if(roll<.336)makePuddle(lane,z);
    else makeObstacle(lane,z,'knot');
@@ -56,15 +71,15 @@ export function createSegmentGenerator({ makeLavaRiver, makePineLog, makeFish, m
    // Reward a safe neighboring lane; never bury souls inside hazards.
    const neighbors=[0,1,2].filter(l=>l!==lane);
    let soulLane=-1;
-   if(Math.random()<.72){
-    soulLane=neighbors[(Math.random()*neighbors.length)|0];
+   if(random()<.72){
+    soulLane=neighbors[(random()*neighbors.length)|0];
     addSouls(soulLane,z-4,4);
    }
    maybePowerup([0,1,2].filter(l=>l!==lane&&l!==soulLane),z-1);
   }else{
    // An intentionally empty recovery segment is preferable to an unfair spawn.
-   if(Math.random()<.75){
-    const lane=(Math.random()*3)|0;
+   if(random()<.75){
+    const lane=(random()*3)|0;
     addSouls(lane,z,5);
     maybePowerup([0,1,2].filter(l=>l!==lane),z-1);
    }
