@@ -54,3 +54,36 @@ test.describe('world fire authoring',()=>{
   await editor.getByRole('button',{name:'Закрыть редактор',exact:true}).click();await expect(page.locator('#resume')).toBeVisible();expect(errors).toEqual([]);
  });
 });
+
+test('settings exposes the world editor only in enabled builds and restores audio settings on close',async({page})=>{
+ test.setTimeout(150000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const editorRequests=[];page.on('request',r=>{if(/WorldEditor.*\.js/.test(r.url()))editorRequests.push(r.url());});
+ await page.goto('/',{waitUntil:'domcontentloaded'});
+ await page.locator('#menu-open-settings').click();
+ await expect(page.locator('#audio-controls')).toBeVisible();
+ const button=page.getByRole('button',{name:'Редактор мира',exact:true});
+ if(!editorEnabled){
+  await expect(page.locator('#menu-developer-tools')).toHaveCount(0);
+  await expect(button).toHaveCount(0);expect(editorRequests).toEqual([]);return;
+ }
+ await expect(page.getByText('ИНСТРУМЕНТЫ РАЗРАБОТЧИКА',{exact:true})).toBeVisible();
+ await expect(button).toBeVisible();expect(editorRequests).toEqual([]);
+ await page.locator('#sound-volume').fill('37');await page.locator('#sound-volume').dispatchEvent('input');
+ await page.locator('#music-volume').fill('28');await page.locator('#music-volume').dispatchEvent('input');
+ await button.click();await expect(page.locator('.world-editor')).toBeVisible({timeout:60000});
+ expect(new URL(page.url()).searchParams.has('worldEditor')).toBe(false);
+ await page.getByRole('button',{name:'Закрыть редактор',exact:true}).click();
+ await expect(page.locator('#menu-settings')).toBeVisible();await expect(button).toBeEnabled();
+ await expect(page.locator('#sound-volume')).toHaveValue('37');await expect(page.locator('#music-volume')).toHaveValue('28');
+ await button.click();await expect(page.locator('.world-editor')).toBeVisible();
+ await page.keyboard.press('Escape');await expect(page.locator('#menu-settings')).toBeVisible();
+ await page.locator('#menu-settings [data-menu-back]').click();
+ await expect(page.locator('#start')).toBeEnabled({timeout:90000});await page.locator('#start').click();
+ await page.keyboard.press('Escape');await page.locator('#menu-open-settings').click();
+ await button.click();await expect(page.locator('.world-editor')).toBeVisible();
+ await page.getByRole('button',{name:'Закрыть редактор',exact:true}).click();
+ await expect(page.locator('#menu-settings')).toBeVisible();await page.locator('#menu-settings [data-menu-back]').click();
+ await expect(page.locator('#resume')).toBeVisible();await page.locator('#resume').click();await expect(page.locator('#center')).toHaveClass(/hidden/);
+ expect(errors).toEqual([]);
+});

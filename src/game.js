@@ -38,10 +38,11 @@ import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
 
-const worldEditorRequested=(import.meta.env.DEV||import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true')&&new URLSearchParams(location.search).get('worldEditor')==='1';
+const worldEditorEnabled=import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true'||(import.meta.env.DEV&&import.meta.env.VITE_ENABLE_WORLD_EDITOR!=='false');
+const worldEditorRequested=worldEditorEnabled&&new URLSearchParams(location.search).get('worldEditor')==='1';
 const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??1337)>>>0:undefined;
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
-let worldEditor=null;
+let worldEditor=null,worldEditorLoading=null;
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
@@ -249,7 +250,7 @@ function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.act
  }}
 function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 const {fpsDisplay}=createOverlays();
-const menu=createGameMenu({onStart:startFromMenu,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
+const menu=createGameMenu({onStart:startFromMenu,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay,onWorldEditor:worldEditorEnabled?openWorldEditor:undefined});
 createGameInput({
  canvas:renderer.domElement,
  getState:()=>state,
@@ -583,12 +584,15 @@ function frame(t){requestAnimationFrame(frame);
 requestAnimationFrame(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.2))});
 
-// Loaded only by an explicit development URL; ordinary runs allocate no editor
-// controls, picking handles, fire batches, listeners or authoring UI.
-if(worldEditorRequested){
+// Both the settings button and the optional direct URL use the same editor.
+// Ordinary builds eliminate this dynamic import along with the menu section.
+async function openWorldEditor(){
+ if(!worldEditorEnabled)return;
+ if(worldEditor){worldEditor.open();return;}
+ if(worldEditorLoading)return worldEditorLoading;
  let previousState;
- import('./devtools/world/WorldEditor.js').then(({createWorldEditor})=>{
-  worldEditor=createWorldEditor({scene,renderer,forest,seed:editorSeed,
+ worldEditorLoading=import('./devtools/world/WorldEditor.js').then(({createWorldEditor})=>{
+  worldEditor=createWorldEditor({scene,renderer,forest,seed:editorSeed??forest.seed,
    getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),
    getBurningPlants:forestFire.getActivePlants,
    defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject],
@@ -597,5 +601,7 @@ if(worldEditorRequested){
     else{state=previousState;last=performance.now();fpsSampleStart=null;fpsFrames=0;if(state==='playing')music.resume();renderer.render(scene,camera);}
    }
   });
- }).catch(error=>console.error('World editor failed to open:',error));
+ }).finally(()=>{worldEditorLoading=null;});
+ return worldEditorLoading;
 }
+if(worldEditorRequested)openWorldEditor().catch(error=>console.error('World editor failed to open:',error));

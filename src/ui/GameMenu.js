@@ -1,6 +1,6 @@
 // Shared start and pause menu; game-over results now have a dedicated panel.
 // Continue is visible only when a live run has been paused.
-export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
+export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay,onWorldEditor}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
   main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings')
@@ -50,6 +50,26 @@ export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
   ?'Короткие импульсы при сборе предметов, ульте и столкновениях.'
   :'Браузер устройства не поддерживает вибрацию игры.';
  vibration.addEventListener('change',()=>haptics.setEnabled(vibration.checked));
+
+ // Build the section only when the game's existing build flag enables it.
+ // Reusing menu classes preserves the ash/copper theme and audio controls.
+ if(onWorldEditor){
+  const section=document.createElement('section');section.id='menu-developer-tools';
+  section.setAttribute('aria-labelledby','menu-developer-tools-title');
+  const title=document.createElement('p');title.id='menu-developer-tools-title';
+  title.className='menu-settings-title';title.textContent='ИНСТРУМЕНТЫ РАЗРАБОТЧИКА';
+  const button=document.createElement('button');button.id='menu-open-world-editor';
+  button.className='menu-action menu-secondary';button.type='button';button.textContent='Редактор мира';
+  const status=document.createElement('p');status.className='menu-settings-title';status.setAttribute('role','status');status.hidden=true;
+  section.append(title,button,status);
+  $('audio-controls').after(section);
+  button.addEventListener('click',async()=>{
+   button.disabled=true;status.hidden=true;
+   try{await onWorldEditor();}
+   catch(error){console.error('World editor failed to open:',error);status.textContent='Не удалось открыть редактор. Попробуйте ещё раз.';status.hidden=false;}
+   finally{button.disabled=false;}
+  });
+ }
 
  $('menu-open-help').addEventListener('click',()=>openPage('help'));
  $('menu-open-settings').addEventListener('click',()=>openPage('settings'));
