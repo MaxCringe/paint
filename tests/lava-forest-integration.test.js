@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createLavaRiverFactory} from '../src/obstacles/LavaRiver.js';
 import {createForestGenerator} from '../src/world/forest/ForestGenerator.js';
+import {createForestFireStudio} from '../src/systems/fire/ForestFireStudio.js';
 
 // The lava factory creates two procedural CanvasTexture objects. Geometry and
 // collision integration can be tested in Node without a WebGL/DOM renderer.
@@ -57,6 +58,46 @@ test('a real lava river constructs safely with instanced pine, fern and grass pr
    o.g.userData.dispose?.();
   }
   forest.dispose();
+  if(originalDocument===undefined)delete globalThis.document;
+  else globalThis.document=originalDocument;
+ }
+});
+
+test('real lava triggers external model-aware pine fire while bank flames remain intact',()=>{
+ const originalDocument=globalThis.document;
+ globalThis.document=mockCanvasDocument();
+ const scene=new THREE.Scene(),obstacles=[],forest=createForestGenerator(scene,{seed:644});
+ const fire=createForestFireStudio(scene,{quality:'low',maxTrees:3,seed:42});
+ try{
+  const pine=forest.plant('pine',-6,-54,1,190,'pine:taiga_spruce');
+  forest.plant('fern',-6,-54,1,190,'fern:lush');
+  forest.plant('grass',6.1,-54,1,190,'grass:forest');
+  forest.finish();
+  let callbackCount=0;
+  const makeRiver=createLavaRiverFactory(scene,obstacles,{
+   onTreeFire:({group,z,center,halfWidth})=>{
+    callbackCount++;
+    assert.ok(group.parent===scene);
+    fire.igniteNearRiver(forest.plants,z,{owner:group,center,halfWidth,reach:1.25});
+   }
+  });
+  assert.doesNotThrow(()=>makeRiver(-54));
+  assert.equal(callbackCount,1);
+  assert.equal(obstacles.length,1);
+  assert.equal(fire.getStats().activeTrees,1,'nearby procedural pine lights up');
+  assert.equal(obstacles[0].g.userData.treeSparkSources.length,0,
+   'do not double the old tree flame cards');
+  assert.ok(obstacles[0].g.userData.bankFlames,'old bank fire retained');
+  fire.update(.2);
+  assert.ok(fire.getStats().flames>0);
+  pine.position.z+=6;fire.update(.1);
+  obstacles[0].g.position.z+=6;
+  scene.remove(obstacles[0].g);
+  fire.update(.1);
+  assert.equal(fire.getStats().activeTrees,0,'flames leave with their owner river');
+ }finally{
+  for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}
+  fire.dispose();forest.dispose();
   if(originalDocument===undefined)delete globalThis.document;
   else globalThis.document=originalDocument;
  }

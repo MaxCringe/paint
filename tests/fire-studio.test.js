@@ -69,3 +69,45 @@ test('ignition near river chooses only nearby pines, never grass or ferns',()=>{
   fx.update(.1);assert.equal(fx.getStats().activeTrees,1);
  }finally{fx.dispose();forest.dispose();}
 });
+
+test('new tree fire anchors follow OUTER foliage of all six pines, not hidden in the trunk',()=>{
+ for(const name of species){
+  const profile=getPineFireProfile('pine:'+name);
+  const outer=profile.anchors.filter(a=>a.zone==='branch'||a.zone==='crown');
+  assert.ok(outer.length>=3);
+  assert.ok(outer.every(a=>Number.isFinite(a.nx)&&Number.isFinite(a.nz)));
+  assert.ok(outer.some(a=>Math.hypot(a.x,a.z)>.45),'fire should not only appear at tree centre: '+name);
+  assert.ok(profile.anchors.some(a=>a.zone==='trunk'));
+  if(name!=='dead_snag'){
+   assert.ok(outer.filter(a=>a.zone==='branch').length>=6,
+    'multiple visible fire pockets must wrap the foliage: '+name);
+   assert.ok(outer.some(a=>a.height>.60),'upper boughs must burn: '+name);
+  }else{
+   assert.ok(profile.anchors.every(a=>a.zone!=='crown'),
+    'dry snag cannot burn foliage that does not exist');
+  }
+ }
+});
+
+test('fire tracks an owner river and releases only its own tree flames',()=>{
+ const scene=new THREE.Scene(),forest=createForestGenerator(scene,{seed:533});
+ const pineA=forest.plant('pine',-6,-51,1,170,'pine:grove_cluster');
+ const pineB=forest.plant('pine',7,-80,1,170,'pine:dead_snag');
+ forest.finish();
+ const ownerA=new THREE.Group(),ownerB=new THREE.Group();
+ scene.add(ownerA,ownerB);
+ const fire=createForestFireStudio(scene,{maxTrees:2});
+ try{
+  assert.equal(fire.igniteTree(pineA,ownerA),true);
+  assert.equal(fire.igniteTree(pineB,ownerB),true);
+  fire.update(.12);
+  assert.ok(fire.getStats().flames>15,'larger tongues cover tree outline');
+  scene.remove(ownerA);
+  fire.update(.12);
+  assert.equal(fire.getStats().activeTrees,1,'removing river stops its flames');
+  fire.releaseOwner(ownerB);
+  assert.equal(fire.getStats().activeTrees,0);
+  fire.update(.12);
+  assert.equal(fire.getStats().flames,0);
+ }finally{fire.dispose();forest.dispose();}
+});

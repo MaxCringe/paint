@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { animateSoulFlame } from './souls/animateSoulFlame.js';
 import { SOULS_PER_ULT, ULT_DURATION } from './config.js';
 import { createLavaRiverFactory } from './obstacles/LavaRiver.js';
+import { createForestFireStudio } from './systems/fire/ForestFireStudio.js';
 import { createFishFactory } from './obstacles/Fish.js';
 import { createPineLogFactory } from './obstacles/PineLog.js';
 import { createSegmentGenerator } from './systems/ObstacleManager.js';
@@ -44,6 +45,8 @@ const ratEcosystem=createRatEcosystem(scene,{onFlee:({x})=>audio.play('rat',{pan
 const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
+// One shared, low-cost GPU fire pool for the actual six procedural pine models.
+const forestFire=createForestFireStudio(scene,{quality:'low',maxTrees:6,burnSeconds:18});
 
 const { runner, ultimateAura } = createFiona(scene);
 const obstacles=[], coins=[], hats=[];
@@ -143,7 +146,11 @@ function makeFish(lane,z){
 
 const makeSoul = createSoulFactory(scene, coins);
 
-const makeLavaRiver = createLavaRiverFactory(scene, obstacles);
+const makeLavaRiver = createLavaRiverFactory(scene, obstacles, {
+  onTreeFire:({group,z,center,halfWidth})=>forestFire.igniteNearRiver(
+    roadsideVegetation,z,{center,halfWidth,reach:1.25,owner:group}
+  )
+});
 const makePineLog = createPineLogFactory(scene, obstacles, trunkMat);
 const makeSegment = createSegmentGenerator({
   makeLavaRiver,
@@ -209,7 +216,7 @@ function start(){
  }
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();forestFire.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function showDeathResult(){
  menu.showGameOver();
  gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive});
@@ -455,7 +462,10 @@ function frame(t){requestAnimationFrame(frame);
     }
    }
   }
-  for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)}
+  for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){
+   if(obstacles[i].type==='lava')forestFire.releaseOwner(obstacles[i].g);
+   scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)
+  }
   ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed:travelSpeed,obstacles});
   if(state==='playing')broom.advancePickups(dt,t,travelSpeed,lane,runner.position.x,{
    canCollect:!ultActive,
@@ -538,6 +548,8 @@ function frame(t){requestAnimationFrame(frame);
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
   for(const plant of roadsideVegetation){plant.position.z+=travelSpeed*dt;if(plant.position.z>12){plant.position.z-=plant.userData.recycleLength;plant.userData.onForestRecycle?.()}}
+  // Synchronize instanced tree flames only after plants have moved/recycled.
+  forestFire.update(dt);
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});

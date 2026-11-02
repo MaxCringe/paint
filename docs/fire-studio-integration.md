@@ -7,10 +7,15 @@ to Three.js r187 is required.
 
 ## Status
 
-**Experimental opt-in adapter; NOT connected to production gameplay yet.**
-`src/obstacles/LavaRiver.js` retains all existing lava, bank fire and
-collision behavior. A failed new shader therefore cannot freeze the runner.
-Do not replace the legacy system before a full visual/performance review.
+**Enabled only for trees next to lava in the main game.**
+`src/obstacles/LavaRiver.js` retains all existing lava geometry, bank fire,
+undergrowth fire and collision behavior, but delegates procedural pine fire
+to a single shared manager. The existing legacy pine flames still serve as
+a fallback if the river factory is used without the new callback.
+
+The independent preview remains available at `/fire-studio-preview.html`.
+The visual engine is still evolving: smoke, blackening and true forest-fire
+spread are not connected to the production game.
 
 ## Modules
 
@@ -39,11 +44,12 @@ before ever calling these methods from the main game.
 
 ## Safety limits
 
-- No more than 6 trees by default (hard maximum 12).
-- 2 draw calls for flames and sparks independent of tree count.
+- No more than 6 trees at once in the production run (hard maximum 12).
+- One instanced flame mesh and one spark Points mesh, independent of tree count.
+  Two-sided transparent materials may require additional GPU passes.
 - No extra point lights or shadow passes.
-- Fire follows current proxy world transforms, and is cancelled if a tree
-  recycles to a distant Z coordinate.
+- Fire follows current proxy world transforms (including wind), and is
+  cancelled if a tree recycles or its owning river is removed.
 - Does not modify or recolor shared instanced foliage (so other trees remain safe).
 - The low-poly shell shader and sparks are **phase 1**, not the final Studio
   package. Smoke, embers, charred needles and fire spread remain unintegrated.
@@ -51,9 +57,10 @@ before ever calling these methods from the main game.
 
 ## Acceptance criteria for eventual integration
 
-1. Run browser preview with actual WebGL shader compilation, no console errors.
-2. Measure FPS and draw calls with all six species and six concurrent fires.
-3. Compare visuals with the current lava/bank fire to avoid double overlays.
-4. Confirm fire follows wind, scroll and recycling in long runs.
-5. Add a dedicated browser test spawning a real river and verifying fire through
-   the segment lifecycle; keep legacy until proven safe.
+1. Verify the six species in the preview and play a sustained main run
+   through at least one guaranteed lava river with no WebGL/JS console errors.
+2. Measure real FPS on low-end target devices with six fires and rich grass.
+3. Review the actual flames near lava for foreground depth, size and clipping.
+4. Verify branches, wind, scroll, recycle, and owner cleanup in gameplay.
+5. Once visuals are accepted, stage charred needles, smoke and smouldering
+   as independent bounded-cost effects.

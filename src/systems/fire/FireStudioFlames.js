@@ -45,7 +45,7 @@ float fireNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
 
 export function createFireTongueMaterial(){
  return new THREE.ShaderMaterial({
-  uniforms:{uTime:{value:0},uHeight:{value:1.05},uWidth:{value:.78},uOpacity:{value:.83}},
+  uniforms:{uTime:{value:0},uHeight:{value:1.65},uWidth:{value:1.20},uOpacity:{value:.94}},
   vertexShader:String.raw`
   attribute vec3 aShellData;
   attribute vec4 aInstanceParams;
@@ -57,7 +57,7 @@ export function createFireTongueMaterial(){
    vUv=uv;vPhase=aInstanceParams.x;vActivity=aInstanceParams.w;vOuter=aShellData.z;
    float h=position.y,t=uTime*2.6+vPhase*6.28318;
    float width=uWidth*aInstanceParams.z*(.5+.5*vActivity);
-   float height=uHeight*aInstanceParams.y*max(.001,vActivity);
+   float height=uHeight*aInstanceParams.y*(.42+.58*vActivity);
    vec3 p=position;
    p.xz*=width;p.y*=height;
    float sway=pow(h,1.35)*(.17*sin(h*5.-t*2.)+.11*cos(h*8.-t*3.));
@@ -79,9 +79,9 @@ export function createFireTongueMaterial(){
   float t=uTime*2.9+vPhase*8.;
    vec3 p=vec3(vSurface.x*3.1,h*3.6-t*1.4,vSurface.z*3.1);
    float n=.58*fireNoise(p)+.29*fireNoise(p*2.1+vec3(0.,-t,1.));
-   float body=smoothstep(0.,.13,h)*(1.-smoothstep(.57,1.0,h+(1.-n)*.20));
+   float body=smoothstep(0.,.09,h)*(1.-smoothstep(.71,1.03,h+(1.-n)*.13));
    float fringe=smoothstep(.18,.68,n);
-   float alpha=body*fringe*(vOuter>.5?.58:1.)*uOpacity*.72*vActivity;
+   float alpha=body*(.48+.52*fringe)*(vOuter>.5?.52:1.)*uOpacity*.92*vActivity;
     if(alpha<.035)discard;
     vec3 red=vec3(.69,.05,.012),orange=vec3(1.,.31,.018),gold=vec3(1.,.84,.39);
    vec3 color=mix(red,orange,smoothstep(.12,.55,fringe));

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // Owns lava materials and builds each wide, irregular river with its scorched pine banks.
 // Scene and obstacle registry are injected so this module remains independent of the game loop.
-export function createLavaRiverFactory(scene, obstacles) {
+export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
   const lavaRiverGlowMaterial=new THREE.MeshBasicMaterial({color:0xff3000,transparent:true,opacity:.23,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
   const lavaSurfaceMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
   const lavaCoreMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
@@ -321,6 +321,9 @@ export function createLavaRiverFactory(scene, obstacles) {
     const species=plant.userData.plantSpecies||'';
     const isTree=species?species.startsWith('pine:'):plant.userData.windKind==='pine';
     if(isTree){
+     // The new shared fire manager places flames on real pine-branch surfaces.
+     // Retain old bank/undergrowth flames, but avoid double-rendering tree fire.
+     if(onTreeFire)continue;
      if(burningTrees>=7)continue;
      burningTrees++;
      const sx=plant.scale.x,sy=plant.scale.y;
@@ -551,6 +554,12 @@ export function createLavaRiverFactory(scene, obstacles) {
     for(const material of [basaltMat,charwood,charwoodTip,sparkMat])material.dispose();
    };
    obstacles.push({g,lane:-1,type:'lava',z,passed:false});
+   // Called after the river and all its graphics exist. The optional effect
+   // never changes lava collisions, and a visual failure must not stop play.
+   if(onTreeFire){
+    try{onTreeFire({group:g,z,center,halfWidth:half})}
+    catch(error){console.error('Unable to initialize pine fire',error)}
+   }
   }
   return makeLavaRiver;
 }
