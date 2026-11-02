@@ -316,7 +316,10 @@ export function createLavaRiverFactory(scene, obstacles) {
     const plantZ=plant.position.z-z;
     const riverMiddle=center(x)+noise(x);
     if(Math.abs(plantZ-riverMiddle)>half(x)+.95)continue;
-    const isTree=plant.children.length>1;
+    // ForestGenerator uses geometry-free instance proxies instead of Mesh children.
+    // Identify burning vegetation from its registered species.
+    const species=plant.userData.plantSpecies||'';
+    const isTree=species?species.startsWith('pine:'):plant.userData.windKind==='pine';
     if(isTree){
      if(burningTrees>=7)continue;
      burningTrees++;
@@ -338,7 +341,8 @@ export function createLavaRiverFactory(scene, obstacles) {
      // Reserve a separate quota for ferns and grass so trees don't use every slot.
      if(burningUndergrowth>=9)continue;
      burningUndergrowth++;
-     const h=plant.children[0].geometry.attributes.position.count>200?.62:.31;
+     const isFern=species.startsWith('fern:')||plant.userData.windKind==='fern-static';
+     const h=isFern?.62:.31;
      addLivingFlame(g,x,0,plantZ+.14,.35*plant.scale.x,
       h*plant.scale.y,phase+x+1.4);
      if(h>.4) addLivingFlame(g,x+.16,0,plantZ-.14,.25*plant.scale.x,
