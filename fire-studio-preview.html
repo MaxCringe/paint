@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KNOTTY PINE — FIRE STUDIO | Preview</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#110d11;color:#e9d9cc;font:14px system-ui,sans-serif;overflow:hidden}
+header{position:absolute;z-index:4;left:24px;top:18px;padding:18px;background:#1c141acc;border:1px solid #6b3b2f;border-radius:12px;max-width:340px}
+h1{font-size:18px;margin:0 0 8px;color:#efbc92}p{line-height:1.5;margin:8px 0}
+select,button{background:#302126;color:#f4e4d5;border:1px solid #a76343;border-radius:8px;padding:10px;width:100%;margin-top:8px;cursor:pointer}
+small{color:#d3b9aa}#metrics{margin-top:12px;color:#ffc98f;font-variant-numeric:tabular-nums}
+#stage{width:100vw;height:100vh;display:block}a{color:#ffbb8b}
+</style>
+</head>
+<body>
+<header><h1>KNOTTY PINE · FIRE STUDIO</h1>
+<p>Изолированный тест нового 3D-огня. Основная игра не изменена.</p>
+<label for="tree">Сосна</label>
+<select id="tree">
+<option value="grove_cluster">Густая сосна</option>
+<option value="runner_spruce_pro">Высокая ель</option>
+<option value="taiga_spruce">Таёжная ель</option>
+<option value="dead_snag">Сухая сосна</option>
+<option value="sequoia_giant">Гигантская секвойя</option>
+<option value="scots_pine">Шотландская сосна</option>
+</select>
+<button id="ignite">Зажечь заново</button>
+<div id="metrics" role="status">Подготовка WebGL…</div>
+<small>Мышь: вращать · Колёсико: приближать</small>
+<p><a href="./">Вернуться в игру</a></p>
+</header>
+<canvas id="stage"></canvas>
+<script type="module" src="/src/systems/fire/FireStudioPreview.js"></script>
+</body>
+</html>
