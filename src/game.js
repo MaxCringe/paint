@@ -22,7 +22,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
+import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
@@ -437,12 +437,33 @@ function frame(t){requestAnimationFrame(frame);
     }
     continue;
    }
+   if(o.type==='knot'){
+    // One-lane pine: a first jump never clears its trunk. The second must
+    // reach physical clearance for the WHOLE crossing, not just at its centre.
+    if(!ultActive&&!o.passed){
+     const before=previousZ-runner.position.z;
+     const after=o.g.position.z-runner.position.z;
+     if(smallPineCrossingTouchesRunner(before,after)&&
+       o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05&&
+       revivalShield<=0&&!smallPineDoubleJumpCleared(doubleJump.jumpsUsed,doubleJump.height)){
+      end('tree');break;
+     }
+     if(after>SMALL_PINE_COLLISION_HALF_DEPTH)o.passed=true;
+    }
+    continue;
+   }
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
      if(broom.immuneTo(o.type)||revivalShield>0)continue;
-      if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
-     else{const safe=jumping;if(!safe){end(o.type==='knot'?'tree':o.type==='fish'?'fish':'other');break}else{invuln=.22}}
+     if(o.type==='pee'){
+      if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}
+      else if(jumping)invuln=.22;
+     }else{
+      // Fish are still cleared by a single normal jump.
+      if(!jumping){end(o.type==='fish'?'fish':'other');break}
+      invuln=.22;
+     }
     }
    }
   }

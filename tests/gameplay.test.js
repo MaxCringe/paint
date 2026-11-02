@@ -6,7 +6,7 @@ import {createSlide,getSlidePose,getSlideLegPose,SLIDE_DURATION} from '../src/pl
 import * as THREE from 'three';
 import {createFiona} from '../src/player/Fiona.js';
 import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
-import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration,pineLogDoubleJumpCleared,pineLogCrossingTouchesRunner,PINE_LOG_DOUBLE_JUMP_CLEARANCE,PINE_LOG_COLLISION_HALF_DEPTH} from '../src/systems/HazardRules.js';
+import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration,pineLogDoubleJumpCleared,pineLogCrossingTouchesRunner, PINE_LOG_DOUBLE_JUMP_CLEARANCE,PINE_LOG_COLLISION_HALF_DEPTH,smallPineDoubleJumpCleared,smallPineCrossingTouchesRunner,SMALL_PINE_DOUBLE_JUMP_CLEARANCE,SMALL_PINE_COLLISION_HALF_DEPTH} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
  const events=[],j=createDoubleJump({onJump:n=>events.push(n),onLand:()=>events.push('land')});
@@ -79,6 +79,50 @@ test('pine log collision is swept across its width, not accepted after a brief h
  assert.ok(game.includes('if(after>PINE_LOG_COLLISION_HALF_DEPTH)o.passed=true'));
  assert.ok(game.includes("if(o.type==='pineLog'){"));
  assert.equal(PINE_LOG_DOUBLE_JUMP_CLEARANCE,2.45);
+});
+
+test('small one-lane pine now requires SECOND jump and clearance above its trunk',()=>{
+ assert.equal(SMALL_PINE_DOUBLE_JUMP_CLEARANCE,2.7);
+ assert.equal(smallPineDoubleJumpCleared(0,4),false);
+ assert.equal(smallPineDoubleJumpCleared(1,4),false);
+ assert.equal(smallPineDoubleJumpCleared(2,2.69),false);
+ assert.equal(smallPineDoubleJumpCleared(2,2.7),true);
+ assert.equal(smallPineDoubleJumpCleared(2,3.1),true);
+ assert.equal(smallPineDoubleJumpCleared(2,NaN),false);
+ const jumper=createDoubleJump();
+ jumper.jump();
+ let firstApex=0;
+ for(let i=0;i<23;i++){
+  jumper.update(1/60);firstApex=Math.max(firstApex,jumper.height);
+  assert.equal(smallPineDoubleJumpCleared(jumper.jumpsUsed,jumper.height),false);
+ }
+ assert.ok(firstApex<SMALL_PINE_DOUBLE_JUMP_CLEARANCE);
+ assert.equal(jumper.jump(),true);
+ let framesAbove=0;
+ for(let i=0;i<45;i++){
+  jumper.update(1/60);
+  if(smallPineDoubleJumpCleared(jumper.jumpsUsed,jumper.height))framesAbove++;
+ }
+ assert.ok(framesAbove>=15,'second jump gives enough time to cross a small pine');
+});
+
+test('small pine checks all of its depth with a swept test, without affecting fish',()=>{
+ const h=SMALL_PINE_COLLISION_HALF_DEPTH;
+ assert.ok(h>.62);
+ assert.equal(smallPineCrossingTouchesRunner(-5,-h-.01),false);
+ assert.equal(smallPineCrossingTouchesRunner(-5,-h),true);
+ assert.equal(smallPineCrossingTouchesRunner(-h,h),true);
+ assert.equal(smallPineCrossingTouchesRunner(0,h+.02),true);
+ assert.equal(smallPineCrossingTouchesRunner(h+.01,h+1),false);
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(game.includes("if(o.type==='knot'){"));
+ assert.ok(game.includes('smallPineCrossingTouchesRunner(before,after)'));
+ assert.ok(game.includes('!smallPineDoubleJumpCleared(doubleJump.jumpsUsed,doubleJump.height)'));
+ assert.ok(game.includes("end('tree');break;"));
+ assert.ok(game.includes("if(after>SMALL_PINE_COLLISION_HALF_DEPTH)o.passed=true;"));
+ assert.ok(game.includes("if(o.type==='pee'){"));
+ assert.ok(game.includes("if(!jumping){end(o.type==='fish'?'fish':'other');break}"));
+ assert.ok(game.includes("if(broom.immuneTo(o.type)||revivalShield>0)continue;"));
 });
 
 test('broom ducks smoothly under pine log and returns to normal flight',()=>{

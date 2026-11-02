@@ -1,6 +1,21 @@
 // Pure mechanics shared by the runner, broom and automated tests.
 export const broomIgnoresHazard=type=>type==='pee'||type==='fish'||type==='lava'||type==='pineLog';
 export const lavaJumpCleared=(jumping,height)=>Boolean(jumping)&&height>.62;
+
+// The small lane-specific pine has a 2.55-unit trunk, higher than the
+// horizontal log's upper surface. A genuine SECOND jump must carry Fiona's
+// feet above it; being airborne on the first jump is no longer sufficient.
+export const SMALL_PINE_DOUBLE_JUMP_CLEARANCE=2.7;
+export const SMALL_PINE_COLLISION_HALF_DEPTH=.75;
+export const smallPineDoubleJumpCleared=(jumpsUsed,height)=>
+ jumpsUsed===2&&Number.isFinite(height)&&height>=SMALL_PINE_DOUBLE_JUMP_CLEARANCE;
+
+// A swept intersection stops a large frame step from skipping the tree,
+// and continues to require clearance until Fiona is past its back edge.
+export const smallPineCrossingTouchesRunner=(previousGap,currentGap)=>
+ Number.isFinite(previousGap)&&Number.isFinite(currentGap)&&
+ previousGap<=SMALL_PINE_COLLISION_HALF_DEPTH&&
+ currentGap>=-SMALL_PINE_COLLISION_HALF_DEPTH;
 export const travelSpeedMultiplier=(ultimate,broom,broomFactor=1.2,ultimateFactor=1.35)=>
  ultimate?ultimateFactor:broom?broomFactor:1;
 
