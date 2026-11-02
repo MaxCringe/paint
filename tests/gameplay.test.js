@@ -6,7 +6,7 @@ import {createSlide,getSlidePose,getSlideLegPose,SLIDE_DURATION} from '../src/pl
 import * as THREE from 'three';
 import {createFiona} from '../src/player/Fiona.js';
 import {BROOM_CONFIG,getBroomDuckPose} from '../src/powerups/BroomRide.js';
-import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration} from '../src/systems/HazardRules.js';
+import {broomIgnoresHazard,lavaJumpCleared,travelSpeedMultiplier,clearsPineLog,pineLogBroomDuck,pineLogFlightGuardDuration,pineLogDoubleJumpCleared,pineLogCrossingTouchesRunner,PINE_LOG_DOUBLE_JUMP_CLEARANCE,PINE_LOG_COLLISION_HALF_DEPTH} from '../src/systems/HazardRules.js';
 
 test('double jump: two jumps, third blocked, landing resets',()=>{
  const events=[],j=createDoubleJump({onJump:n=>events.push(n),onLand:()=>events.push('land')});
@@ -31,11 +31,54 @@ test('broom can pass low hazards and duck below suspended logs, but not pine tru
  assert.equal(BROOM_CONFIG.hoverHeight,.77);
 });
 
-test('full-width pine log requires sliding; jumping cannot clear it',()=>{
+test('full-width pine log requires sliding, broom or a sufficiently high DOUBLE jump',()=>{
  assert.equal(clearsPineLog(false,false,false),false);
  assert.equal(clearsPineLog(true,false,false),true);
  assert.equal(clearsPineLog(false,true,false),true);
  assert.equal(clearsPineLog(false,false,true),true);
+ // A first jump can never clear the trunk, even with an artificial high Y.
+ assert.equal(clearsPineLog(false,false,false,1,3.5),false);
+ assert.equal(clearsPineLog(false,false,false,2,2.44),false);
+ assert.equal(clearsPineLog(false,false,false,2,2.45),true);
+ assert.equal(clearsPineLog(false,false,false,2,3.2),true);
+});
+
+test('double jump reaches pine-log clearance, but only after the second press',()=>{
+ const jumper=createDoubleJump();
+ jumper.jump();
+ let firstPeak=0;
+ for(let frame=0;frame<18;frame++){
+  jumper.update(1/60);
+  firstPeak=Math.max(firstPeak,jumper.height);
+  assert.equal(pineLogDoubleJumpCleared(jumper.jumpsUsed,jumper.height),false);
+ }
+ assert.ok(firstPeak<2);
+ assert.equal(jumper.jump(),true);
+ let maxHeight=0,safeFrames=0;
+ for(let frame=0;frame<45;frame++){
+  jumper.update(1/60);
+  maxHeight=Math.max(maxHeight,jumper.height);
+  if(pineLogDoubleJumpCleared(jumper.jumpsUsed,jumper.height))safeFrames++;
+ }
+ assert.ok(maxHeight>3,'second jump rises above the log');
+ assert.ok(safeFrames>=18,'player has a practical crossing window');
+ assert.equal(pineLogDoubleJumpCleared(2,NaN),false);
+});
+
+test('pine log collision is swept across its width, not accepted after a brief high point',()=>{
+ const h=PINE_LOG_COLLISION_HALF_DEPTH;
+ assert.ok(h>.36);
+ assert.equal(pineLogCrossingTouchesRunner(-4,-h-.01),false);
+ assert.equal(pineLogCrossingTouchesRunner(-4,-h),true);
+ assert.equal(pineLogCrossingTouchesRunner(-h,h),true);
+ assert.equal(pineLogCrossingTouchesRunner(0,h+.01),true);
+ assert.equal(pineLogCrossingTouchesRunner(h+.01,h+1),false);
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(game.includes('pineLogCrossingTouchesRunner(before,after)'));
+ assert.ok(game.includes('doubleJump.jumpsUsed,doubleJump.height'));
+ assert.ok(game.includes('if(after>PINE_LOG_COLLISION_HALF_DEPTH)o.passed=true'));
+ assert.ok(game.includes("if(o.type==='pineLog'){"));
+ assert.equal(PINE_LOG_DOUBLE_JUMP_CLEARANCE,2.45);
 });
 
 test('broom ducks smoothly under pine log and returns to normal flight',()=>{

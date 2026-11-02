@@ -4,10 +4,26 @@ export const lavaJumpCleared=(jumping,height)=>Boolean(jumping)&&height>.62;
 export const travelSpeedMultiplier=(ultimate,broom,broomFactor=1.2,ultimateFactor=1.35)=>
  ultimate?ultimateFactor:broom?broomFactor:1;
 
-// Full-width pine logs are slide-only on foot; jumping into the trunk is unsafe.
-// Broom flight (above the log) and revival protection also clear it.
-export const clearsPineLog=(sliding,broomFlight,revivalProtected)=>
- Boolean(sliding||broomFlight||revivalProtected);
+// The transverse pine log rests at y=1.88, with a .36-radius trunk.
+// Fiona must get her feet above its top (~2.24), plus a safety margin.
+export const PINE_LOG_DOUBLE_JUMP_CLEARANCE=2.45;
+export const PINE_LOG_COLLISION_HALF_DEPTH=.85;
+
+// Requiring BOTH the second jump and enough height prevents a late second press
+// from creating invulnerability while Fiona physically intersects the trunk.
+export const pineLogDoubleJumpCleared=(jumpsUsed,height)=>
+ jumpsUsed===2&&Number.isFinite(height)&&height>=PINE_LOG_DOUBLE_JUMP_CLEARANCE;
+
+// Detect contact across the entire trunk and Fiona's body depth, including a
+// frame that moves from before the front edge to inside the crossing corridor.
+export const pineLogCrossingTouchesRunner=(previousGap,currentGap)=>
+ Number.isFinite(previousGap)&&Number.isFinite(currentGap)&&
+ previousGap<=PINE_LOG_COLLISION_HALF_DEPTH&&currentGap>=-PINE_LOG_COLLISION_HALF_DEPTH;
+
+// On foot: slide BELOW the log, or double-jump OVER it at sufficient altitude.
+// Broom and revival protection still work exactly as before.
+export const clearsPineLog=(sliding,broomFlight,revivalProtected,jumpsUsed=0,height=0)=>
+ Boolean(sliding||broomFlight||revivalProtected||pineLogDoubleJumpCleared(jumpsUsed,height));
 
 // Crouch starts ahead of the log, stays low while passing beneath it,
 // then smoothly releases. Never lift the broom upward.

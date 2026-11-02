@@ -22,7 +22,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration } from './systems/HazardRules.js';
+import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
@@ -424,12 +424,21 @@ function frame(t){requestAnimationFrame(frame);
     if(o.g.userData.bankFlames){const f=o.g.userData.bankFlames;f.scale.y=.84+.20*(.5+.5*Math.sin(t*.038+o.g.userData.bankFlamePhase));}
     continue;
    }
+   if(o.type==='pineLog'){
+    // Fiona must be above the whole trunk at the crossing, not merely after
+    // the second jump is pressed. The first jump and a late second jump fail.
+    if(!ultActive&&!o.passed){
+     const before=previousZ-runner.position.z;
+     const after=o.g.position.z-runner.position.z;
+     if(pineLogCrossingTouchesRunner(before,after)&&
+       !clearsPineLog(sliding,broom.immuneTo('pineLog'),revivalShield>0,
+        doubleJump.jumpsUsed,doubleJump.height)){end('tree');break}
+     if(after>PINE_LOG_COLLISION_HALF_DEPTH)o.passed=true;
+    }
+    continue;
+   }
    if(!ultActive&&!o.passed&&o.g.position.z>1.2){
     o.passed=true;
-    if(o.type==='pineLog'){
-     if(!clearsPineLog(sliding,broom.immuneTo('pineLog'),revivalShield>0)){end('tree');break}
-     continue;
-    }
     if(o.lane===lane&&Math.abs(runner.position.x-(o.lane-1)*2.55)<1.05){
      if(broom.immuneTo(o.type)||revivalShield>0)continue;
       if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9;invuln=.95;audio.play('slip');popToast('ФИОНА ПОСКОЛЬЗНУЛАСЬ!')}else if(jumping){invuln=.22}}
