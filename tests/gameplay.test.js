@@ -274,3 +274,10 @@ test('hat attaches to new Fiona head; magnet collection unchanged',()=>{
  assert.ok(game.includes('magnetTime=10;'));
  assert.ok(hat.includes('wearable.visible=active'));
 });
+
+test('atmospheric volume shader does not use reserved GLSL sample identifier',()=>{
+ const shader=readFileSync(new URL('../src/systems/AirLite.js',import.meta.url),'utf8');
+ assert.ok(shader.includes('vec3 marchPoint=origin+direction*travel;'));
+ assert.ok(!shader.includes('vec3 sample='));
+ assert.ok(!shader.includes('dot(sample,sample)'));
+});

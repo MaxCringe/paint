@@ -122,10 +122,10 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   float sum=0.0;
   for(int i=0;i<STEPS;i++){
    float travel=mix(enter,leave,(float(i)+.5)/float(STEPS));
-   vec3 sample=origin+direction*travel;
-   float core=max(0.0,1.0-dot(sample,sample));
-   float whorl=sin(sample.x*8.1+sample.z*4.4+uTime*.17)
-              *cos(sample.y*6.7-sample.z*5.2-uTime*.10);
+   vec3 marchPoint=origin+direction*travel;
+   float core=max(0.0,1.0-dot(marchPoint,marchPoint));
+   float whorl=sin(marchPoint.x*8.1+marchPoint.z*4.4+uTime*.17)
+              *cos(marchPoint.y*6.7-marchPoint.z*5.2-uTime*.10);
    float pockets=clamp(.76+.24*whorl,0.15,1.0);
    sum+=core*core*pockets;
   }
