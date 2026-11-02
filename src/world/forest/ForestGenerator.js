@@ -108,6 +108,15 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
 // families can evolve without changing the game or rendering pipeline.
 // Tunable density budget: many tufts, but a fixed pool of recycled instances.
 // Patches stay irregular and the road edge stays clear.
+// Add a moderate number of real, recycled pine instances along the sides.
+// Species, heights and crown widths still follow the wild-forest randomizer.
+export const SIDE_PINE_DENSITY=Object.freeze({
+ midChance:.52,
+ outerChance:.50,
+ midX:[8.4,13.5],
+ outerX:[13.5,27.0]
+});
+
 export const GRASS_DENSITY=Object.freeze({
  spacing:1.8,
  rows:92,
@@ -127,6 +136,13 @@ export function populateForest(generator,{seed=1337}={}){
   const z=-i*roadsideSpacing-4+rand(-1.3,1.3);
   add('pine',-rand(4.95,6.3),z,rand(.66,1.48),roadsideLoop);
   add('pine',rand(4.95,6.3),z+rand(-1.8,1.8),rand(.74,1.44),roadsideLoop);
+  // Extra trees sit between existing rows, filling the visible side gaps.
+  for(const side of [-1,1]){
+   if(rng()<SIDE_PINE_DENSITY.midChance){
+    add('pine',side*rand(...SIDE_PINE_DENSITY.midX),
+     z-roadsideSpacing*.48+rand(-1.15,1.15),rand(.62,1.24),roadsideLoop);
+   }
+  }
   if(i%2===0){
    add('pine',-rand(8,10.1),z-2.25+rand(-1.5,1.5),rand(.72,1.64),roadsideLoop);
    add('pine',rand(8,10.1),z-2.25+rand(-1.5,1.5),rand(.72,1.64),roadsideLoop);
@@ -137,6 +153,13 @@ export function populateForest(generator,{seed=1337}={}){
   const z=-i*farSpacing-9+rand(-1.1,1.1);
   add('pine',-rand(13,22),z,rand(.65,1.66),farLoop);
   add('pine',rand(13,22),z+rand(-2.1,2.1),rand(.65,1.66),farLoop);
+  // Real pine silhouettes for the outer forest, no static horizon backdrop.
+  for(const side of [-1,1]){
+   if(rng()<SIDE_PINE_DENSITY.outerChance){
+    add('pine',side*rand(...SIDE_PINE_DENSITY.outerX),
+     z-farSpacing*.5+rand(-1.4,1.4),rand(.64,1.3),farLoop);
+   }
+  }
   if(i%3===0){
    add('pine',-rand(24,31),z-1.7+rand(-1.5,1.5),rand(.62,1.44),farLoop);
    add('pine',rand(24,31),z-1.7+rand(-1.5,1.5),rand(.62,1.44),farLoop);

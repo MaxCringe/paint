@@ -1,9 +1,10 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {PlantRegistry,createForestRandom} from '../src/world/forest/PlantRegistry.js';
 import {GRASS_VARIANTS,generateGrassClumpGeometry} from '../src/world/forest/GrassModels.js';
-import {createForestGenerator,populateForest,GRASS_DENSITY} from '../src/world/forest/ForestGenerator.js';
+import {createForestGenerator,populateForest,GRASS_DENSITY,SIDE_PINE_DENSITY} from '../src/world/forest/ForestGenerator.js';
 
 test('custom new species can join the forest without modifying the renderer',()=>{
  const registry=new PlantRegistry();
@@ -106,4 +107,27 @@ test('thick wild grass forms variable-density colonies on both forest sides with
  assert.equal(species.size,5,'every grass variety appears in thick undergrowth');
  assert.ok(heights.size>70,'grass heights remain genuinely varied');
  assert.ok(new Set(counts).size>1,'density responds to the random seed');
+});
+
+test('real recycled pines fill side gaps, with the original volcanic skyline restored',()=>{
+ assert.ok(SIDE_PINE_DENSITY.midChance>=.5);
+ assert.ok(SIDE_PINE_DENSITY.outerChance>=.5);
+ assert.ok(SIDE_PINE_DENSITY.midX[0]>8);
+ for(const seed of [47,129,521]){
+  const scene=new THREE.Scene(),forest=createForestGenerator(scene,{seed});
+  populateForest(forest,{seed:seed+123});
+  const trees=forest.plants.filter(p=>p.userData.windKind==='pine');
+  assert.ok(trees.length>=280&&trees.length<=370,'moderate additional pines: '+trees.length);
+  assert.ok(trees.some(p=>p.position.x>8.5&&p.position.x<13.5));
+  assert.ok(trees.some(p=>p.position.x< -8.5&&p.position.x> -13.5));
+  assert.ok(trees.some(p=>p.position.x>24)&&trees.some(p=>p.position.x< -24));
+  assert.ok(trees.every(p=>Math.abs(p.position.x)>=4.95));
+  assert.ok(forest.getStats().drawCalls<trees.length/2,'side trees reuse the original instanced batches');
+  forest.dispose();
+ }
+ const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
+ assert.ok(!world.includes('createDistantForestBackdrop'));
+ assert.ok(!world.includes('distantForestBackdrop'));
+ assert.ok(world.includes('populateForest(createForestGenerator(scene'));
+ assert.ok(world.includes('new THREE.Fog(0x3b101b, 14, 68)'));
 });
