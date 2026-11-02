@@ -7,7 +7,7 @@ export const FIONA_FBX_FILES=Object.freeze([
  {id:'run',file:'Fast Run.fbx',action:'runFBX'},
  {id:'jump',file:'Running Jump.fbx',action:'jumpFBX'},
  {id:'slip',file:'Edge Slip.fbx',action:'slipFBX'},
- {id:'slide',file:'Crouched To Sprinting.fbx',action:'slideFBX'}
+ {id:'slide',file:'Running Slide (1).fbx',action:'slideFBX'}
 ]);
 const URL='/models/fiona/animations/fbx/';
 const MIN_MAJOR_JOINTS=4;

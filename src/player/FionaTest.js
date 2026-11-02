@@ -4,6 +4,7 @@ import { FIONA_ANIMATION_SLOTS } from './FionaAnimationSlots.js';
 import { fetchPythonFionaMotionData, createPythonFionaClips } from './FionaPythonMotions.js';
 import { fetchCalibratedRunData, createCalibratedRunClip } from './FionaCalibratedRun.js';
 import { loadFionaFBXClips } from './FionaImportedFBX.js';
+import { SLIDE_DURATION } from './Slide.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -110,8 +111,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
-  // Crouched To Sprinting is a transition and must never loop or restart
-  // within one slide; the gameplay slide timer still controls collision safety.
+  // Finish the full take during the ground-slide window without changing physics.
+  if(resolved==='slideFBX')action.setEffectiveTimeScale(clips.get(resolved).duration/SLIDE_DURATION);
+  // The Running Slide FBX is a single take: play it once, and let the
+  // gameplay slide timer continue to control collision safety.
   const loop=once===null?(!['slipFBX','slideFBX'].includes(resolved)&&
    (['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop))):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
@@ -170,7 +173,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    runFBX:'Fast Run.fbx',jumpFBX:'Running Jump.fbx',
    slipFBX:'Edge Slip.fbx',deathFBX:'Standing React Death Right.fbx',
    fishDeathFBX:'Stumble Backwards.fbx',
-   slideFBX:'Crouched To Sprinting.fbx',
+   slideFBX:'Running Slide (1).fbx',
    treeDeathFBX:'Hit On Legs.fbx'
   };
   const source=filenames[selected]||null;
