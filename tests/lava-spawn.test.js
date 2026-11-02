@@ -79,7 +79,7 @@ test('restart clears lava cooldown and reintroduces early rivers',()=>{
 test('lava geometry factory and collision rules are still integrated into the game',()=>{
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  const river=readFileSync(new URL('../src/obstacles/LavaRiver.js',import.meta.url),'utf8');
- assert.ok(game.includes('const makeLavaRiver = createLavaRiverFactory(scene, obstacles)'));
+ assert.ok(game.includes('const makeLavaRiver = createLavaRiverFactory(scene, obstacles, {'));
  assert.ok(game.includes('makeSegment(spawnZ)'));
  assert.ok(game.includes("if(o.type==='lava')"));
  assert.ok(game.includes('lavaCrossingTouchesRunner(before,after,half)'));
