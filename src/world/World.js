@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildFernGeometry } from './buildFernGeometry.js';
+import { createLowPolyPine } from './LowPolyPine.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld() {
@@ -16,7 +17,7 @@ export function createWorld() {
   scene.add(new THREE.HemisphereLight(0xff8b76,0x120308,1.45));
   const sun=new THREE.DirectionalLight(0xff3927,2.8); sun.position.set(-8,35,8); sun.target.position.set(0,0,-12); scene.add(sun.target); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); sun.shadow.camera.left=-18; sun.shadow.camera.right=18; sun.shadow.camera.top=55; sun.shadow.camera.bottom=-55; sun.shadow.camera.near=.1; sun.shadow.camera.far=160; sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias=-0.00012; sun.shadow.normalBias=.025; sun.shadow.radius=2; scene.add(sun);
   const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-  const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), darkStone=mat(0x454c40), leafMats=[mat(0x173b2a),mat(0x204832),mat(0x28513a),mat(0x142f24)], trunkMat=mat(0x68472d);
+  const grassMat=mat(0x3d8b4d), roadMat=mat(0xffffff), edgeMat=mat(0xc8a66b), darkStone=mat(0x454c40), trunkMat=mat(0x68472d);
   const pineFloorTexture=new THREE.TextureLoader().load('https://raw.githubusercontent.com/MaxCringe/paint/main/pictures/KNOTTY%20PINE/TEXTURE/knotty%20pine_1.jpg',()=>{renderer.render(scene,camera)});
   pineFloorTexture.colorSpace=THREE.SRGBColorSpace;
   pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
@@ -183,10 +184,10 @@ export function createWorld() {
   const road=new THREE.Mesh(new THREE.PlaneGeometry(8.7,220),roadMat); road.rotation.x=-Math.PI/2; road.position.set(0,-.07,-65); road.receiveShadow=true; scene.add(road);
   for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-  // Batch all pine tiers into a handful of InstancedMesh draws.
-  // Each tree keeps a transform-only proxy: wind and recycling stay unchanged.
-  const treeTrunkGeometry=new THREE.BoxGeometry(.38,2.5,.38);
-  const treeConeGeometries=[new THREE.ConeGeometry(1.15,1.8,5),new THREE.ConeGeometry(.98,1.8,5),new THREE.ConeGeometry(.81,1.8,5)];
+  // One AI Studio model provides shared geometry/materials for every forest pine.
+  // Each tree remains a lightweight transform proxy (wind and recycling unchanged).
+  const pinePrototype=createLowPolyPine();
+  const pineModelScale=.50; // Original 4.8-unit model, fitted to the existing roadside grove.
   const pineGroups=[],pineBatches=[];
   function pinePart(parent,geometry,material){
    let batch=pineBatches.find(b=>b.geometry===geometry&&b.material===material);
@@ -197,20 +198,16 @@ export function createWorld() {
   }
   function tree(x,z,scale=1,recycleLength=180){
    const g=new THREE.Group();g.position.set(x,0,z);
-   // Each pine gets its own silhouette: different height, crown width and irregular branch tiers.
+   // Keep the original height/width variation; a little yaw breaks repetition.
    g.scale.set(scale*(.84+Math.random()*.30),scale*(.76+Math.random()*.48),scale*(.84+Math.random()*.30));
+   g.rotation.y=Math.random()*Math.PI/3;
    g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);pineGroups.push(g);
-   const trunk=pinePart(g,treeTrunkGeometry,trunkMat);
-   trunk.position.set((Math.random()-.5)*.09,1.15,0);
-   trunk.rotation.z=(Math.random()-.5)*.035;
-   // Transform-only placeholder, drawn by the matching instance batch.
-   for(let i=0;i<3;i++){
-    const cone=pinePart(g,treeConeGeometries[i],leafMats[(Math.random()*leafMats.length)|0]);
-    cone.position.set((Math.random()-.5)*.12,2.05+i*.69+(Math.random()-.5)*.16,(Math.random()-.5)*.08);
-    const width=.78+Math.random()*.40;
-    cone.scale.set(width,.86+Math.random()*.28,width);
-    cone.rotation.y=(Math.random()-.5)*.42;
-    // Drawn from the original shared five-sided cone geometry.
+   // Mirror the prototype's meshes as instanced transforms, not separate draws.
+   for(const source of pinePrototype.children){
+    const part=pinePart(g,source.geometry,source.material);
+    part.position.copy(source.position).multiplyScalar(pineModelScale);
+    part.rotation.copy(source.rotation);
+    part.scale.copy(source.scale).multiplyScalar(pineModelScale);
    }
    return g
   }
