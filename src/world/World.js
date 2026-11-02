@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createForestGenerator,populateForest} from './forest/ForestGenerator.js';
+import {createDistantForestBackdrop} from './forest/DistantForestBackdrop.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld() {
@@ -186,7 +187,10 @@ export function createWorld() {
   // The scene delegates all vegetation to the extensible forest registry.
   const seed=(Math.random()*0xffffffff)>>>0;
   const forest=populateForest(createForestGenerator(scene,{seed}),{seed:seed^0x51f2a9c3});
+  // Dense, very inexpensive background silhouettes fill the side gaps
+  // where animated trees vanish into fog before the volcanic mountains.
+  const distantForestBackdrop=createDistantForestBackdrop(scene,{seed:seed^0x19af4302});
   const roadsideVegetation=forest.plants;
   const updateForestPines=()=>forest.update();
-  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest };
+  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest, distantForestBackdrop };
 }
