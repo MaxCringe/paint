@@ -29,13 +29,12 @@ test('same seed reproduces exact vertices and different seed changes them',()=>{
  a.geometry.dispose();b.geometry.dispose();c.geometry.dispose();
 });
 
-test('roadside ferns are visually varied and rendered in shared instance batches',()=>{
+test('fern generator provides the three cached species of the unified forest',()=>{
+ const catalog=readFileSync(new URL('../src/world/forest/PlantCatalog.js',import.meta.url),'utf8');
  const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
- assert.ok(world.includes("import { generateFernGeometry, createFernMaterial } from './createLowPolyFern.js'"));
- assert.ok(world.includes("const fernVariants=['lush','young','withered']"));
- assert.ok(world.includes("variant==='lush'?4:3"));
- assert.ok(world.includes('new THREE.InstancedMesh(batch.geometry,fernMaterial,batch.parts.length)'));
- assert.ok(world.includes("g.userData.windKind='fern-static'"));
- assert.ok(world.includes('for(const group of fernGroups)group.updateMatrixWorld(true)'));
+ assert.ok(catalog.includes("Object.entries({lush:55,young:29,withered:16})"));
+ assert.ok(catalog.includes("templates:variant==='lush'?4:3"));
+ assert.ok(catalog.includes('generateFernGeometry('));
+ assert.ok(world.includes('populateForest('));
  assert.ok(!world.includes('buildFernGeometry()'));
 });

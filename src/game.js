@@ -537,7 +537,7 @@ function frame(t){requestAnimationFrame(frame);
   }
   for(let i=coins.length-1;i>=0;i--)if(coins[i].g.position.z>13||coins[i].g.userData.got){if(coins[i].g.parent)scene.remove(coins[i].g);coins[i].g.userData.dispose?.();coins.splice(i,1)}
   // Roadside trees are fixed in the world; move them toward and past the runner, then recycle them far ahead.
-  for(const plant of roadsideVegetation){plant.position.z+=travelSpeed*dt;if(plant.position.z>12)plant.position.z-=plant.userData.recycleLength}
+  for(const plant of roadsideVegetation){plant.position.z+=travelSpeed*dt;if(plant.position.z>12){plant.position.z-=plant.userData.recycleLength;plant.userData.onForestRecycle?.()}}
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});

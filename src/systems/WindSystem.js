@@ -50,8 +50,7 @@ export function createWindSystem(roadsideVegetation){
   kpWindStrength:{value:0},
   kpWindDirection:{value:direction}
  };
- const pines=[];
- let fernMaterial=null,grassMaterial=null;
+ const pines=[],fernMaterials=new Set(),grassMaterials=new Set();
  for(const plant of roadsideVegetation){
   const kind=plant.userData.windKind;
   if(kind==='pine'){
@@ -61,11 +60,15 @@ export function createWindSystem(roadsideVegetation){
     phase:plant.position.x*.13+plant.position.z*.043,
     flexibility:clamp(1.15/plant.scale.y,.64,1.37)
    });
-  }else if(kind==='fern'&&!fernMaterial)fernMaterial=plant.children[0]?.material;
-  else if(kind==='grass'&&!grassMaterial)grassMaterial=plant.children[0]?.material;
+  }else if(kind==='fern'||kind==='grass'){
+   const materials=kind==='grass'?grassMaterials:fernMaterials;
+   for(const material of plant.userData.windMaterials||[plant.children[0]?.material]){
+    if(material)materials.add(material);
+   }
+  }
  }
- attachWindShader(fernMaterial,'fern',uniforms);
- attachWindShader(grassMaterial,'grass',uniforms);
+ for(const material of fernMaterials)attachWindShader(material,'fern',uniforms);
+ for(const material of grassMaterials)attachWindShader(material,'grass',uniforms);
  let time=0;
  const p=WIND_PERCENT;
  function reset(){
