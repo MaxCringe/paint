@@ -1,0 +1,43 @@
+/* Temporary 3D Fiona workshop. Does not affect regular game layout. */
+#fiona-pose-editor-toggle{
+ position:fixed;z-index:75;left:14px;bottom:14px;min-width:0;
+ padding:11px 14px;width:auto;border:1px solid #bb8869;border-radius:12px;
+ background:#3b2a2d;color:#f6d0a9;box-shadow:0 7px 30px #0009;
+ font-size:12px;letter-spacing:.025em;pointer-events:auto;
+}
+body.menu-open #fiona-pose-editor-toggle,
+body.game-over-open #fiona-pose-editor-toggle,
+body.fiona-pose-editor-open #fiona-pose-editor-toggle{display:none!important}
+body.fiona-pose-editor-open #pause-button,
+body.fiona-pose-editor-open #fiona-test-tools{display:none!important}
+#fiona-pose-editor{
+ position:fixed;right:12px;top:50%;transform:translateY(-50%);
+ z-index:90;width:min(350px,calc(100vw - 24px));
+ max-height:calc(100dvh - 28px);overflow-y:auto;
+ padding:15px;background:#1c1619f7;color:#f6e5d4;text-shadow:none;
+ border:1px solid #b58563;border-radius:17px;box-shadow:0 18px 60px #000d;
+ font-family:Inter,system-ui,sans-serif;pointer-events:auto;touch-action:pan-y;
+ scrollbar-width:thin;
+}
+#fiona-pose-editor .pose-header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+#fiona-pose-editor h2{font-size:22px;margin:4px 0 8px}
+#fiona-pose-editor small{font-size:10px;color:#dcb388;letter-spacing:.1em}
+#fiona-pose-editor .pose-header button{min-width:0;width:34px;height:34px;padding:1px;box-shadow:none;border-radius:8px;background:#463238;color:#eecdb5;font-size:23px}
+#fiona-pose-editor .pose-intro,#fiona-pose-editor #pose-status{font-size:11px;line-height:1.5;color:#d0bdb4;margin:4px 0 12px}
+#fiona-pose-editor #pose-controls{display:grid;gap:8px}
+#fiona-pose-editor .pose-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:5px 8px;font-size:11px;color:#e9d2bf;align-items:center}
+#fiona-pose-editor .pose-row span{grid-column:1/-1}
+#fiona-pose-editor input[type=range]{width:100%;margin:0;accent-color:#dca36d;touch-action:pan-y;cursor:pointer}
+#fiona-pose-editor .pose-row output{text-align:right;font-variant-numeric:tabular-nums;color:#ffd2a4}
+#fiona-pose-editor .pose-turn{display:grid;grid-template-columns:1fr 40px;gap:6px 8px;border-top:1px solid #aa775957;margin-top:12px;padding-top:11px}
+#fiona-pose-editor .pose-turn label{grid-column:1/-1;font-size:12px;font-weight:700}
+#fiona-pose-editor .pose-turn output{text-align:right;font-size:11px;color:#ffd2a4}
+#fiona-pose-editor .pose-actions{display:flex;gap:8px;margin-top:14px}
+#fiona-pose-editor .pose-actions button{min-width:0;flex:1;box-shadow:none;border-radius:9px;padding:11px 6px;font-size:11px}
+#fiona-pose-editor #pose-reset{background:#453437;color:#ebd7cb;border:1px solid #a68376}
+#fiona-pose-editor #pose-copy{background:#c9905c;color:#23150f}
+#fiona-pose-editor #pose-export{width:100%;height:115px;resize:vertical;background:#100d0f;border:1px solid #a77b62;border-radius:9px;color:#f6e8df;font-size:10px;padding:8px;margin-top:10px;white-space:pre}
+@media(max-width:700px){
+ #fiona-pose-editor{top:auto;bottom:8px;right:8px;transform:none;max-height:74dvh;width:min(350px,calc(100vw - 16px));padding:12px}
+ #fiona-pose-editor-toggle{bottom:66px;left:8px}
+}

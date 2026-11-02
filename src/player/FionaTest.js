@@ -66,6 +66,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(bone)broomJoints[key]={bone,rest:bone.quaternion.clone()};
  }
  let broomSeatBlend=0;
+ let poseEditorPreview=false;
  const broomSeatAngles={hips:[-.28,0,0],spine:[.30,0,0],
   leftUpperLeg:[-1.50,0,-.12],rightUpperLeg:[-1.50,0,.12],
   leftLowerLeg:[1.65,0,0],rightLowerLeg:[1.65,0,0],
@@ -219,6 +220,22 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    ?'Новый бег: калибровка костей по FBX, цикл 0,70 с.'
    :'Старый бег: исходные Python-повороты, сохранён для сравнения.'};
  }
+ function setPowerPose(values){return powerLevitationPose.setSettings(values);}
+ function getPowerPose(){return powerLevitationPose.getSettings();}
+ const initialFacingAngle=facing.rotation.y;
+ function setPosePreviewAngle(degrees=0){
+  facing.rotation.y=initialFacingAngle+THREE.MathUtils.degToRad(Number(degrees)||0);
+ }
+ function setPoseEditorPreview(enabled){
+  poseEditorPreview=Boolean(enabled);
+  if(!active)return;
+  if(poseEditorPreview){
+   dead=false;manualSlot=null;manualSeconds=0;oneShot=null;
+   broomSeatBlend=0;avatar.position.y=0;
+   baseState='ultimateFly';
+   play('ultimateFly',{force:true});
+  }else reset();
+ }
  function reset(){
   mixer.timeScale=1; // Resume animations after a broom collision.
   dead=false;awaitingDeath=false;manualSlot=null;manualSeconds=0;
@@ -226,7 +243,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   previous={jumping:false,sliding:false,broom:false,ultimate:false};
   mixer.stopAllAction();
   currentAction=null;currentName=null;
-  broomSeatBlend=0;
+  poseEditorPreview=false;broomSeatBlend=0;
   avatar.rotation.set(0,0,0);avatar.position.y=0;
   if(active)play('run',{force:true});
  }
@@ -309,6 +326,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   });
  }
  return {setActive,playJump,trigger,preview,die,update,reset,dispose,setRunVariant,
+  setPowerPose,getPowerPose,setPoseEditorPreview,setPosePreviewAngle,
   get runVariant(){return runVariant;},headBone,available,prototypeIds,importedIds,
   importedFiles:importResult.reports,importErrors:importResult.errors,
   get loadedCount(){return available.size;}};
