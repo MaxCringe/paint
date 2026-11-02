@@ -17,5 +17,5 @@ test('Misty scarf renders an independently modeled embroidered 3D shawl',()=>{
  // Existing collectible, rule, and revive entry points still belong to pickup.
  for(const member of ['function offer(','function update(','function revive(','function reset('])
   assert.ok(pickup.includes(member),member);
- assert.ok(read('src/systems/ScarfRules.js').includes('SCARF_INTERVAL_METRES=3000'));
+ assert.ok(read('src/systems/ScarfRules.js').includes('SCARF_INTERVAL_METRES=1000'));
 });

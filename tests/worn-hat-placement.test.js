@@ -44,7 +44,7 @@ test('worn hat pickup retains magnet and animation; editor and orbit camera are 
  assert.ok(hat.includes('wearable.visible=active;'));
  assert.ok(hat.includes('hats.push({g,visual,glow,lane,z,phase:'));
  assert.ok(game.includes('magnetTime=10;'));
- assert.ok(game.includes('attachWearableToHead(testAvatar.headBone)'));
+ assert.ok(game.includes('attachWearableToHead(next.headBone)'));
  assert.ok(!game.includes("state==='hat-edit'"));
  assert.ok(!hat.includes('setWearableHatDevPreview'));
  for(const file of ['src/ui/FionaHatEditor.js','src/ui/HatOrbitCamera.js',

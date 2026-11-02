@@ -4,14 +4,9 @@ import * as THREE from 'three';
 import {FIONA_FBX_FILES,fionaBoneKey,retargetFionaFBXClip} from '../src/player/FionaImportedFBX.js';
 
 const joints=['Hips','Spine','LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm'];
-test('seven FBX clips keep dedicated tree and fish deaths separate',()=>{
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),[
-  'Fast Run.fbx','Running Jump.fbx','Edge Slip.fbx',
-  'Standing React Death Right.fbx','Stumble Backwards.fbx',
-  'Crouched To Sprinting.fbx','Hit On Legs.fbx'
- ]);
- assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),
-  ['run','jump','slip','death','fishDeath','slide','treeDeath']);
+test('production Fiona uses four approved FBX clips',()=>{
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.file),['Fast Run.fbx','Running Jump.fbx','Edge Slip.fbx','Running Slide (1).fbx']);
+ assert.deepEqual(FIONA_FBX_FILES.map(x=>x.id),['run','jump','slip','slide']);
  assert.equal(fionaBoneKey('mixamorig:Hips'),'hips');
  assert.equal(fionaBoneKey('Armature|mixamorig:LeftArm'),'leftarm');
 });
@@ -60,7 +55,7 @@ test('rejected flight FBX is not referenced or downloaded',async()=>{
  const {readFileSync,existsSync}=await import('node:fs');
  const read=path=>readFileSync(new URL('../'+path,import.meta.url),'utf8');
  const loader=read('src/player/FionaImportedFBX.js');
- const fiona=read('src/player/FionaTest.js');
+ const fiona=read('src/player/FionaRig.js');
  const game=read('src/game.js');
  assert.ok(!existsSync(new URL('../public/models/fiona/animations/fbx/Flying.fbx',import.meta.url)));
  assert.ok(!loader.includes("file:'Flying.fbx'"));
@@ -71,51 +66,35 @@ test('rejected flight FBX is not referenced or downloaded',async()=>{
  assert.ok(game.includes("audio.play('soul');haptics.play('soul');coinCount++"));
 });
 
-test('puddle is nonfatal and fish has its own final death animation with a delayed result screen',async()=>{
+test('puddle slips, fish kills, and production Fiona keeps instant game over',async()=>{
  const {readFileSync}=await import('node:fs');
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
- const player=readFileSync(new URL('../src/player/FionaTest.js',import.meta.url),'utf8');
+ const player=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
  assert.ok(game.includes("if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9"));
  assert.ok(game.includes("o.type==='fish'?'fish':'other'"));
- assert.ok(player.includes("const isFish=reason==='fish'&&actions.has('fishDeathFBX')"));
- assert.ok(player.includes("const motion=isFish?'fishDeath'"));
- assert.ok(player.includes("awaitingDeath=!isFish&&!isPine&&reason==='tree'"));
- assert.ok(!player.includes("awaitingDeath=reason==='fish'"));
- assert.ok(player.includes("if(id==='slip'&&actions.has('slipFBX'))"));
- assert.ok(player.includes("if(id==='death'&&actions.has('deathFBX'))"));
- assert.ok(game.includes("deathRevealRemaining=useTestFiona&&clipDuration>0"));
- assert.ok(game.includes("if(deathRevealRemaining===0)showDeathResult()"));
- assert.ok(game.includes("state='over'"));
+ assert.ok(game.includes('avatar?.die(reason,{onBroom:broom.active})'));
+ assert.ok(game.includes('showDeathResult();'));
+ assert.ok(player.includes('mixer.timeScale=0;'));
+ assert.ok(!game.includes('deathRevealRemaining'));
 });
 
-test('ground-only log crouch uses a nonlooping FBX and never changes broom pose',async()=>{
+test('ground-only slide uses FBX but broom and ultimate have independent poses',async()=>{
  const {readFileSync}=await import('node:fs');
- const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
- const controller=read('src/player/FionaTest.js');
- const game=read('src/game.js');
- assert.ok(controller.includes("if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX'"));
- assert.ok(controller.includes("!['slipFBX','slideFBX'].includes(resolved)"));
- assert.ok(controller.includes("id==='slide'&&(previous.broom||previous.ultimate)"));
- assert.ok(controller.includes("previous.sliding&&!sliding&&!importedIds.has('slide')"));
- assert.ok(controller.includes("ultimate?'ultimateFly':broom?(broomDuck>0.14?'broomDuck':'broomFly')"));
- assert.ok(controller.includes("jumping?airborneSlot:sliding?'slide':slip?'slip':'run'"));
- assert.ok(game.includes("if(state==='playing'&&ultTimer<=0&&!broom.active&&!doubleJump.airborne)"));
- assert.ok(game.includes("const jumping=!ultActive&&!broom.active&&doubleJump.airborne, sliding=!ultActive&&!broom.active&&slideAction.active"));
+ const player=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(player.includes("if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX'"));
+ assert.ok(player.includes("!['slipFBX','slideFBX'].includes(resolved)"));
+ assert.ok(player.includes("ultimate?'ultimateFly':broom?(broomDuck>0.14?'broomDuck':'broomFly')"));
+ assert.ok(game.includes("slideAction.press();audio.play('slide')"));
 });
 
-test('pine tree collision plays Hit On Legs as its entire death, not the general death',async()=>{
+test('pine collisions end the run without forced broom ground death',async()=>{
  const {readFileSync}=await import('node:fs');
- const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
- const player=read('src/player/FionaTest.js'),game=read('src/game.js');
- const ui=read('src/ui/GameMenu.js');
- assert.ok(player.includes("treeDeath:'treeDeathFBX'"));
- assert.ok(player.includes("id==='hitTree'||id==='treeDeath'"));
- assert.ok(player.includes("const isPine=reason==='tree'&&actions.has('treeDeathFBX')"));
- assert.ok(player.includes("awaitingDeath=!isFish&&!isPine&&reason==='tree'"));
- assert.ok(player.includes("const motion=isFish?'fishDeath':isPine?'treeDeath'"));
- assert.ok(ui.includes("slot.id==='hitTree'&&importedIds.has('treeDeath')"));
- assert.ok(game.includes("end('tree')"));
- assert.ok(game.includes("testAvatar?.die(reason,{onBroom:broom.active})"));
- assert.ok(player.includes("if(onBroom&&reason==='tree')"));
- assert.ok(game.includes("deathRevealRemaining=useTestFiona&&clipDuration>0"));
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ const player=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
+ assert.ok(game.includes("end('tree');break;"));
+ assert.ok(game.includes('avatar?.die(reason,{onBroom:broom.active})'));
+ assert.ok(player.includes("function die(reason='other',{onBroom=false}={})"));
+ assert.ok(player.includes('mixer.timeScale=0;'));
+ assert.ok(game.includes('showDeathResult();'));
 });

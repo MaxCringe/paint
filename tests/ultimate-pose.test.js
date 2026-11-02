@@ -74,15 +74,16 @@ test('final ultimate pose contains exactly the nine exported settings',()=>{
  const spine=bones.get('mixamorig:Spine1');
  assert.ok(Math.abs(spine.rotation.x+18*Math.PI/180)<1e-6);
 });
-test('temporary pose editor is removed while ordinary and DEV runs remain available',()=>{
+test('temporary pose editor and test Fiona menu are removed from production',()=>{
  const root=new URL('../',import.meta.url);
  for(const name of ['src/ui/FionaPoseEditor.js','src/styles/fiona-pose-editor.css',
   'tests/browser/fiona-pose-editor.spec.js','tests/ultimate-pose-editor.test.js'])
   assert.equal(existsSync(new URL(name,root)),false,name+' must be removed');
  const game=readFileSync(new URL('src/game.js',root),'utf8');
- const avatar=readFileSync(new URL('src/player/FionaTest.js',root),'utf8');
+ const avatar=readFileSync(new URL('src/player/FionaRig.js',root),'utf8');
  assert.ok(!game.includes('pose-edit'));
  assert.ok(!game.includes('FionaPoseEditor'));
  assert.ok(!avatar.includes('setPowerPose'));
- assert.ok(game.includes('startFionaTest(files)'));
+ assert.ok(game.includes('loadFiona({runner,...files})'));
+  assert.ok(!game.includes('startFionaTest'));
 });

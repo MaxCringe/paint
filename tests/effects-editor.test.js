@@ -48,9 +48,11 @@ test('editor isolates the real 3D models, exports all effects, and has a one-swi
  const html=read('index.html'),main=read('src/main.js'),game=read('src/game.js');
  assert.match(html,/id="menu-open-effects-editor"[^>]+hidden/);
  assert.match(editor,/openButton.classList.remove\('hidden'\)/);
- assert.match(editor,/createFiona\(scene,mat,box\)/);
- assert.match(editor,/createBroomRide\(scene,runner,fiona\)/);
- assert.match(editor,/createWitchHatFactory\(scene,hats,fiona.torso\)/);
+ assert.match(editor,/createFiona\(scene\)/);
+  assert.match(editor,/loadFiona\(\{runner,\.\.\.files\}\)/);
+ assert.match(editor,/createBroomRide\(scene,runner\)/);
+ assert.match(editor,/createWitchHatFactory\(scene,hats,runner\)/);
+  assert.match(editor,/hatFactory\.attachWearableToHead\(rig.headBone\)/);
  assert.match(editor,/createScarfModelFactory\(\)/);
  assert.match(editor,/createSoulFactory\(scene,coins\)/);
  assert.match(editor,/saveEffectVisuals\(\)/);
@@ -76,7 +78,7 @@ test('visual profiles drive actual hat, scarf, soul and ultimate renderers, neve
  const soul=read('src/souls/createSoulFactory.js'),aura=read('src/effects/UltimateAura.js');
  for(const [content,category] of [[hat,'hat'],[scarf,'scarf'],[soul,'souls'],[aura,'ultimate']])
   assert.ok(content.includes("getEffectVisualProfile('"+category+"')"),category);
- assert.match(read('src/systems/ScarfRules.js'),/SCARF_INTERVAL_METRES=3000/);
+ assert.match(read('src/systems/ScarfRules.js'),/SCARF_INTERVAL_METRES=1000/);
  assert.match(read('src/powerups/BroomRide.js'),/duration: 9/);
  const model=read('src/powerups/BroomRide.js');
  for(const token of ['v.woodColor','v.gripColor','v.bindingColor','v.capColor','v.bristlesColor','v.pickupGlowColor']){

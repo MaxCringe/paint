@@ -60,7 +60,7 @@ test('levitation has small slow bob and lands without residual vertical motion',
  for(const t of [0,260,950,1800])assert.equal(f.height(t),0);
 });
 test('take-off has direct priority and landing cannot trigger a ground slide',()=>{
- const controller=readFileSync(new URL('../src/player/FionaTest.js',import.meta.url),'utf8');
+ const controller=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  assert.ok(controller.includes("if(!previous.ultimate&&ultimate){"));
  assert.ok(controller.includes("if(!trigger('ultimateStart'))playBase();"));

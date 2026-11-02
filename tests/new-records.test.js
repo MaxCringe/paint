@@ -133,6 +133,6 @@ test('new personal record colors only affect distance and souls, not ultimate me
  assert.ok(css.includes('#distance-pill.new-record'));
  assert.ok(css.includes('#souls-pill.new-record'));
  assert.ok(!css.includes('#soul-meter-wrap.new-record'));
- assert.ok(game.includes('runRecords.start(best,bestSouls,{practice:useTestFiona})'));
+ assert.ok(game.includes('runRecords.start(best,bestSouls)'));
  assert.ok(game.includes('runRecords.progress(distance,coinCount)'));
 });

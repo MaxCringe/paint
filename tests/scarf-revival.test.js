@@ -3,31 +3,32 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createScarfRules,SCARF_INTERVAL_METRES,REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE,SCARF_TEST_SPAWN_CHANCE} from '../src/systems/ScarfRules.js';
 
-test('milestones at 3000, 6000 and 9000 metres, not continuously',()=>{
+test('one opportunity per kilometre, with a random location in each interval',()=>{
  const r=createScarfRules();
- assert.equal(SCARF_INTERVAL_METRES,3000);
- assert.equal(r.milestone(2999),false);
+ assert.equal(SCARF_INTERVAL_METRES,1000);
+ assert.equal(r.milestone(1000),true);
+ assert.equal(r.milestone(1001),false);
+ assert.equal(r.milestone(2000),true);
+ assert.equal(r.milestone(2001),false);
  assert.equal(r.milestone(3000),true);
- assert.equal(r.milestone(3200),false);
- assert.equal(r.milestone(5999),false);
- assert.equal(r.milestone(6000),true);
- assert.equal(r.milestone(9000),true);
- assert.equal(r.milestone(9001),false);
+ assert.equal(r.milestone(3001),false);
 });
-test('one scarf and only one resurrection per run',()=>{
+test('one scarf held at a time; another can be found after use',()=>{
  const r=createScarfRules();
  assert.equal(r.collect(),true);
  assert.equal(r.collect(),false);
  assert.equal(r.canRevive,true);
- assert.equal(r.milestone(3000),false);
+ assert.equal(r.milestone(1000),true);
  assert.equal(r.consume(),true);
  assert.equal(r.consume(),false);
  assert.equal(r.canRevive,false);
- assert.equal(r.milestone(6000),false);
+ assert.equal(r.milestone(2000),true);
+ assert.equal(r.collect(),true);
+ assert.equal(r.canRevive,true);
  assert.equal(REVIVAL_PROTECTION_SECONDS,3);
  r.reset();
  assert.equal(r.canRevive,false);
- assert.equal(r.milestone(3000),true);
+ assert.equal(r.milestone(1000),true);
 });
 test('pickup, independent revival screen and disabled advertisements are wired',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');

@@ -85,7 +85,8 @@ test('3D broom workshop stays separate from runner and preserves gameplay mechan
  const game=read('src/game.js'),broom=read('src/powerups/BroomRide.js');
  const html=read('index.html'),lab=read('src/ui/BroomLab.js');
  assert.match(html,/menu-open-effects-editor/);
- assert.ok(lab.includes('createBroomRide(scene,runner,model)'));
+ assert.ok(lab.includes('createBroomRide(scene,runner)'));
+ assert.ok(lab.includes('loadFiona({runner,...files})'));
  assert.ok(lab.includes('setBroomTuningValue'));
  assert.match(broom,/duration: 9/);
  assert.match(broom,/speedMultiplier: 1\.20/);

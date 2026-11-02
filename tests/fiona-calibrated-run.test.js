@@ -65,12 +65,15 @@ test('calibrated run eliminates asymmetrical exported leg bind angles',()=>{
  assert.ok(!clip.tracks.some(track=>track.name.includes('.scale')));
  assert.ok(clip.tracks.some(track=>track.name==='Hips.position'));
 });
-test('legacy Python run remains available for comparison',()=>{
+test('legacy Python fallback remains available without a DEV UI',()=>{
  const old=JSON.parse(gunzipSync(readFileSync(new URL('../public/models/fiona/animations/motions.json.gz',import.meta.url))));
  assert.equal(Object.keys(old.motions).length,23);
  assert.equal(old.motions.run.f.length,9);
  assert.equal(old.motions.run.d,.74);
+ const rig=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(ui,/data-fiona-run-variant="calibrated"/);
- assert.match(ui,/data-fiona-run-variant="original"/);
+ assert.ok(rig.includes('createCalibratedRunClip(bones,calibratedData)'));
+ assert.ok(rig.includes("let runVariant=importedIds.has('run')?'fbx':'calibrated'"));
+ assert.ok(!ui.includes('data-fiona-run-variant'));
+
 });

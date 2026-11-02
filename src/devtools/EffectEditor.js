@@ -3,6 +3,8 @@
 import * as THREE from 'three';
 import './EffectEditor.css';
 import {createFiona} from '../player/Fiona.js';
+import {loadFiona} from '../player/FionaRig.js';
+import {resolveFionaAssets} from '../player/FionaAssetCache.js';
 import {createBroomRide} from '../powerups/BroomRide.js';
 import {createWitchHatFactory} from '../powerups/WitchHat.js';
 import {createScarfModelFactory} from '../powerups/ScarfModel.js';
@@ -116,7 +118,7 @@ export function createEffectEditor(){
  const $=id=>root.querySelector('#'+id);
  const nav=$('fx-categories'),fields=$('fx-fields'),notice=$('fx-message');
  let active=false,category='broom',phase='flight',lastFocus=null;
- let scene=null,renderer=null,camera=null,runner=null,broom=null,hat=null,hatFactory=null;
+ let scene=null,renderer=null,camera=null,runner=null,broom=null,hat=null,hatFactory=null,rig=null;
  let scarfGroup=null,scarfFactory=null,scarfHalo=null,scarfFlash=null,soul=null,soulFactory=null,aura=null;
  let raf=0,started=0,rotation=-.31,dragX=null,previewWidth=0,previewHeight=0;
  function setMessage(text){notice.textContent=text;}
@@ -210,12 +212,17 @@ export function createEffectEditor(){
    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
    m.position.set(x,y,z);parent.add(m);return m;
   };
-  const fiona=createFiona(scene,mat,box);
+  const fiona=createFiona(scene);
   runner=fiona.runner;runner.position.set(0,.77,0);
   aura=fiona.ultimateAura;
-  broom=createBroomRide(scene,runner,fiona);
+  broom=createBroomRide(scene,runner);
   const hats=[];
-  hatFactory=createWitchHatFactory(scene,hats,fiona.torso);
+  hatFactory=createWitchHatFactory(scene,hats,runner);
+  // Use the production rig and fitted headwear, not the removed procedural body.
+  void resolveFionaAssets().then(({files})=>loadFiona({runner,...files})).then(next=>{
+   rig=next;rig.setActive(true);
+   hatFactory.attachWearableToHead(rig.headBone);
+  }).catch(error=>setMessage('Модель Фионы не загрузилась: '+error.message));
   hatFactory.makeHat(1,0);
   hat=hats[0];
   hat.visual.scale.setScalar(1.25);
@@ -292,6 +299,7 @@ export function createEffectEditor(){
   scarfGroup.rotation.y=rotation+Math.sin(now*.0007)*.15;
   soul.g.rotation.y=rotation;
   aura.update(now,category==='ultimate');
+  rig?.update(1/60,{broom:category==='broom'||category==='broomModel',ultimate:category==='ultimate',ultimateLift:category==='ultimate'?1:0,speed:15});
   if(category==='broomModel'){
    broom.preview(8,now,{showTrail:false});
    $('fx-preview-timer').textContent='ДЕТАЛИ МЕТЛЫ';
