@@ -28,6 +28,15 @@ Visual effects and locally stored preferences remain implemented in
 `src/effects/EffectVisualProfiles.js` and `src/powerups/BroomVisualProfiles.js`.
 Gameplay rules, rendering profiles and player saves are unchanged.
 
+## Редактор огня в мире (режим разработчика)
+
+После `npm run dev` откройте игру с `?worldEditor=1&seed=1337`.
+Свободная камера, добавление огня щелчком по ветви, 3D-манипулятор,
+редактирование шести видов сосен и деревянных переправ, Undo/Redo и JSON.
+Обычному игроку DEV-кнопки не показываются. Для специальной production-сборки
+требуется `VITE_ENABLE_WORLD_EDITOR=true`; без него редактор исключён из сборки.
+[Управление, пресеты и архитектура](docs/world-fire-editor.md).
+
 ## Текущая структура разработки Фионы и проверки
 
 - **Обычный персонаж:** `src/player/Fiona.js`. Он остаётся основным игровым персонажем.

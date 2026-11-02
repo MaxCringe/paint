@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {createForestGenerator,populateForest} from './forest/ForestGenerator.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
-export function createWorld() {
+export function createWorld({forestSeed}={}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1b050b);
   scene.fog = new THREE.Fog(0x3b101b, 14, 68);
@@ -184,7 +184,7 @@ export function createWorld() {
   for(let x of [-4.45,4.45]){const e=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,220),edgeMat);e.position.set(x,-.06,-65);e.receiveShadow=true;scene.add(e)}
   function box(w,h,d,material,x,y,z,parent=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
   // The scene delegates all vegetation to the extensible forest registry.
-  const seed=(Math.random()*0xffffffff)>>>0;
+  const seed=forestSeed===undefined?(Math.random()*0xffffffff)>>>0:forestSeed>>>0;
   const forest=populateForest(createForestGenerator(scene,{seed}),{seed:seed^0x51f2a9c3});
   const roadsideVegetation=forest.plants;
   const updateForestPines=()=>forest.update();

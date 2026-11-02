@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
 
 test('Fire Studio preview compiles and renders an isolated volumetric flame in WebGL',async({page})=>{
+ // This fixture checks the fire renderer, not Chromium's automatic icon fetch.
+ await page.route('**/favicon.ico',route=>route.fulfill({status:204,body:''}));
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
  page.on('console',message=>{

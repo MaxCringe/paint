@@ -194,6 +194,7 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
   geometry.dispose();material.dispose();sparkGeo.dispose();sparkMaterial.dispose();
  }
  return {igniteTree,igniteNearRiver,releaseOwner,update,reset,dispose,
+  getActivePlants:()=>active.map(r=>r.plant),
   getStats:()=>({activeTrees:active.length,flames:flames.count,
    sparks:sparkGeo.drawRange.count,maxTrees,maxFlames,
    drawCalls:(flames.count?1:0)+(sparkGeo.drawRange.count?1:0)}),

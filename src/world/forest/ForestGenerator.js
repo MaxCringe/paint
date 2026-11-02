@@ -8,7 +8,7 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
  const rng=createForestRandom(seed);
  const registry=new PlantRegistry();
  configure(registry);
- const prototypes=new Map(),batches=new Map(),plants=[],instanceMeshes=[];
+ const prototypes=new Map(),batches=new Map(),plants=[],instanceMeshes=[],meshBatches=new Map();
  const rand=(a,b)=>a+(b-a)*rng();
  function prototypeFor(spec,index){
   const key=spec.id+'@'+index;
@@ -49,7 +49,8 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
  function plant(family,x,z,baseScale,recycleLength,forcedSpecies){
   const spec=forcedSpecies?registry.get(forcedSpecies):registry.choose(family,rng());
   if(!spec||spec.family!==family)throw new Error('Unknown forest species '+forcedSpecies);
-  const prototype=prototypeFor(spec,Math.floor(rng()*spec.templates));
+  const template=Math.floor(rng()*spec.templates);
+  const prototype=prototypeFor(spec,template);
   const group=new THREE.Group();
   group.position.set(x,family==='pine'?0:family==='fern'?-.095:-.105,z);
   group.rotation.y=rand(0,Math.PI*2);
@@ -57,6 +58,8 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   group.userData.recycleLength=recycleLength;
   group.userData.windKind=spec.windKind;
   group.userData.plantSpecies=spec.id;
+  group.userData.plantTemplate=template;
+  group.userData.plantId=plants.length;
   keepFernClear(group,prototype);
   const materials=new Set();
   // Prototype matrices become the local (unchanging) transform of each
@@ -94,7 +97,7 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
    mesh.frustumCulled=false; // moving instances must never use stale bounds
    mesh.castShadow=false;mesh.receiveShadow=true;
-   batch.mesh=mesh;scene.add(mesh);instanceMeshes.push(mesh);
+   batch.mesh=mesh;meshBatches.set(mesh,batch);scene.add(mesh);instanceMeshes.push(mesh);
   }
   update();
  }
@@ -113,10 +116,17 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   for(const batch of batches.values()){geos.add(batch.geometry);mats.add(batch.material);}
   for(const geometry of geos)geometry.dispose();
   for(const material of mats)material.dispose();
-  plants.length=0;instanceMeshes.length=0;batches.clear();prototypes.clear();
+  plants.length=0;instanceMeshes.length=0;batches.clear();prototypes.clear();meshBatches.clear();
  }
  return {
-  registry,plant,finish,update,dispose,plants,
+  registry,plant,finish,update,dispose,plants,instanceMeshes,seed,
+  // Raycast identity follows the same immutable part ordering as GPU uploads.
+  pickMeshes(family){return instanceMeshes.filter(mesh=>meshBatches.get(mesh).parts.some(part=>registry.get(part.parent.userData.plantSpecies)?.family===family));},
+  resolveInstance(mesh,instanceId){
+   const batch=meshBatches.get(mesh);
+   const root=batch?.parts[instanceId]?.parent;
+   return root?{root,id:root.userData.plantId,species:root.userData.plantSpecies,template:root.userData.plantTemplate}:null;
+  },
   getStats:()=>({plants:plants.length,drawCalls:instanceMeshes.length,species:registry.species.size})
  };
 }

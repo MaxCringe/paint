@@ -38,7 +38,10 @@ import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
 
-const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
+const worldEditorRequested=(import.meta.env.DEV||import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true')&&new URLSearchParams(location.search).get('worldEditor')==='1';
+const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??1337)>>>0:undefined;
+const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
+let worldEditor=null;
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
@@ -300,6 +303,7 @@ function togglePause(){
  }
 }
 function frame(t){requestAnimationFrame(frame);
+ if(worldEditor?.active){const dt=Math.min((t-last)/1000||0,.04);last=t;worldEditor.update(dt);return;}
   // The 3D broom workshop renders separately; pause the hidden WebGL scene.
   if(document.body.classList.contains('broom-lab-open')){last=t;fpsSampleStart=null;fpsFrames=0;return;}
  // Keep the final rendered frame completely still, including lava and fire animations.
@@ -573,7 +577,25 @@ function frame(t){requestAnimationFrame(frame);
  camera.lookAt(runner.position.x*.2,1.05,-5);
  // Sync grouped pine instances after recycling and wind movement.
  updateForestPines();
+ worldEditor?.update(dt);
  renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.2))});
+
+// Loaded only by an explicit development URL; ordinary runs allocate no editor
+// controls, picking handles, fire batches, listeners or authoring UI.
+if(worldEditorRequested){
+ let previousState;
+ import('./devtools/world/WorldEditor.js').then(({createWorldEditor})=>{
+  worldEditor=createWorldEditor({scene,renderer,forest,seed:editorSeed,
+   getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),
+   getBurningPlants:forestFire.getActivePlants,
+   defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject],
+   setSuspended(value){
+    if(value){previousState=state;state='world-editor';music.pause();}
+    else{state=previousState;last=performance.now();fpsSampleStart=null;fpsFrames=0;if(state==='playing')music.resume();renderer.render(scene,camera);}
+   }
+  });
+ }).catch(error=>console.error('World editor failed to open:',error));
+}

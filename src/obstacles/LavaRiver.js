@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // Owns lava materials and builds each wide, irregular river with its scorched pine banks.
 // Scene and obstacle registry are injected so this module remains independent of the game loop.
-export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
+export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null,random=Math.random}={}) {
   const lavaRiverGlowMaterial=new THREE.MeshBasicMaterial({color:0xff3000,transparent:true,opacity:.23,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
   const lavaSurfaceMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
   const lavaCoreMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,toneMapped:false});
@@ -17,11 +17,11 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
   currentCanvas.width=256;currentCanvas.height=64;
   const currentCtx=currentCanvas.getContext('2d');
   for(let i=0;i<46;i++){
-   const x=Math.random()*256,y=6+Math.random()*52,length=18+Math.random()*60;
-   const bend=(Math.random()-.5)*9;
-   const brightness=155+Math.floor(Math.random()*95);
-   currentCtx.lineWidth=.8+Math.random()*2.4;
-   currentCtx.strokeStyle='rgba(255,'+brightness+',55,'+(.18+Math.random()*.27)+')';
+   const x=random()*256,y=6+random()*52,length=18+random()*60;
+   const bend=(random()-.5)*9;
+   const brightness=155+Math.floor(random()*95);
+   currentCtx.lineWidth=.8+random()*2.4;
+   currentCtx.strokeStyle='rgba(255,'+brightness+',55,'+(.18+random()*.27)+')';
    // Repeated copies keep the texture seamless as it scrolls across the river.
    for(const wrap of [-256,0,256]){
     currentCtx.beginPath();
@@ -42,10 +42,12 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
   function makeLavaRiver(z){
    const g=new THREE.Group();g.position.set(0,.045,z);g.userData.halfDepth=2.95;
    g.userData.bubbles=[];g.userData.treeSparkSources=[];scene.add(g);
-   const phase=Math.random()*6.28,steps=720;
+   const phase=random()*6.28,steps=720;
    const center=x=>.28*Math.sin(x*.58+phase)+.16*Math.sin(x*1.37-phase*.7)+.07*Math.sin(x*2.65+phase*1.8);
    const half=x=>2.32+.24*Math.sin(x*.72+phase)+.13*Math.sin(x*2.05-phase);
    const noise=x=>.05*Math.sin(x*4.1+phase*2)+.025*Math.sin(x*7.2-phase);
+   // Visual attachment coordinates; collision bounds remain independent.
+   g.userData.fireBoundary={center:x=>center(x)+noise(x),halfWidth:half};
    // Solid, irregularly banked lava bed keeps the crossing visibly molten on wide screens.
    const bedGeo=new THREE.PlaneGeometry(220,6.4,720,1);
    const bedPos=bedGeo.attributes.position;
@@ -90,7 +92,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    function tri(a,b,c,color){const base=rp.length/3,v=new THREE.Color(color);for(const p of [a,b,c]){rp.push(p[0],p[1],p[2]);rc.push(v.r,v.g,v.b)}ri.push(base,base+1,base+2)}
    const rocks=[0x211613,0x34201a,0x4a291d,0x612b1b,0x2a211c,0x754022];
    for(let i=2;i<steps-2;i+=2){const x=-110+220*i/steps,mid=center(x)+noise(x),w=half(x);
-    for(const side of [-1,1]){if(Math.random()<.12)continue;const rx=.05+Math.random()*.1,rz=.03+Math.random()*.08,cx=x+(Math.random()-.5)*.1,cz=mid+side*(w+.02);
+    for(const side of [-1,1]){if(random()<.12)continue;const rx=.05+random()*.1,rz=.03+random()*.08,cx=x+(random()-.5)*.1,cz=mid+side*(w+.02);
      const a=[cx-rx,.01,cz-side*rz*.45],b=[cx-rx*.2,.028,cz+side*rz],d=[cx+rx,.012,cz+side*rz*.7],e=[cx+rx*.6,.009,cz-side*rz*.4],m=[cx,.019,cz+side*rz*.1];
      tri(m,a,b,rocks[i%rocks.length]);tri(m,b,d,rocks[(i+2)%rocks.length]);tri(m,d,e,rocks[(i+3)%rocks.length]);tri(m,e,a,rocks[(i+1)%rocks.length]);
     }
@@ -191,21 +193,21 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
      }
     }
    }
-   const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;g.add(charMesh);
+   const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;charMesh.userData.fireDeckSurface=true;g.add(charMesh);
    // A handful of low flames burn only where the pine deck was scorched.
    // Moving toward +side is OUT of the lava, onto the existing .16..39 strip.
    // No new flames are created along forest-side lava banks.
    g.userData.deckFireAnchors=[];
    for(const side of [-1,1]){
     for(let i=0;i<12;i++){
-     if(i%4!==1&&Math.random()>.38)continue; // irregular gaps
-     const x=-4.02+(i+.5)*8.04/12+(Math.random()-.5)*.18;
+     if(i%4!==1&&random()>.38)continue; // irregular gaps
+     const x=-4.02+(i+.5)*8.04/12+(random()-.5)*.18;
      const mid=center(x)+noise(x);
-     const offset=.19+Math.random()*.15;
+     const offset=.19+random()*.15;
      g.userData.deckFireAnchors.push({
       x,y:.022,z:mid+side*(half(x)+offset),
-      size:.16+Math.random()*.11,
-      phase:Math.random()
+      size:.16+random()*.11,
+      phase:random()
      });
     }
    }
@@ -238,7 +240,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
      const a=seed+j*2.39996,base=h*(.29+j*.115);
      const spread=(.64-j*.065)*(h/3.5);
      deadStick(tree,new THREE.Vector3(0,base,0),
-      new THREE.Vector3(Math.cos(a)*spread,base+.27+Math.random()*.24,
+      new THREE.Vector3(Math.cos(a)*spread,base+.27+random()*.24,
        Math.sin(a)*spread),.58+j*.04,j%3===0);
     }
     g.add(tree);
@@ -258,17 +260,17 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    // Only a handful of trees and shrubs per crossing keeps rendering manageable.
    for(const side of [-1,1]){
     for(let j=0;j<3;j++){
-     const x=side*(5.1+j*1.33+Math.random()*.4);
+     const x=side*(5.1+j*1.33+random()*.4);
      const edge=center(x)+noise(x)+side*half(x);
-     const z=edge+side*(.42+Math.random()*.6);
-     scorchedPine(x,z,2.65+Math.random()*1.15,
+     const z=edge+side*(.42+random()*.6);
+     scorchedPine(x,z,2.65+random()*1.15,
       phase+j*1.53+side,j!==1);
     }
     for(let j=0;j<4;j++){
-     const x=side*(4.9+j*1.0+Math.random()*.45);
+     const x=side*(4.9+j*1.0+random()*.45);
      const edge=center(x)+noise(x)+side*half(x);
-     burntShrub(x,edge+side*(.29+Math.random()*.78),
-      .44+Math.random()*.46,phase+j*1.73+side,j%3===0);
+     burntShrub(x,edge+side*(.29+random()*.78),
+      .44+random()*.46,phase+j*1.73+side,j%3===0);
     }
    }
    // Merge charred pine trunks and branches into a few GPU batches.
@@ -318,35 +320,35 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    g.add(sparkPoints);
    const sparkPool=Array.from({length:sparkCount},()=>({start:-Infinity,life:0}));
    const sparkTint=new THREE.Color(0xffbb52);
-   let sparkCursor=0,nextCrackle=performance.now()*.001+.25+Math.random()*.5;
-   let nextTreeCrackle=performance.now()*.001+.35+Math.random()*.55;
+   let sparkCursor=0,nextCrackle=performance.now()*.001+.25+random()*.5;
+   let nextTreeCrackle=performance.now()*.001+.35+random()*.55;
    function launchSpark(x,y,z,fromTree=false){
     const s=sparkPool[sparkCursor++%sparkCount];
     s.start=performance.now()*.001;
-    s.life=(fromTree?.65:.45)+Math.random()*(fromTree?.75:.55);
-    s.x=x+(Math.random()-.5)*.16;s.y=y;s.z=z+(Math.random()-.5)*.14;
-    s.vx=(Math.random()-.5)*(fromTree?.9:.45);
-    s.vy=(fromTree?.75:.43)+Math.random()*(fromTree?.9:.65);
-    s.vz=(Math.random()-.5)*(fromTree?.65:.35);
-    s.phase=Math.random()*6.28;
+    s.life=(fromTree?.65:.45)+random()*(fromTree?.75:.55);
+    s.x=x+(random()-.5)*.16;s.y=y;s.z=z+(random()-.5)*.14;
+    s.vx=(random()-.5)*(fromTree?.9:.45);
+    s.vy=(fromTree?.75:.43)+random()*(fromTree?.9:.65);
+    s.vz=(random()-.5)*(fromTree?.65:.35);
+    s.phase=random()*6.28;
    }
    sparkPoints.frustumCulled=false;
    sparkPoints.onBeforeRender=()=>{
     const now=performance.now()*.001;
     if(now>=nextCrackle){
-     nextCrackle=now+.35+Math.random()*.9;
-     const x=-4.05+Math.random()*8.1,side=Math.random()<.5?-1:1;
+     nextCrackle=now+.35+random()*.9;
+     const x=-4.05+random()*8.1,side=random()<.5?-1:1;
      const z=center(x)+noise(x)+side*(half(x)+.07);
-     for(let k=0,n=2+Math.floor(Math.random()*4);k<n;k++)
-      launchSpark(x,.07+Math.random()*.17,z+side*.06);
+     for(let k=0,n=2+Math.floor(random()*4);k<n;k++)
+      launchSpark(x,.07+random()*.17,z+side*.06);
     }
     // Distinct, intermittent crackling bursts at the branches AND crowns.
     const sources=g.userData.treeSparkSources;
     if(sources.length&&now>=nextTreeCrackle){
-     nextTreeCrackle=now+.25+Math.random()*.75;
-     const source=sources[(Math.random()*sources.length)|0];
-     const height=source.minY+Math.random()*(source.maxY-source.minY);
-     for(let k=0,n=3+Math.floor(Math.random()*5);k<n;k++)
+     nextTreeCrackle=now+.25+random()*.75;
+     const source=sources[(random()*sources.length)|0];
+     const height=source.minY+random()*(source.maxY-source.minY);
+     for(let k=0,n=3+Math.floor(random()*5);k<n;k++)
       launchSpark(source.x,height,source.z,true);
     }
     for(let i=0;i<sparkCount;i++){
@@ -363,7 +365,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
     sparkPositionAttr.needsUpdate=true;
     sparkColorAttr.needsUpdate=true;
    };
-   for(let i=0;i<8;i++){const x=-105+Math.random()*210,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
+   for(let i=0;i<8;i++){const x=-105+random()*210,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+random()*.02;b.position.set(x,-.002,center(x)+(random()-.5)*half(x)*.7);b.scale.set(.035+random()*.05,sy,.04+random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:random()*6.28,sy})}
    // Each river owns its own generated buffers; free them when the river leaves play.
    // Factory-wide flow texture and bubble geometry remain shared and reusable.
    g.userData.dispose=()=>{
