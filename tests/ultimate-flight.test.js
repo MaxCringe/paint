@@ -80,3 +80,19 @@ test('hover pose remains calm, asymmetric and loops without a visible jump',()=>
  assert.notDeepEqual(fly.f[0][1].LeftUpLeg,fly.f[0][1].RightUpLeg);
  assert.deepEqual(fly.f[0][1],fly.f.at(-1)[1]);
 });
+
+test('power levitation opens both arms sideways instead of reaching forward',()=>{
+ const data=JSON.parse(gunzipSync(readFileSync(new URL('../public/models/fiona/animations/motions.json.gz',import.meta.url))).toString());
+ const {ultimateStart,ultimateFly,ultimateEnd}=data.motions;
+ const fly=ultimateFly.f[0][1];
+ for(const arm of ['LeftArm','RightArm']){
+  assert.ok(Math.abs(fly[arm][0])<.16,arm+' is not thrust forward');
+  assert.ok(Math.abs(fly[arm][2])<.40,arm+' is not lowered against the torso');
+ }
+ assert.ok(fly.LeftArm[2]<0&&fly.RightArm[2]>0);
+ assert.ok(fly.Spine1[0]<0,'chest is open');
+ assert.ok(fly.LeftHand&&fly.RightHand,'hand rotation tracks exist');
+ assert.deepEqual(ultimateStart.f.at(-1)[1],fly);
+ assert.deepEqual(ultimateEnd.f[0][1],fly);
+ assert.deepEqual(ultimateFly.f.at(-1)[1],fly);
+});

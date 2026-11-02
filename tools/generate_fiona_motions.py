@@ -23,14 +23,15 @@ def F(t,**bones):
 O={}
 C=P(Spine=[.59,0,0],Spine1=[.18,0,0],LeftUpLeg=[-1,0,0],RightUpLeg=[-1,0,0],LeftLeg=[1.2,0,0],RightLeg=[1.2,0,0],LeftArm=[.5,0,-.18],RightArm=[.5,0,.18])
 B=P(Spine=[-.22,0,0],LeftArm=[-.83,0,-.25],RightArm=[-.83,0,.25],LeftForeArm=[-.42,0,0],RightForeArm=[-.42,0,0],LeftUpLeg=[-.58,0,0],RightUpLeg=[-.58,0,0],LeftLeg=[.64,0,0],RightLeg=[.64,0,0])
-# A poised, floating witch silhouette, with open hands and relaxed knees.
-# A quiet, readable witch silhouette: relaxed open arms, bent knees, steady head.
-# Small asymmetry avoids a rigid T-pose without introducing frantic wing-flapping.
-V=P(Spine=[-.08,0,0],Spine1=[.03,0,0],Head=[.025,0,0],
- LeftArm=[-.25,0,-.80],RightArm=[-.25,0,.80],
- LeftForeArm=[-.26,0,-.03],RightForeArm=[-.26,0,.03],
- LeftUpLeg=[.10,0,-.035],RightUpLeg=[-.07,0,.035],
- LeftLeg=[.20,0,0],RightLeg=[.12,0,0])
+# Power-levitation pose: the rig rests close to a T-pose, so keep the
+# shoulder Z rotation SMALL to spread arms sideways rather than push
+# them in front of the chest. Elbows remain soft; wrists open outward.
+V=P(Spine=[-.085,0,0],Spine1=[-.065,0,0],Head=[.035,0,0],
+ LeftArm=[-.075,.10,-.22],RightArm=[-.075,-.10,.22],
+ LeftForeArm=[-.09,.045,-.16],RightForeArm=[-.09,-.045,.16],
+ LeftHand=[.06,.10,-.09],RightHand=[.06,-.10,.09],
+ LeftUpLeg=[.08,0,-.045],RightUpLeg=[-.045,0,.045],
+ LeftLeg=[.16,0,0],RightLeg=[.11,0,0])
 D=P(Spine=[.86,0,.19],Spine1=[.35,0,.12],Head=[.12,0,0],LeftUpLeg=[-.7,0,0],RightUpLeg=[-.7,0,0],LeftLeg=[.96,0,0],RightLeg=[.96,0,0])
 run=[]
 for t in np.linspace(0,1,9):
@@ -54,27 +55,54 @@ O['broomStart']=M(.59,False,(0,{}),(.65,B),(1,B))
 O['broomFly']=M(1.3,True,(0,B),(.5,P(**{**B,'Spine':[-.19,0,.02]})),(1,B))
 O['broomDuck']=M(.94,True,(0,P(**{**B,'Spine':[.48,0,0],'Spine1':[.32,0,0],'Head':[.20,0,0]})),(.5,P(**{**B,'Spine':[.52,0,0],'Spine1':[.36,0,0],'Head':[.23,0,0]})),(1,P(**{**B,'Spine':[.48,0,0],'Spine1':[.32,0,0],'Head':[.20,0,0]})))
 O['broomLand']=M(.48,False,(0,B),F(.5,Spine=[-.11,0,0],LeftArm=[-.28,0,-.1],RightArm=[-.28,0,.1],LeftUpLeg=[-.18,0,0],RightUpLeg=[-.18,0,0]),(1,{}))
-# Each transition matches the easing duration in src/player/UltimateFlight.js.
-# Anticipation -> effortless lift -> held silhouette. No foot cycling in the air.
+# Three stages of a controlled show of power. The shoulder keys grow
+# sideways into a strong open silhouette with minimal forward reach.
+# Durations stay synchronized with src/player/UltimateFlight.js.
 O['ultimateStart']=M(.72,False,
  (0,{}),
- F(.16,Spine=[.065,0,0],LeftArm=[-.13,0,-.24],RightArm=[-.13,0,.24],LeftUpLeg=[-.12,0,0],RightUpLeg=[-.12,0,0]),
- F(.44,Spine=[-.04,0,0],Spine1=[.02,0,0],Head=[.025,0,0],LeftArm=[-.31,0,-.55],RightArm=[-.31,0,.55],LeftForeArm=[-.17,0,-.02],RightForeArm=[-.17,0,.02],LeftUpLeg=[.04,0,0],RightUpLeg=[-.03,0,0]),
- F(.76,**{**V,'LeftArm':[-.28,0,-.76],'RightArm':[-.28,0,.76]}),
+ F(.18,Spine=[.07,0,0],Spine1=[-.02,0,0],LeftArm=[-.16,0,-.32],RightArm=[-.16,0,.32],LeftUpLeg=[-.12,0,0],RightUpLeg=[-.12,0,0]),
+ F(.48,Spine=[-.05,0,0],Spine1=[-.05,0,0],Head=[.025,0,0],
+   LeftArm=[-.09,.07,-.43],RightArm=[-.09,-.07,.43],
+   LeftForeArm=[-.11,.02,-.14],RightForeArm=[-.11,-.02,.14],
+   LeftHand=[.03,.06,-.06],RightHand=[.03,-.06,.06],
+   LeftUpLeg=[.035,0,-.02],RightUpLeg=[-.035,0,.02]),
+ F(.80,**{**V,'LeftArm':[-.085,.10,-.24],'RightArm':[-.085,-.10,.24]}),
  (1,V))
-# Slow loop: move shoulders/legs by only a few degrees; both endpoints identical.
-O['ultimateFly']=M(2.4,True,
+# A slow, nearly still hover conveys authority; no exaggerated arm flapping.
+O['ultimateFly']=M(2.6,True,
  (0,V),
- F(.25,**{**V,'Spine':[-.095,0,.012],'LeftArm':[-.24,0,-.82],'RightArm':[-.27,0,.78],'RightUpLeg':[-.045,0,.035],'RightLeg':[.15,0,0]}),
- F(.5,**{**V,'Spine':[-.07,0,0],'Spine1':[.036,0,0],'LeftArm':[-.27,0,-.79],'RightArm':[-.24,0,.81],'LeftUpLeg':[.075,0,-.035],'LeftLeg':[.17,0,0]}),
- F(.75,**{**V,'Spine':[-.09,0,-.012],'LeftArm':[-.26,0,-.78],'RightArm':[-.25,0,.82],'RightUpLeg':[-.08,0,.035]}),
+ F(.25,**{**V,'Spine':[-.095,0,.008],'Spine1':[-.078,0,.004],
+   'LeftArm':[-.065,.105,-.18],'RightArm':[-.082,-.10,.20],
+   'LeftForeArm':[-.085,.045,-.15],'RightForeArm':[-.10,-.045,.16],
+   'LeftHand':[.07,.105,-.10],'RightHand':[.05,-.10,.08]}),
+ F(.50,**{**V,'Spine':[-.075,0,0],'Spine1':[-.058,0,0],
+   'LeftArm':[-.080,.10,-.23],'RightArm':[-.065,-.105,.18],
+   'LeftForeArm':[-.095,.04,-.17],'RightForeArm':[-.08,-.045,.14],
+   'LeftHand':[.06,.09,-.09],'RightHand':[.07,-.11,.09],
+   'RightUpLeg':[-.035,0,.045],'LeftLeg':[.14,0,0]}),
+ F(.75,**{**V,'Spine':[-.095,0,-.008],'Spine1':[-.075,0,-.004],
+   'LeftArm':[-.075,.095,-.19],'RightArm':[-.075,-.10,.22],
+   'LeftForeArm':[-.09,.045,-.15],'RightForeArm':[-.09,-.04,.16],
+   'LeftHand':[.055,.10,-.085],'RightHand':[.06,-.10,.085]}),
  (1,V))
-# Feet move under the hips before ground contact; finish near a running stance.
+# Arms relax back into a running stance only after the magical landing.
 O['ultimateEnd']=M(.60,False,
  (0,V),
- F(.42,Spine=[-.035,0,0],Spine1=[.025,0,0],Head=[.025,0,0],LeftArm=[-.23,0,-.58],RightArm=[-.23,0,.58],LeftForeArm=[-.20,0,0],RightForeArm=[-.20,0,0],LeftUpLeg=[-.04,0,0],RightUpLeg=[-.035,0,0],LeftLeg=[.18,0,0],RightLeg=[.16,0,0]),
- F(.78,Spine=[.105,0,0],Head=[.025,0,0],LeftArm=[-.24,0,-.42],RightArm=[-.24,0,.42],LeftForeArm=[-.17,0,0],RightForeArm=[-.17,0,0],LeftUpLeg=[-.21,0,0],RightUpLeg=[-.21,0,0],LeftLeg=[.34,0,0],RightLeg=[.34,0,0]),
- F(1,Spine=[-.06,0,0],Head=[.025,0,0],LeftArm=[-.28,0,-.43],RightArm=[-.28,0,.43],LeftForeArm=[-.15,0,0],RightForeArm=[-.15,0,0],LeftUpLeg=[-.12,0,0],RightUpLeg=[.12,0,0],LeftLeg=[.13,0,0],RightLeg=[.08,0,0]))
+ F(.40,Spine=[-.035,0,0],Spine1=[-.035,0,0],Head=[.025,0,0],
+   LeftArm=[-.13,.06,-.47],RightArm=[-.13,-.06,.47],
+   LeftForeArm=[-.13,.025,-.17],RightForeArm=[-.13,-.025,.17],
+   LeftHand=[.03,.04,-.05],RightHand=[.03,-.04,.05],
+   LeftUpLeg=[-.05,0,0],RightUpLeg=[-.05,0,0],LeftLeg=[.16,0,0],RightLeg=[.15,0,0]),
+ F(.78,Spine=[.105,0,0],Head=[.02,0,0],
+   LeftArm=[-.24,0,-.40],RightArm=[-.24,0,.40],
+   LeftForeArm=[-.14,0,0],RightForeArm=[-.14,0,0],
+   LeftUpLeg=[-.20,0,0],RightUpLeg=[-.20,0,0],
+   LeftLeg=[.32,0,0],RightLeg=[.32,0,0]),
+ F(1,Spine=[-.06,0,0],Head=[.025,0,0],
+   LeftArm=[-.26,0,-.33],RightArm=[-.26,0,.33],
+   LeftForeArm=[-.12,0,0],RightForeArm=[-.12,0,0],
+   LeftUpLeg=[-.12,0,0],RightUpLeg=[.12,0,0],
+   LeftLeg=[.10,0,0],RightLeg=[.06,0,0]))
 O['soulPickup']=M(.29,False,(0,{}),F(.47,RightArm=[-.31,0,.22],RightForeArm=[-.4,0,0]),(1,{}))
 O['hatPickup']=M(.56,False,(0,{}),F(.52,RightArm=[-1.03,0,.25],RightForeArm=[-.68,0,0],Head=[-.07,0,0]),(1,{}))
 O['scarfPickup']=M(.64,False,(0,{}),F(.56,Spine=[.20,0,0],RightArm=[-.67,0,.32],RightForeArm=[-.54,0,0]),(1,{}))
