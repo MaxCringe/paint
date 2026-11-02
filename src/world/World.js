@@ -252,8 +252,7 @@ export function createWorld() {
    if(variant==='withered')return .73+Math.random()*.48;
    return .82+Math.random()*.60;
   }
-  function fern(x,z,recycleLength=174){
-   const variant=chooseFernVariant();
+  function fern(x,z,recycleLength=174,variant=chooseFernVariant()){
    const choices=fernPrototypes[variant];
    const batch=choices[(Math.random()*choices.length)|0];
    const scale=randomFernScale(variant);
@@ -335,15 +334,22 @@ export function createWorld() {
     roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.62+Math.random()*.82,farForestLoop,'far'));
    }
   }
-  // Ferns grow in loose clumps along both verges, filling the spaces below and between the pines.
+  // Uneven fern pockets on both verges, with smaller colonies deeper among pines.
+  // Distinct offsets avoid paired rows; a colony usually shares a fern variant.
   const fernSpacing=2.95,fernCount=52,fernLoop=(fernCount-1)*fernSpacing+15.5;
   for(let i=0;i<fernCount;i++){
-   const z=-i*fernSpacing-3.5+(Math.random()-.5)*1.55;
-   if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,fernLoop));
-   if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,fernLoop));
-   if(i%4===1&&Math.random()<.68){
+   const z=-i*fernSpacing-3.5+(Math.random()-.5)*2.5;
+   if(Math.random()<.61)roadsideVegetation.push(fern(-5.15-Math.random()*3.2,z+(Math.random()-.5)*1.8,fernLoop));
+   if(Math.random()<.61)roadsideVegetation.push(fern(5.15+Math.random()*3.2,z+(Math.random()-.5)*1.8,fernLoop));
+   if(Math.random()<.52){
     const side=Math.random()<.5?-1:1;
-    roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,fernLoop));
+    const patchVariant=chooseFernVariant();
+    const patchCount=1+Math.floor(Math.random()*3);
+    for(let j=0;j<patchCount;j++){
+     const x=side*(5.4+Math.random()*8.6);
+     const patchZ=z+(Math.random()-.5)*4.2;
+     roadsideVegetation.push(fern(x,patchZ,fernLoop,Math.random()<.8?patchVariant:chooseFernVariant()));
+    }
    }
   }
   
