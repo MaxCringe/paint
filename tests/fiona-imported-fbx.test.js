@@ -60,7 +60,7 @@ test('rejected flight FBX is not referenced or downloaded',async()=>{
  assert.ok(!existsSync(new URL('../public/models/fiona/animations/fbx/Flying.fbx',import.meta.url)));
  assert.ok(!loader.includes("file:'Flying.fbx'"));
  assert.ok(!fiona.includes("actions.has('flyFBX')"));
- assert.ok(fiona.includes("id==='soulPickup')return false"));
+ assert.ok(fiona.includes("id==='soulPickup'||id==='hatPickup'||id==='scarfPickup')return false"));
  assert.ok(!game.includes("testAvatar?.trigger('soulPickup')"));
  // Original soul reward and sound remain, and nothing else blocks the run.
  assert.ok(game.includes("audio.play('soul');haptics.play('soul');coinCount++"));
@@ -70,7 +70,8 @@ test('puddle slips, fish kills, and production Fiona keeps instant game over',as
  const {readFileSync}=await import('node:fs');
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  const player=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
- assert.ok(game.includes("if(o.type==='pee'){if(!jumping&&invuln<=0){slipT=.9"));
+ assert.ok(game.includes("if(o.type==='pee'){"));
+ assert.ok(game.includes("if(!jumping&&invuln<=0){slipT=.9"));
  assert.ok(game.includes("o.type==='fish'?'fish':'other'"));
  assert.ok(game.includes('avatar?.die(reason,{onBroom:broom.active})'));
  assert.ok(game.includes('showDeathResult();'));

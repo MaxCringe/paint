@@ -32,17 +32,19 @@ test('all Python clips bind to FBX skeleton and contain valid quaternion keys',(
   }
  }
 });
-test('test run no longer asks for Run Forward or Jump FBX files',()=>{
+test('production run loads hosted rig without the removed DEV selectors',()=>{
  const html=read('index.html').toString();
  const menu=read('src/ui/GameMenu.js').toString();
- const fiona=read('src/player/FionaTest.js').toString();
- assert.ok(html.includes('id="fiona-model-file"'));
+ const fiona=read('src/player/FionaRig.js').toString();
+ assert.ok(!html.includes('id="fiona-model-file"'));
+ assert.ok(!html.includes('id="menu-open-fiona-test"'));
  for(const name of ['fiona-jump-file','fiona-run-file','fiona-test-animation-slots'])
   assert.ok(!html.includes(name),name);
  assert.ok(!menu.includes('jumpFile'));
  assert.ok(!menu.includes('runFile'));
  assert.ok(!fiona.includes('generateFionaPrototypeClips'));
  assert.ok(fiona.includes('createPythonFionaClips'));
+ assert.ok(fiona.includes('export async function loadFiona('));
 });
 test('Python motion loader handles both compressed bytes and browser-auto-decompressed responses',async()=>{
  const compressed=read('public/models/fiona/animations/motions.json.gz');
