@@ -32,8 +32,6 @@ import { createGameMenu } from './ui/GameMenu.js';
 import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
-import { createFionaHatEditor } from './ui/FionaHatEditor.js';
-import { createHatOrbitCamera } from './ui/HatOrbitCamera.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
 const audio=createGameAudio();
@@ -50,7 +48,7 @@ const obstacles=[], coins=[], hats=[];
 const scarfPickup=createScarfPickup(scene);
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
 const ultimateFlight=createUltimateFlight();
-const {makeHat,animateHat,animateWearable,attachWearableToHead,setWearableHatDevPlacement,setWearableHatDevPreview}=createWitchHatFactory(scene,hats,torso);
+const {makeHat,animateHat,animateWearable,attachWearableToHead}=createWitchHatFactory(scene,hats,torso);
 // One geometry per pine component, reused by every upcoming pine obstacle.
 const knotTrunkGeometry=new THREE.CylinderGeometry(.36,.62,2.55,7);
 const knotNodeGeometry=new THREE.SphereGeometry(1,8,7);
@@ -172,38 +170,7 @@ function updateHud(force=false){
 const popToast=message=>hud.toast(message);
 let testAvatar=null,useTestFiona=false;
 let deathRevealRemaining=0;
-let hatEditorSavedY=0;
-const hatCameraTarget=new THREE.Vector3();
-let hatEditor=null;
-const hatOrbit=createHatOrbitCamera(camera,renderer.domElement,{
- onChange:values=>hatEditor?.setCameraValues(values)
-});
-hatEditor=createFionaHatEditor({
- onOpen:()=>{
-  if(!useTestFiona||!testAvatar||state!=='playing')return false;
-  hatEditorSavedY=runner.position.y;
-  state='hat-edit';
-  testAvatar.setHatWorkshopMode(true);
-  hatOrbit.begin();
-  setWearableHatDevPreview(true);
-  animateWearable(0,false);
-  return true;
- },
- onClose:()=>{
-  if(state==='hat-edit'){
-   testAvatar?.setHatWorkshopMode(false);
-   hatOrbit.end();
-   setWearableHatDevPreview(false);
-   animateWearable(performance.now(),magnetTime>0);
-   runner.position.y=hatEditorSavedY;
-   state='playing';
-  }
- },
- onChange:values=>setWearableHatDevPlacement(values),
- onCameraChange:values=>hatOrbit.set(values)
-});
 function restoreClassicFiona(){
- hatEditor.setAvailable(false);
  useTestFiona=false;
  attachWearableToHead();
  testAvatar?.setActive(false);
@@ -221,10 +188,8 @@ async function startFionaTest(files){
  testAvatar.setActive(true);
  setClassicVisible(false);
  attachWearableToHead(testAvatar.headBone);
- setWearableHatDevPlacement(hatEditor.getValues());
  menu.showFionaPreviewTools(true,testAvatar.available,testAvatar.prototypeIds,testAvatar.importedIds,testAvatar.importedFiles,testAvatar.importErrors,testAvatar.runVariant);
  start();
- hatEditor.setAvailable(true);
  return testAvatar;
 }
 function startFromMenu(){
@@ -233,7 +198,6 @@ function startFromMenu(){
 }
 function activateUltimate(){ultimateFlight.activate(runner.position.y);broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
 function start(){
- hatEditor.close();
  // A restart from pause is still a completed attempt for record purposes.
  if(state==='paused'&&!useTestFiona){
   best=Math.max(best,Math.floor(distance));
@@ -278,8 +242,7 @@ createGameInput({
  onStart:start,
  onMove:move,onJump:jump,onSlide:slide,
  onEscape:()=>{
-  if(state==='hat-edit')hatEditor.close();
-  else if(state==='playing')togglePause();
+  if(state==='playing')togglePause();
   else if(!menu.escape()&&state==='paused')togglePause();
  }
 });
@@ -561,11 +524,6 @@ function frame(t){requestAnimationFrame(frame);
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
   updateHud();
- }else if(state==='hat-edit'&&useTestFiona){
-  // Still-frame fitting: no movement, pickups, timers or obstacle collisions.
-  runner.position.y=0;
-  runner.rotation.set(0,0,0);
-  testAvatar?.update(0);
  }else if(state==='over'&&useTestFiona){
   // Death clip continues while gameplay and counters remain frozen.
   testAvatar?.update(dt);
@@ -575,19 +533,9 @@ function frame(t){requestAnimationFrame(frame);
   }
  }
  // Camera follows gently; maintain forward view
- if(state==='hat-edit'){
-  // Orbit the actual head, not Fiona's skeleton: mouse drag, touch and zoom
-  // move the inspection camera only and never affect gameplay controls.
-  if(testAvatar?.headBone){
-   testAvatar.headBone.getWorldPosition(hatCameraTarget);
-   hatCameraTarget.y+=.34;
-  }else hatCameraTarget.set(runner.position.x,2.3,runner.position.z);
-  hatOrbit.update(hatCameraTarget);
- }else{
-  camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);
-  camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);
-  camera.lookAt(runner.position.x*.2,1.05,-5);
- }
+ camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);
+ camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);
+ camera.lookAt(runner.position.x*.2,1.05,-5);
  // Sync grouped pine instances after recycling and wind movement.
  updateForestPines();
  renderer.render(scene,camera);

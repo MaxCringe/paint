@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
-import {normalizeHatDevPlacement,DEFAULT_HAT_DEV_PLACEMENT,applyHeadHatDevPlacement} from './HatDevPlacement.js';
+import {APPROVED_WORN_HAT_PLACEMENT,applyApprovedWornHatPlacement} from './WornHatPlacement.js';
 
 // Attach the wearable hat without inheriting the tiny FBX model scale.
 // Normal gameplay keeps its original torso placement and dimensions.
@@ -18,6 +18,7 @@ export function mountWearableHat(wearable,torso,headBone=null){
   wearable.scale.set(.66/safe(world.x),.66/safe(world.y),.66/safe(world.z));
  }
  wearable.rotation.set(0,0,0);
+ if(headBone)applyApprovedWornHatPlacement(wearable,headBone);
 }
 
 // Pickup-only aura settings; opacity is a 0–1 value (88% = 10% brighter than 80%).
@@ -121,9 +122,6 @@ export function createWitchHatFactory(scene,hats,torso) {
  }
  const wearable=model();
  let activeHeadBone=null;
- let devPlacement={...DEFAULT_HAT_DEV_PLACEMENT};
- let devPreview=false;
- let lastMagnetActive=false;
  // Attach the worn hat to Fiona's head-bearing torso pivot.
  // Local y=1.46 preserves its original world height (torso starts at y=1).
  // Sliding and broom ducking now carry the hat with her head, not through the air.
@@ -170,29 +168,18 @@ export function createWitchHatFactory(scene,hats,torso) {
  }
  function animateWearable(t,active){
   updateAppearance();
-  lastMagnetActive=Boolean(active);
-  wearable.visible=active||devPreview;
-  // Keep the edited sideways tilt while retaining normal pickup wobble.
-  if(active||devPreview)wearable.rotation.z=
-   (activeHeadBone?THREE.MathUtils.degToRad(devPlacement.rz):0)+
-   (devPreview?0:Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100);
+  wearable.visible=active;
+  if(active){
+   // Keep the chosen 4-degree brim tilt under the original subtle wobble.
+   const baseRoll=activeHeadBone?THREE.MathUtils.degToRad(APPROVED_WORN_HAT_PLACEMENT.rz):0;
+   wearable.rotation.z=baseRoll+Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100;
+  }
  }
- function setWearableHatDevPlacement(values){
-  devPlacement=normalizeHatDevPlacement(values);
-  if(activeHeadBone)applyHeadHatDevPlacement(wearable,activeHeadBone,devPlacement);
-  return {...devPlacement};
- }
- function setWearableHatDevPreview(value){
-  devPreview=Boolean(value);
-  wearable.visible=devPreview||lastMagnetActive;
-  if(devPreview&&activeHeadBone)applyHeadHatDevPlacement(wearable,activeHeadBone,devPlacement);
- }
- // The head anchor is never used for road pickups: only the worn hat moves.
+ // The same head-mounted hat is used when collecting the 10-second magnet.
+ // Road pick-ups and the procedural Fiona keep their previous transforms.
  function attachWearableToHead(bone=null){
   activeHeadBone=bone;
   mountWearableHat(wearable,torso,bone);
-  if(bone)applyHeadHatDevPlacement(wearable,bone,devPlacement);
  }
- return {makeHat,animateHat,animateWearable,attachWearableToHead,
-  setWearableHatDevPlacement,setWearableHatDevPreview};
+ return {makeHat,animateHat,animateWearable,attachWearableToHead};
 }
