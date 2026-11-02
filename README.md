@@ -21,6 +21,19 @@ npm run preview
 
 Vite writes the production site to `dist/`. Wrangler runs the build before deployment and serves the generated `dist/` directory.
 
+## Live scene inspector (opt-in)
+
+Three Inspect is available for inspecting and editing the current Three.js scene
+without changing gameplay code. In a local Vite development session, press
+**F2** to load it. On Vercel, open **/?editor=1** to load it explicitly;
+**F2** toggles the editor panels afterward (the library also supports **I**).
+
+Changes to object transforms and materials are temporary and apply to the
+current browser session only. Procedural/instanced meshes can be recreated by
+the running game; persistent edits require changing generator configuration
+or source code. The inspector is lazy-loaded so ordinary players do not
+download its UI code.
+
 ## Visual effects
 
 The temporary in-game VFX editor and its menu button have been removed.
