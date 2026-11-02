@@ -25,11 +25,26 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   if(family==='pine'){
    group.scale.set(scale*.50*rand(.80,1.18),scale*.82*rand(.75,1.45),scale*.50*rand(.80,1.18));
   }else if(family==='fern'){
-   const factor=species==='fern:young'?rand(.55,1.07):species==='fern:withered'?rand(.73,1.21):rand(.82,1.42);
-   group.scale.set(scale*factor*rand(.85,1.15),scale*factor,scale*factor*rand(.85,1.15));
+   // Ferns grow as tiny seedlings, mid-size plants and mature broad rosettes.
+   const factor=species==='fern:young'?rand(.42,1.18)
+    :species==='fern:withered'?rand(.58,1.34):rand(.72,1.72);
+   const width=rand(.78,1.22),height=rand(.88,1.18);
+   group.scale.set(scale*factor*width,scale*factor*height,scale*factor*width);
   }else{
    group.scale.set(scale*rand(.80,1.16),scale*rand(.83,1.20),scale*rand(.80,1.16));
   }
+ }
+ // Keep broad fern leaves off the road, even for the largest mature plants.
+ // Bounds are computed once for a cached fern prototype and reused thereafter.
+ function keepFernClear(group,prototype){
+  if(group.userData.windKind!=='fern-static')return;
+  const geometry=prototype.geometry;
+  if(!geometry.boundingSphere)geometry.computeBoundingSphere();
+  const sphere=geometry.boundingSphere;
+  const horizontalReach=(sphere.radius+Math.hypot(sphere.center.x,sphere.center.z))
+   *Math.max(group.scale.x,group.scale.z);
+  group.position.x=Math.sign(group.position.x||1)
+   *Math.max(Math.abs(group.position.x),4.65+horizontalReach);
  }
  function plant(family,x,z,baseScale,recycleLength,forcedSpecies){
   const spec=forcedSpecies?registry.get(forcedSpecies):registry.choose(family,rng());
@@ -42,6 +57,7 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   group.userData.recycleLength=recycleLength;
   group.userData.windKind=spec.windKind;
   group.userData.plantSpecies=spec.id;
+  keepFernClear(group,prototype);
   const materials=new Set();
   // Prototype matrices become the local (unchanging) transform of each
   // instance node; only the root group is moved when wind/recycling occurs.
@@ -65,6 +81,7 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
    group.position.x=Math.sign(group.position.x||1)*Math.max(family==='grass'?GRASS_DENSITY.minX:4.55,Math.abs(group.position.x)+rand(-1.15,1.15));
    group.rotation.y=rand(0,Math.PI*2);
    applySize(group,family,spec.id,baseScale*rand(.86,1.14));
+   keepFernClear(group,prototype);
   };
   scene.add(group);
   plants.push(group);
@@ -165,17 +182,20 @@ export function populateForest(generator,{seed=1337}={}){
    add('pine',rand(24,31),z-1.7+rand(-1.5,1.5),rand(.62,1.44),farLoop);
   }
  }
- // Fern colonies share a species most of the time, with occasional outsiders.
- const fernSpacing=2.95,fernCount=52,fernLoop=(fernCount-1)*fernSpacing+15.5;
+ // More wild ferns on both verges, mixed with larger clumps further inside.
+ // The same cached geometries and InstancedMesh batches handle the extra plants.
+ const fernSpacing=2.45,fernCount=74,fernLoop=(fernCount-1)*fernSpacing+15.5;
  for(let i=0;i<fernCount;i++){
-  const z=-i*fernSpacing-3.5+rand(-1.3,1.3);
-  if(rng()<.61)add('fern',-rand(5.15,8.35),z+rand(-1.8,1.8),1,fernLoop);
-  if(rng()<.61)add('fern',rand(5.15,8.35),z+rand(-1.8,1.8),1,fernLoop);
-  if(rng()<.52){
+  const z=-i*fernSpacing-3.5+rand(-1.5,1.5);
+  if(rng()<.78)add('fern',-rand(5.1,8.8),z+rand(-2.0,2.0),1,fernLoop);
+  if(rng()<.78)add('fern',rand(5.1,8.8),z+rand(-2.0,2.0),1,fernLoop);
+  if(rng()<.72){
    const side=rng()<.5?-1:1;
    const colony=generator.registry.choose('fern',rng()).id;
-   for(let j=0;j<1+Math.floor(rng()*3);j++){
-    add('fern',side*rand(5.4,14),z+rand(-2.1,2.1),1,fernLoop,rng()<.8?colony:undefined);
+   const clusterCount=2+Math.floor(rng()*4);
+   for(let j=0;j<clusterCount;j++){
+    add('fern',side*rand(5.4,15.2),z+rand(-2.5,2.5),
+     rand(.85,1.22),fernLoop,rng()<.82?colony:undefined);
    }
   }
  }

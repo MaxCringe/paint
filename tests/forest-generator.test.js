@@ -131,3 +131,35 @@ test('real recycled pines fill side gaps, with the original volcanic skyline res
  assert.ok(world.includes('populateForest(createForestGenerator(scene'));
  assert.ok(world.includes('new THREE.Fog(0x3b101b, 14, 68)'));
 });
+
+test('fern thickets are more numerous, differ in size, and stay outside the road',()=>{
+ const counts=[],sizes=new Set(),species=new Set();
+ for(const seed of [109,329,772]){
+  const scene=new THREE.Scene(),forest=createForestGenerator(scene,{seed});
+  populateForest(forest,{seed:seed+77});
+  const ferns=forest.plants.filter(p=>p.userData.plantSpecies.startsWith('fern:'));
+  counts.push(ferns.length);
+  assert.ok(ferns.length>=210&&ferns.length<=375,'dense fern pool: '+ferns.length);
+  assert.ok(ferns.some(p=>p.position.x<0)&&ferns.some(p=>p.position.x>0));
+  assert.ok(ferns.some(p=>Math.abs(p.position.x)>11));
+  assert.ok(ferns.every(p=>Math.abs(p.position.x)>4.65),'fern fronds stay off the road');
+  assert.ok(forest.getStats().drawCalls<ferns.length/2,'shared fern batches are preserved');
+  let min=Infinity,max=-Infinity;
+  for(const fern of ferns){
+   min=Math.min(min,fern.scale.y);max=Math.max(max,fern.scale.y);
+   sizes.add(Math.round(fern.scale.y*100)/100);
+   species.add(fern.userData.plantSpecies);
+  }
+  assert.ok(min<.6,'some ferns are small');
+  assert.ok(max>1.5,'some ferns are large');
+  const recycled=ferns.find(p=>p.position.x<0);
+  for(let i=0;i<60;i++){
+   recycled.userData.onForestRecycle();
+   assert.ok(Math.abs(recycled.position.x)>4.65,'no drift onto track while recycling');
+  }
+  forest.dispose();
+ }
+ assert.equal(species.size,3,'lush, young and withered varieties are unchanged');
+ assert.ok(sizes.size>80,'many distinct plant sizes');
+ assert.ok(new Set(counts).size>1,'colonies remain irregular');
+});
