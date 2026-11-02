@@ -62,7 +62,7 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   // Every recycle occurs behind the camera. Vary width, height, yaw and
   // horizontal offset so the world does not repeat the same forest every loop.
   group.userData.onForestRecycle=()=>{
-   group.position.x=Math.sign(group.position.x||1)*Math.max(4.55,Math.abs(group.position.x)+rand(-1.15,1.15));
+   group.position.x=Math.sign(group.position.x||1)*Math.max(family==='grass'?GRASS_DENSITY.minX:4.55,Math.abs(group.position.x)+rand(-1.15,1.15));
    group.rotation.y=rand(0,Math.PI*2);
    applySize(group,family,spec.id,baseScale*rand(.86,1.14));
   };
@@ -106,6 +106,17 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
 
 // Layout lives outside World.js, so placement density/patches and new plant
 // families can evolve without changing the game or rendering pipeline.
+// Tunable density budget: many tufts, but a fixed pool of recycled instances.
+// Patches stay irregular and the road edge stays clear.
+export const GRASS_DENSITY=Object.freeze({
+ spacing:1.8,
+ rows:92,
+ vergeChance:.94,
+ colonyChance:.65,
+ outerChance:.5,
+ minX:5.35
+});
+
 export function populateForest(generator,{seed=1337}={}){
  const rng=createForestRandom(seed),rand=(a,b)=>a+(b-a)*rng();
  const add=(family,x,z,size,loop,species)=>generator.plant(family,x,z,size,loop,species);
@@ -145,18 +156,44 @@ export function populateForest(generator,{seed=1337}={}){
    }
   }
  }
- // Patch-level variants from the grass studio: neighboring tufts often share
- // a type, while small independent patches produce open ground between clumps.
- const grassSpacing=2.4,grassCount=69,grassLoop=(grassCount-1)*grassSpacing+19;
+ // Fill both forest verges with mixed-height grass, and add loose
+ // multi-tuft colonies. Patches are lopsided, not repeating paired rows.
+ // All 3D tufts share ten cached geometries and the same five material families.
+ const grassSpacing=GRASS_DENSITY.spacing;
+ const grassCount=GRASS_DENSITY.rows;
+ const grassLoop=(grassCount-1)*grassSpacing+19;
+ const addGrass=(side,x,z,scale,species)=>add(
+  'grass',side*Math.max(GRASS_DENSITY.minX,x),z,scale,grassLoop,species
+ );
  for(let i=0;i<grassCount;i++){
-  const z=-i*grassSpacing-2.5+rand(-1.9,1.9);
-  const patch=generator.registry.choose('grass',rng()).id;
-  if(rng()<.84)add('grass',-rand(4.7,7.7),z,rand(.35,.85),grassLoop,rng()<.78?patch:undefined);
-  if(rng()<.84)add('grass',rand(4.7,7.7),z+rand(-1.25,1.25),rand(.35,.85),grassLoop,rng()<.78?patch:undefined);
-  if(i%2===1&&rng()<.82){
+  const z=-i*grassSpacing-2.5+rand(-1.7,1.7);
+  for(const side of [-1,1]){
+   // Continuous soft undergrowth beside the road, with small natural gaps.
+   if(rng()<GRASS_DENSITY.vergeChance){
+    addGrass(side,rand(5.35,9.0),z+rand(-1.5,1.5),rand(.3,.92));
+   }
+   if(rng()<GRASS_DENSITY.colonyChance){
+    const centerX=rand(6.4,13.5);
+    const centerZ=z+rand(-2.1,2.1);
+    const colony=generator.registry.choose('grass',rng()).id;
+    // A colony holds 2-5 tufts; some are another color or growth stage.
+    const count=2+Math.floor(rng()*4);
+    for(let j=0;j<count;j++){
+     const species=rng()<.72?colony:undefined;
+     addGrass(side,centerX+rand(-1.65,1.65),centerZ+rand(-2.0,2.0),
+      rand(.27,1.05),species);
+    }
+   }
+  }
+  // Scattered larger patches among distant pines, not just by the road.
+  if(rng()<GRASS_DENSITY.outerChance){
    const side=rng()<.5?-1:1;
-   add('grass',side*rand(6,10.7),z-1.05+rand(-1,1),rand(.28,.72),grassLoop,patch);
-   if(rng()<.48)add('grass',-side*rand(5.8,8.6),z-1.65+rand(-1,1),rand(.24,.60),grassLoop);
+   const species=generator.registry.choose('grass',rng()).id;
+   const center=rand(11.5,19);
+   for(let j=0,n=2+Math.floor(rng()*3);j<n;j++){
+    addGrass(side,center+rand(-1.7,1.7),z+rand(-2.8,2.8),
+     rand(.34,1.12),rng()<.65?species:undefined);
+   }
   }
  }
  generator.finish();

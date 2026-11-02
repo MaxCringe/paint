@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {PlantRegistry,createForestRandom} from '../src/world/forest/PlantRegistry.js';
 import {GRASS_VARIANTS,generateGrassClumpGeometry} from '../src/world/forest/GrassModels.js';
-import {createForestGenerator,populateForest} from '../src/world/forest/ForestGenerator.js';
+import {createForestGenerator,populateForest,GRASS_DENSITY} from '../src/world/forest/ForestGenerator.js';
 
 test('custom new species can join the forest without modifying the renderer',()=>{
  const registry=new PlantRegistry();
@@ -74,4 +74,36 @@ test('infinite forest generates many unique-looking plants with low draw-call co
  const matrices=scene.children.filter(c=>c.isInstancedMesh);
  assert.ok(matrices.every(m=>m.instanceMatrix.usage===THREE.DynamicDrawUsage));
  forest.dispose();
+});
+
+test('thick wild grass forms variable-density colonies on both forest sides without covering the road',()=>{
+ assert.ok(GRASS_DENSITY.vergeChance>.9);
+ assert.ok(GRASS_DENSITY.colonyChance>.5);
+ assert.ok(GRASS_DENSITY.minX>4.45,'the 8.7-unit road and its edge remain clear');
+ const counts=[],species=new Set(),heights=new Set();
+ for(const seed of [207,311,907]){
+  const forest=createForestGenerator(new THREE.Scene(),{seed});
+  populateForest(forest,{seed:seed+1});
+  const grass=forest.plants.filter(p=>p.userData.plantSpecies.startsWith('grass:'));
+  counts.push(grass.length);
+  assert.ok(grass.length>=550&&grass.length<=950,'dense but finite pool: '+grass.length);
+  assert.ok(grass.every(p=>Math.abs(p.position.x)>=GRASS_DENSITY.minX));
+  assert.ok(grass.some(p=>p.position.x<0)&&grass.some(p=>p.position.x>0));
+  assert.ok(grass.some(p=>Math.abs(p.position.x)>13),'undergrowth extends into forest');
+  assert.ok(grass.some(p=>Math.abs(p.position.x)<8),'dense verge planting');
+  for(const p of grass){
+   species.add(p.userData.plantSpecies);
+   heights.add(Math.round(p.scale.y*100)/100);
+  }
+  assert.ok(forest.getStats().drawCalls<100,'shared grass meshes stay instanced');
+  const one=grass[0];
+  for(let i=0;i<80;i++){
+   one.userData.onForestRecycle();
+   assert.ok(Math.abs(one.position.x)>=GRASS_DENSITY.minX,'recycling never moves grass onto track');
+  }
+  forest.dispose();
+ }
+ assert.equal(species.size,5,'every grass variety appears in thick undergrowth');
+ assert.ok(heights.size>70,'grass heights remain genuinely varied');
+ assert.ok(new Set(counts).size>1,'density responds to the random seed');
 });
