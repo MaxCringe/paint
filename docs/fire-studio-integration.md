@@ -85,3 +85,19 @@ regular luminous rings around every crown tier.
 
 Runtime checks: renderer shader errors, lava creation, river-driven fire,
 vegetation recycling, long main runs and visual QA on target GPU.
+
+## Small GPU fires on wooden lava crossings (2026-11-02)
+
+- `LavaRiver.js` generates a small number of `deckFireAnchors` strictly
+  within x=±4.2 on its **charred wooden deck strips**.
+- Each anchor uses the exact irregular river centre and bank width, with an
+  outward offset of 0.19–0.34 beyond the molten edge. There are **no**
+  billboards, wall-of-fire meshes, or flame anchors on the lava's forest banks.
+- `LavaDeckFire.js` uses the **same GPU tongue geometry and shader** as the
+  burning procedural pines, batching all crossings into one `InstancedMesh`.
+  Small, irregular flames do not form a continuous flaming wall.
+- `game.js` registers each river's fire, animates with `dt`, resets with a
+  new run, and clears owner references as obstacles are recycled.
+- Preserve molten lava, black basalt banks, ember sparks, charred boards,
+  decorative dead wood and all collision/jump mechanics. Do not restore the
+  removed legacy `bankFlames`, `fireCards` or `addLivingFlame` paths.

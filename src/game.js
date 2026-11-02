@@ -4,6 +4,7 @@ import { animateSoulFlame } from './souls/animateSoulFlame.js';
 import { SOULS_PER_ULT, ULT_DURATION } from './config.js';
 import { createLavaRiverFactory } from './obstacles/LavaRiver.js';
 import { createForestFireStudio } from './systems/fire/ForestFireStudio.js';
+import { createLavaDeckFire } from './systems/fire/LavaDeckFire.js';
 import { createLavaForestInteraction } from './systems/fire/LavaForestInteraction.js';
 import { createFishFactory } from './obstacles/Fish.js';
 import { createPineLogFactory } from './obstacles/PineLog.js';
@@ -36,8 +37,10 @@ import { createGameMenu } from './ui/GameMenu.js';
 import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
+import { enableSceneInspector } from './dev/SceneInspector.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
+enableSceneInspector({ scene, camera, renderer });
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
@@ -49,6 +52,7 @@ const windSystem=createWindSystem(roadsideVegetation);
 // One shared, low-cost GPU fire pool for the actual six procedural pine models.
 const forestFire=createForestFireStudio(scene,{quality:'low',maxTrees:6,burnSeconds:18});
 const lavaForest=createLavaForestInteraction(roadsideVegetation,forestFire);
+const lavaDeckFire=createLavaDeckFire(scene);
 
 const { runner, ultimateAura } = createFiona(scene);
 const obstacles=[], coins=[], hats=[];
@@ -151,7 +155,10 @@ const makeSoul = createSoulFactory(scene, coins);
 const makeLavaRiver = createLavaRiverFactory(scene, obstacles, {
   // Register shorelines while the river is still far ahead. Flames ignite
   // when it reaches the approach zone, not while crossing the player's lane.
-  onTreeFire:river=>lavaForest.registerRiver(river)
+  onTreeFire:river=>{
+    lavaForest.registerRiver(river);
+    lavaDeckFire.registerRiver(river.group);
+  }
 });
 const makePineLog = createPineLogFactory(scene, obstacles, trunkMat);
 const makeSegment = createSegmentGenerator({
@@ -218,7 +225,7 @@ function start(){
  }
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();forestFire.reset();lavaForest.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();forestFire.reset();lavaForest.reset();lavaDeckFire.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function showDeathResult(){
  menu.showGameOver();
  gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive});
@@ -465,7 +472,10 @@ function frame(t){requestAnimationFrame(frame);
    }
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){
-   if(obstacles[i].type==='lava')lavaForest.releaseRiver(obstacles[i].g);
+   if(obstacles[i].type==='lava'){
+    lavaForest.releaseRiver(obstacles[i].g);
+    lavaDeckFire.releaseOwner(obstacles[i].g);
+   }
    scene.remove(obstacles[i].g);obstacles[i].g.userData.dispose?.();obstacles.splice(i,1)
   }
   ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed:travelSpeed,obstacles});
@@ -553,6 +563,7 @@ function frame(t){requestAnimationFrame(frame);
   // Synchronize instanced tree flames only after plants have moved/recycled.
   lavaForest.update(runner.position.z);
   forestFire.update(dt);
+  lavaDeckFire.update(dt);
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});

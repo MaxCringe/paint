@@ -192,6 +192,24 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
     }
    }
    const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;g.add(charMesh);
+   // A handful of low flames burn only where the pine deck was scorched.
+   // Moving toward +side is OUT of the lava, onto the existing .16..39 strip.
+   // No new flames are created along forest-side lava banks.
+   g.userData.deckFireAnchors=[];
+   for(const side of [-1,1]){
+    for(let i=0;i<12;i++){
+     if(i%4!==1&&Math.random()>.38)continue; // irregular gaps
+     const x=-4.02+(i+.5)*8.04/12+(Math.random()-.5)*.18;
+     const mid=center(x)+noise(x);
+     const offset=.19+Math.random()*.15;
+     g.userData.deckFireAnchors.push({
+      x,y:.022,z:mid+side*(half(x)+offset),
+      size:.16+Math.random()*.11,
+      phase:Math.random()
+     });
+    }
+   }
+
    // Soft layered flame cards replace the old hard-edged triangle flames.
    // No billboard flames on banks, undergrowth or scorched scenery.
    // The molten surface, basalt, charred trees and embers remain.
@@ -347,7 +365,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null}={}) {
    };
    for(let i=0;i<8;i++){const x=-105+Math.random()*210,b=new THREE.Mesh(lavaBubbleGeo,lavaBubbleMats[i%3]),sy=.018+Math.random()*.02;b.position.set(x,-.002,center(x)+(Math.random()-.5)*half(x)*.7);b.scale.set(.035+Math.random()*.05,sy,.04+Math.random()*.06);g.add(b);g.userData.bubbles.push({mesh:b,phase:Math.random()*6.28,sy})}
    // Each river owns its own generated buffers; free them when the river leaves play.
-   // Factory-wide textures, fire cards and bubble geometry remain shared and reusable.
+   // Factory-wide flow texture and bubble geometry remain shared and reusable.
    g.userData.dispose=()=>{
     const owned=new Set();
     g.traverse(obj=>{
