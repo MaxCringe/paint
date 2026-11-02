@@ -23,7 +23,14 @@ def F(t,**bones):
 O={}
 C=P(Spine=[.59,0,0],Spine1=[.18,0,0],LeftUpLeg=[-1,0,0],RightUpLeg=[-1,0,0],LeftLeg=[1.2,0,0],RightLeg=[1.2,0,0],LeftArm=[.5,0,-.18],RightArm=[.5,0,.18])
 B=P(Spine=[-.22,0,0],LeftArm=[-.83,0,-.25],RightArm=[-.83,0,.25],LeftForeArm=[-.42,0,0],RightForeArm=[-.42,0,0],LeftUpLeg=[-.58,0,0],RightUpLeg=[-.58,0,0],LeftLeg=[.64,0,0],RightLeg=[.64,0,0])
-V=P(Spine=[-.12,0,0],LeftArm=[-.11,0,-1.05],RightArm=[-.11,0,1.05],LeftForeArm=[-.15,0,0],RightForeArm=[-.15,0,0],LeftUpLeg=[.14,0,0],RightUpLeg=[-.12,0,0])
+# A poised, floating witch silhouette, with open hands and relaxed knees.
+V=P(
+ Spine=[-.22,0,0],Spine1=[-.08,0,0],Head=[.05,0,0],
+ LeftArm=[-.34,0,-1.08],RightArm=[-.34,0,1.08],
+ LeftForeArm=[-.46,0,-.04],RightForeArm=[-.46,0,.04],
+ LeftUpLeg=[.18,0,-.05],RightUpLeg=[.18,0,.05],
+ LeftLeg=[.20,0,0],RightLeg=[.20,0,0]
+)
 D=P(Spine=[.86,0,.19],Spine1=[.35,0,.12],Head=[.12,0,0],LeftUpLeg=[-.7,0,0],RightUpLeg=[-.7,0,0],LeftLeg=[.96,0,0],RightLeg=[.96,0,0])
 run=[]
 for t in np.linspace(0,1,9):
@@ -47,9 +54,31 @@ O['broomStart']=M(.59,False,(0,{}),(.65,B),(1,B))
 O['broomFly']=M(1.3,True,(0,B),(.5,P(**{**B,'Spine':[-.19,0,.02]})),(1,B))
 O['broomDuck']=M(.94,True,(0,P(**{**B,'Spine':[.48,0,0],'Spine1':[.32,0,0],'Head':[.20,0,0]})),(.5,P(**{**B,'Spine':[.52,0,0],'Spine1':[.36,0,0],'Head':[.23,0,0]})),(1,P(**{**B,'Spine':[.48,0,0],'Spine1':[.32,0,0],'Head':[.20,0,0]})))
 O['broomLand']=M(.48,False,(0,B),F(.5,Spine=[-.11,0,0],LeftArm=[-.28,0,-.1],RightArm=[-.28,0,.1],LeftUpLeg=[-.18,0,0],RightUpLeg=[-.18,0,0]),(1,{}))
-O['ultimateStart']=M(.72,False,(0,{}),F(.64,Spine=[-.13,0,0],LeftArm=[-.95,0,-.4],RightArm=[-.95,0,.4]),(1,V))
-O['ultimateFly']=M(1.6,True,(0,V),(.5,P(**{**V,'Spine':[-.18,0,0],'LeftArm':[-.05,0,-1.1],'RightArm':[-.05,0,1.1]})),(1,V))
-O['ultimateEnd']=M(.59,False,(0,V),F(.5,Spine=[.04,0,0],LeftArm=[-.22,0,-.35],RightArm=[-.22,0,.35]),(1,{}))
+# Each transition matches the easing duration in src/player/UltimateFlight.js.
+O['ultimateStart']=M(.72,False,
+ F(0),
+ F(.20,Spine=[.08,0,0],LeftArm=[-.22,0,-.22],RightArm=[-.22,0,.22]),
+ F(.54,Spine=[-.09,0,0],Spine1=[-.02,0,0],
+   LeftArm=[-.73,0,-.63],RightArm=[-.73,0,.63],
+   LeftForeArm=[-.24,0,-.01],RightForeArm=[-.24,0,.01],
+   LeftUpLeg=[-.04,0,0],RightUpLeg=[-.04,0,0]),
+ F(.82,**{**V,'Spine':[-.17,0,0],'LeftArm':[-.62,0,-.94],'RightArm':[-.62,0,.94]}),
+ F(1,**V))
+O['ultimateFly']=M(1.48,True,
+ F(0,**V),
+ F(.25,**{**V,'Spine':[-.25,0,.03],'LeftArm':[-.27,0,-1.14],'RightArm':[-.27,0,1.14],
+   'LeftUpLeg':[.22,0,-.04],'RightUpLeg':[.16,0,.04]}),
+ F(.50,**{**V,'Spine':[-.19,0,0],'LeftArm':[-.36,0,-1.02],'RightArm':[-.36,0,1.02],
+   'LeftLeg':[.24,0,0],'RightLeg':[.17,0,0]}),
+ F(.75,**{**V,'Spine':[-.25,0,-.03],'LeftArm':[-.29,0,-1.18],'RightArm':[-.29,0,1.18]}),
+ F(1,**V))
+O['ultimateEnd']=M(.60,False,
+ F(0,**V),
+ F(.35,**{**V,'Spine':[-.08,0,0],'LeftArm':[-.62,0,-.58],'RightArm':[-.62,0,.58],
+   'LeftUpLeg':[.04,0,0],'RightUpLeg':[.04,0,0]}),
+ F(.78,Spine=[.10,0,0],LeftArm=[-.28,0,-.18],RightArm=[-.28,0,.18],
+   LeftUpLeg=[-.16,0,0],RightUpLeg=[-.16,0,0]),
+ F(1))
 O['soulPickup']=M(.29,False,(0,{}),F(.47,RightArm=[-.31,0,.22],RightForeArm=[-.4,0,0]),(1,{}))
 O['hatPickup']=M(.56,False,(0,{}),F(.52,RightArm=[-1.03,0,.25],RightForeArm=[-.68,0,0],Head=[-.07,0,0]),(1,{}))
 O['scarfPickup']=M(.64,False,(0,{}),F(.56,Spine=[.20,0,0],RightArm=[-.67,0,.32],RightForeArm=[-.54,0,0]),(1,{}))

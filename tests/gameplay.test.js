@@ -50,7 +50,7 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
  assert.ok(game.includes("const broomDuck=broom.active?obstacles.reduce("));
  assert.ok(!game.includes('runner.scale.y=ultActive?1:(sliding?.58:1)'));
  assert.ok(game.includes('applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch)'));
- assert.ok(game.includes('runner.rotation.x=ultActive?-.12:0;'));
+ assert.ok(game.includes('runner.rotation.x=-.12*ultimateFlight.lift;'));
  assert.ok(game.includes("broom.applyPose(broomDuck)"));
  assert.ok(!game.includes("runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck)"));
  assert.ok(game.includes("const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck"));
@@ -72,8 +72,8 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
 test('ultimate keeps normal flight altitude and cannot expire over a log',()=>{
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  assert.ok(game.includes('const broomDuck=broom.active?obstacles.reduce('));
- assert.ok(game.includes('const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:'));
- assert.ok(game.includes('ultTimer=Math.max(ultTimer,pineLogFlightGuardDuration(gap,ultimateSpeed))'));
+ assert.ok(game.includes('const jumpY=ultActive?ultimateFlight.height(t):'));
+ assert.ok(game.includes('if(crossing>0)ultTimer=Math.max(ultTimer,crossing+ULTIMATE_LAND_SECONDS)'));
  // Extend a nearly finished ultimate just enough to pass the crossing corridor.
  const remaining=.1, speed=22;
  for(const gap of [-15,-8,-1,0,2,8]){

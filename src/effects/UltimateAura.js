@@ -106,20 +106,21 @@ export function createUltimateAura(runner) {
  );
  blueLight.position.set(0,1.25,.06);
  group.add(blueLight);
- function update(timeMs,active){
+ function update(timeMs,active,blend=1){
   group.visible=!!active;
   if(!active)return;
+  const strength=Math.max(0,Math.min(1,blend));
   const v=getEffectVisualProfile('ultimate');
   clock.value=timeMs*.001*ULT_AURA_STYLE.animationSpeed*v.flameSpeed/100;
   colors.uOuterBlue.value.set(v.outerColor);
   colors.uInnerBlue.value.set(v.innerColor);
   for(const material of materials)
-   material.uniforms.uOpacity.value=material.userData.baseOpacity*ULT_AURA_STYLE.intensity*v.intensity/100;
+   material.uniforms.uOpacity.value=material.userData.baseOpacity*ULT_AURA_STYLE.intensity*v.intensity/100*strength;
   for(const plane of group.children){
    if(plane.isMesh)plane.scale.x=plane.userData.baseWidth*v.auraWidth/100;
   }
   blueLight.color.set(v.lightColor);
-  blueLight.intensity=v.lightIntensity/100;
+  blueLight.intensity=v.lightIntensity/100*strength;
  }
  function reset(){group.visible=false;}
  function dispose(){

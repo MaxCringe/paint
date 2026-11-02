@@ -23,6 +23,7 @@ import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
 import { lavaJumpCleared, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration } from './systems/HazardRules.js';
+import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
 import { createRunRecordTracker } from './systems/RunRecords.js';
@@ -46,6 +47,7 @@ const { runner, torso, armL, armR, legL, legR, applySlidePose, ultimateAura, set
 const obstacles=[], coins=[], hats=[];
 const scarfPickup=createScarfPickup(scene);
 const broom=createBroomRide(scene,runner,{torso,armL,armR,legL,legR});
+const ultimateFlight=createUltimateFlight();
 const {makeHat,animateHat,animateWearable,attachWearableToHead}=createWitchHatFactory(scene,hats,torso);
 // One geometry per pine component, reused by every upcoming pine obstacle.
 const knotTrunkGeometry=new THREE.CylinderGeometry(.36,.62,2.55,7);
@@ -194,7 +196,7 @@ function startFromMenu(){
  if(state!=='paused')restoreClassicFiona();
  start();
 }
-function activateUltimate(){broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
+function activateUltimate(){ultimateFlight.activate(runner.position.y);broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
 function start(){
  // A restart from pause is still a completed attempt for record purposes.
  if(state==='paused'&&!useTestFiona){
@@ -206,7 +208,7 @@ function start(){
  }
  runRecords.start(best,bestSouls,{practice:useTestFiona});
  hud.setRecordHighlights({metres:false,souls:false});
- deathRevealRemaining=0;audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+ deathRevealRemaining=0;audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();if(useTestFiona)testAvatar?.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function showDeathResult(){
  menu.showGameOver();
  gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive});
@@ -227,7 +229,7 @@ function end(reason='other'){
  showDeathResult();
 }
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');if(useTestFiona)testAvatar?.trigger(d<0?'moveLeft':'moveRight')}}
-function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!broom.active&&!slideAction.active){
+function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!slideAction.active){
   if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
  }}
 function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
@@ -303,7 +305,7 @@ function frame(t){requestAnimationFrame(frame);
  const dt=Math.min((t-last)/1000||0,.04);last=t;
  // Wind is visible on the start and game-over screens; pause still freezes the scene.
  windSystem.update(dt);
- batEcosystem.update(dt,{playing:state==='playing',ultimate:ultTimer>0,speed:speed*(ultTimer>0?BROOM_CONFIG.ultimateSpeedMultiplier:broom.active?BROOM_CONFIG.speedMultiplier:1),runnerX:runner.position.x,runnerZ:runner.position.z});
+ batEcosystem.update(dt,{playing:state==='playing',ultimate:ultTimer>0||ultimateFlight.active,speed:speed*((ultTimer>0||ultimateFlight.active)?BROOM_CONFIG.ultimateSpeedMultiplier:broom.active?BROOM_CONFIG.speedMultiplier:1),runnerX:runner.position.x,runnerZ:runner.position.z});
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
 
@@ -311,19 +313,25 @@ function frame(t){requestAnimationFrame(frame);
  if(state==='playing'){
   // Scroll the road texture toward the camera so the boards stay fixed to the world as Fiona runs.
   if(ultTimer>0){
-   // An ongoing ultimate must never end while Fiona is crossing a suspended log.
-   // Preserve ordinary duration unless a log is directly along the flyover arc.
+   // Hold full-height flight until the far bank / end of a log crossing.
+   // Reserve enough time to land AFTER these obstacles, never inside them.
    const ultimateSpeed=speed*BROOM_CONFIG.ultimateSpeedMultiplier;
    for(const o of obstacles){
+    const gap=o.g.position.z-runner.position.z;
     if(o.type==='pineLog'){
-     const gap=o.g.position.z-runner.position.z;
-     ultTimer=Math.max(ultTimer,pineLogFlightGuardDuration(gap,ultimateSpeed));
+     const crossing=pineLogFlightGuardDuration(gap,ultimateSpeed);
+     if(crossing>0)ultTimer=Math.max(ultTimer,crossing+ULTIMATE_LAND_SECONDS);
+    }else if(o.type==='lava'){
+     const half=o.g.userData.halfDepth||.88;
+     ultTimer=Math.max(ultTimer,ultimateLavaGuardDuration(gap,half,ultimateSpeed));
     }
    }
    ultTimer=Math.max(0,ultTimer-dt);
   }
-  if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT)activateUltimate();
-  const ultActive=ultTimer>0;
+  if(ultTimer<=0&&soulCharge>=SOULS_PER_ULT&&!ultimateFlight.active)activateUltimate();
+  ultimateFlight.update(dt,ultTimer>0);
+  // A descending Fiona is still protected and cannot jump or slide until grounded.
+  const ultActive=ultTimer>0||ultimateFlight.active;
   // Finish flying over a suspended log if the broom's timer is about to expire.
   if(broom.active){
    const broomSpeed=speed*BROOM_CONFIG.speedMultiplier;
@@ -372,16 +380,17 @@ function frame(t){requestAnimationFrame(frame);
     o.type==='pineLog'?Math.max(duck,pineLogBroomDuck(o.g.position.z,runner.position.z)):duck,0):0;
    // Lower Fiona and her mounted broom slightly, leaving genuine clearance below the wood.
    const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck;
-   const jumpY=ultActive?2.25+Math.sin(t*.008)*.14:(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
+   const jumpY=ultActive?ultimateFlight.height(t):(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.position.z=2.3;
-  runner.rotation.z=ultActive?Math.sin(t*.003)*.035:(!useTestFiona&&slipT>0?Math.sin(t*.045)*.2:0);
-  runner.rotation.x=ultActive?-.12:0;
-  ultimateAura.update(t,ultActive);
+  const slipRoll=!useTestFiona&&slipT>0?Math.sin(t*.045)*.2:0;
+  runner.rotation.z=Math.sin(t*.003)*.035*ultimateFlight.lift+slipRoll*(1-ultimateFlight.lift);
+  runner.rotation.x=-.12*ultimateFlight.lift;
+  ultimateAura.update(t,ultActive,ultimateFlight.lift);
   if(useTestFiona){
    // The old Fiona is hidden. Its joints need no per-frame animation,
    // while broom visuals, obstacles and collisions keep updating normally.
-   testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultActive,slip:slipT>0,speed:travelSpeed});
+   testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,slip:slipT>0,speed:travelSpeed});
   }else{
    const run=t*.012*travelSpeed/15;
    armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;
