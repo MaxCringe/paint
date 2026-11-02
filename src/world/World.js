@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildFernGeometry } from './buildFernGeometry.js';
+import { generateFernGeometry, createFernMaterial } from './createLowPolyFern.js';
 import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine, forestPineScale } from './LowPolyPine.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
@@ -227,23 +227,45 @@ export function createWorld() {
    return g
   }
   const roadsideVegetation=[];
-  // Build an entire fern clump as one lightweight mesh with separate pointed leaflets.
-  const fernGeometry=buildFernGeometry();
-  const fernMaterial=new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.92});
-  function randomFernScale(){
-   const roll=Math.random();
-   if(roll<.27)return .36+Math.random()*.30; // little young fern
-   if(roll<.79)return .68+Math.random()*.48; // ordinary fern
-   return 1.18+Math.random()*.55; // large mature fern
+  // Ten distinct Google AI Studio fern silhouettes, shared by all roadside
+  // instances; the inexpensive transform proxies recycle just like the pines.
+  const fernMaterial=createFernMaterial({roughness:.92,metalness:0,windEnabled:false});
+  const fernBatches=[],fernGroups=[],fernPrototypes={};
+  const fernVariants=['lush','young','withered'];
+  for(let v=0;v<fernVariants.length;v++){
+   const variant=fernVariants[v];
+   fernPrototypes[variant]=[];
+   for(let i=0;i<(variant==='lush'?4:3);i++){
+    const seed=1307+v*1019+i*257;
+    const {geometry}=generateFernGeometry({variant,seed,curvature:.65,spread:.85});
+    const batch={geometry,parts:[],mesh:null};
+    fernBatches.push(batch);
+    fernPrototypes[variant].push(batch);
+   }
   }
-  function fern(x,z,scale=1,recycleLength=174){
+  function chooseFernVariant(){
+   const n=Math.random();
+   return n<.55?'lush':n<.84?'young':'withered';
+  }
+  function randomFernScale(variant){
+   if(variant==='young')return .55+Math.random()*.52;
+   if(variant==='withered')return .73+Math.random()*.48;
+   return .82+Math.random()*.60;
+  }
+  function fern(x,z,recycleLength=174){
+   const variant=chooseFernVariant();
+   const choices=fernPrototypes[variant];
+   const batch=choices[(Math.random()*choices.length)|0];
+   const scale=randomFernScale(variant);
    const g=new THREE.Group();
    g.position.set(x,-.095,z);
    g.rotation.y=Math.random()*Math.PI*2;
-   g.scale.set(scale*(.88+Math.random()*.22),scale,scale*(.88+Math.random()*.22));
-   g.userData.recycleLength=recycleLength;g.userData.windKind='fern';
-   const leaves=new THREE.Mesh(fernGeometry,fernMaterial);
-   leaves.castShadow=false;leaves.receiveShadow=true;g.add(leaves);scene.add(g);
+   g.scale.set(scale*(.85+Math.random()*.3),scale,scale*(.85+Math.random()*.3));
+   g.userData.recycleLength=recycleLength;
+   // Explicitly static until instanced-wind support is implemented.
+   g.userData.windKind='fern-static';
+   g.userData.fernVariant=variant;
+   scene.add(g);fernGroups.push(g);batch.parts.push(g);
    return g;
   }
   // Low wild grass: many small blade meshes are combined into one geometry per tuft.
@@ -317,11 +339,11 @@ export function createWorld() {
   const fernSpacing=2.95,fernCount=52,fernLoop=(fernCount-1)*fernSpacing+15.5;
   for(let i=0;i<fernCount;i++){
    const z=-i*fernSpacing-3.5+(Math.random()-.5)*1.55;
-   if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,randomFernScale(),fernLoop));
-   if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,randomFernScale(),fernLoop));
+   if(Math.random()<.9)roadsideVegetation.push(fern(-5.45-Math.random()*2.0,z,fernLoop));
+   if(Math.random()<.9)roadsideVegetation.push(fern(5.45+Math.random()*2.0,z+(Math.random()-.5)*1.1,fernLoop));
    if(i%4===1&&Math.random()<.68){
     const side=Math.random()<.5?-1:1;
-    roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,randomFernScale(),fernLoop));
+    roadsideVegetation.push(fern(side*(6.2+Math.random()*2.0),z-1.25+(Math.random()-.5)*.8,fernLoop));
    }
   }
   
@@ -350,11 +372,26 @@ export function createWorld() {
    batch.mesh=instanced;
    scene.add(instanced);
   }
+  // One draw call per silhouette batch, not one per plant.
+  for(const batch of fernBatches){
+   if(!batch.parts.length)continue;
+   const instanced=new THREE.InstancedMesh(batch.geometry,fernMaterial,batch.parts.length);
+   instanced.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+   instanced.castShadow=false;
+   instanced.receiveShadow=true;
+   instanced.frustumCulled=false;
+   batch.mesh=instanced;scene.add(instanced);
+  }
   function updateForestPines(){
    for(const group of pineGroups)group.updateMatrixWorld(true);
    for(const batch of pineBatches){
-    for(let i=0;i<batch.parts.length;i++)
-     batch.mesh.setMatrixAt(i,batch.parts[i].matrixWorld);
+    for(let i=0;i<batch.parts.length;i++)batch.mesh.setMatrixAt(i,batch.parts[i].matrixWorld);
+    batch.mesh.instanceMatrix.needsUpdate=true;
+   }
+   for(const group of fernGroups)group.updateMatrixWorld(true);
+   for(const batch of fernBatches){
+    if(!batch.mesh)continue;
+    for(let i=0;i<batch.parts.length;i++)batch.mesh.setMatrixAt(i,batch.parts[i].matrixWorld);
     batch.mesh.instanceMatrix.needsUpdate=true;
    }
   }
