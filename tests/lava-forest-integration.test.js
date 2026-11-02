@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createLavaRiverFactory} from '../src/obstacles/LavaRiver.js';
 import {createForestGenerator} from '../src/world/forest/ForestGenerator.js';
 import {createForestFireStudio} from '../src/systems/fire/ForestFireStudio.js';
+import {createLavaForestInteraction} from '../src/systems/fire/LavaForestInteraction.js';
 
 // The lava factory creates two procedural CanvasTexture objects. Geometry and
 // collision integration can be tested in Node without a WebGL/DOM renderer.
@@ -63,11 +64,12 @@ test('a real lava river constructs safely with instanced pine, fern and grass pr
  }
 });
 
-test('real lava triggers external model-aware pine fire while bank flames remain intact',()=>{
+test('lava retains soft shoreline fire and ignites safely placed pines before Fiona arrives',()=>{
  const originalDocument=globalThis.document;
  globalThis.document=mockCanvasDocument();
  const scene=new THREE.Scene(),obstacles=[],forest=createForestGenerator(scene,{seed:644});
  const fire=createForestFireStudio(scene,{quality:'low',maxTrees:3,seed:42});
+ const interaction=createLavaForestInteraction(forest.plants,fire);
  try{
   const pine=forest.plant('pine',-6,-54,1,190,'pine:taiga_spruce');
   forest.plant('fern',-6,-54,1,190,'fern:lush');
@@ -75,31 +77,34 @@ test('real lava triggers external model-aware pine fire while bank flames remain
   forest.finish();
   let callbackCount=0;
   const makeRiver=createLavaRiverFactory(scene,obstacles,{
-   onTreeFire:({group,z,center,halfWidth})=>{
-    callbackCount++;
-    assert.ok(group.parent===scene);
-    fire.igniteNearRiver(forest.plants,z,{owner:group,center,halfWidth,reach:1.25});
-   }
+   onTreeFire:details=>{callbackCount++;interaction.registerRiver(details)}
   });
   assert.doesNotThrow(()=>makeRiver(-54));
   assert.equal(callbackCount,1);
   assert.equal(obstacles.length,1);
-  assert.equal(fire.getStats().activeTrees,1,'nearby procedural pine lights up');
-  // The lava factory still adds tiny decorative burnt pines with sparks.
-  // They are separate from the original procedural forest pine.
-  assert.ok(obstacles[0].g.userData.treeSparkSources.length<=6,
-   'decorative charred banks may keep their own sparks');
-  assert.ok(obstacles[0].g.userData.bankFlames,'old bank fire retained');
+  assert.equal(fire.getStats().activeTrees,0,
+   'trees are not burning from the instant a distant river is created');
+  const g=obstacles[0].g;
+  assert.ok(Math.abs(pine.position.z-g.position.z)>g.userData.halfDepth,
+   'pine has been relocated outside lava before render');
+  assert.ok(g.userData.bankFlames,'smooth bank fire retained');
+  assert.ok(g.userData.bankFlames.isInstancedMesh,
+   'soft crossed cards replace old low-poly triangle banks');
+  assert.equal(g.userData.bankFlames.count%2,0);
+  // The first river reaches the approach zone, long before it hits Fiona.
+  const travel=17;g.position.z+=travel;pine.position.z+=travel;
+  interaction.update(2.3);
+  assert.equal(fire.getStats().activeTrees,1);
   fire.update(.2);
   assert.ok(fire.getStats().flames>0);
-  pine.position.z+=6;fire.update(.1);
-  obstacles[0].g.position.z+=6;
-  scene.remove(obstacles[0].g);
-  fire.update(.1);
-  assert.equal(fire.getStats().activeTrees,0,'flames leave with their owner river');
+  assert.equal(g.userData.treeSparkSources.length>0,true,
+   'small charred decorative props retain sparks');
+  scene.remove(g);
+  interaction.update(2.3);fire.update(.1);
+  assert.equal(fire.getStats().activeTrees,0);
  }finally{
   for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}
-  fire.dispose();forest.dispose();
+  interaction.reset();fire.dispose();forest.dispose();
   if(originalDocument===undefined)delete globalThis.document;
   else globalThis.document=originalDocument;
  }

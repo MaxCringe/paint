@@ -64,3 +64,24 @@ before ever calling these methods from the main game.
 4. Verify branches, wind, scroll, recycle, and owner cleanup in gameplay.
 5. Once visuals are accepted, stage charred needles, smoke and smouldering
    as independent bounded-cost effects.
+
+## Lava shoreline integration (2026-11-02)
+
+`src/systems/fire/LavaForestInteraction.js` now owns three constraints:
+- At river creation, move **pine trunk proxies** off the true winding molten
+  band before the scene renders it, leaving at least 1.55 m of firm bank.
+- Re-check recycled trees against all active rivers so distant repeat sections
+  never reintroduce a pine into lava. Other vegetation and obstacles untouched.
+- Ignite the nearest six pine proxies only when the crossing approaches within
+  about 49 units of Fiona; radiant heat extends several metres beyond the
+  riverbank, so trees burn while still on solid ground.
+
+The historical low-poly triangular mesh of bank flames has been removed;
+crossed, soft translucent flame cards remain, as do the lava flow, stone edges,
+scorched decorative logs, and collision geometry. Sparks are now driven by
+the river's particles rather than a triangle-mesh render callback.
+Tree flame pockets use smaller, staggered, varied-height GPU flames to avoid
+regular luminous rings around every crown tier.
+
+Runtime checks: renderer shader errors, lava creation, river-driven fire,
+vegetation recycling, long main runs and visual QA on target GPU.

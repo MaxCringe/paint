@@ -58,10 +58,12 @@ export function getPineFireProfile(species){
   // Cone needles are widest near the BOTTOM of the tier. A ring slightly
   // outside the lower shoulder is visible from all viewing directions.
   const y=clamp(center.y-dimensions.y*.21,.3,height-.12);
-  const count=name==='sequoia_giant'?4:3;
-  const size=clamp(Math.max(rx,rz)*.62,.55,1.75);
+  // Break perfectly regular rings: scattered pockets, not a wreath of fire.
+  const count=3;
+  const size=clamp(Math.max(rx,rz)*.49,.43,1.12);
   const zone=y/height>.76?'crown':'branch';
   for(let j=0;j<count;j++){
+   if((i*11+j*5)%7===1)continue;
    const a=i*.73+j*Math.PI*2/count;
    const nx=Math.cos(a),nz=Math.sin(a);
    add(center.x+nx*rx*.89,y,center.z+nz*rz*.89,
@@ -69,7 +71,7 @@ export function getPineFireProfile(species){
   }
  }
  // Tip fires should be small, not a giant flame emerging from the tree centre.
- if(!dead)add(0,height*.91,0,0,0,.62,'crown');
+ if(!dead)add(0,height*.91,0,0,0,.38,'crown');
  // Do not dispose these prototype meshes: other caches/registries may share
  // their geometry or materials. These temporary objects are never rendered.
  const profile=Object.freeze({species,height,dead,anchors:Object.freeze(anchors.map(a=>Object.freeze(a)))});
@@ -140,7 +142,8 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
    const heightScale=r.plant.scale.y;
    for(const anchor of r.profile.anchors){
     const delay=anchor.zone==='crown'?.16:anchor.zone==='branch'?.055:0;
-    const growth=clamp(.90+progress*3.8-anchor.height*.95-delay,0,1);
+    const variability=(Math.sin(anchor.x*5.9+anchor.y*2.3+anchor.z*3.7)+1)*.045;
+    const growth=clamp(.62+progress*4.4-anchor.height*1.28-delay-variability,0,1);
     const fading=1-clamp((progress-.86)*6.3,0,1);
     const activity=growth*fading;if(activity<.025)continue;
     worldPoint.set(anchor.x,anchor.y,anchor.z).applyMatrix4(r.plant.matrixWorld);
@@ -164,12 +167,13 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
      params.setXYZW(n,phase,
       anchor.size*(j===0?1.30:.94)*heightScale,
       anchor.size*(j===0?1.14:.86)*widthScale,
-      activity);
+      activity*(.82+.18*Math.sin(time*3.1+phase*12.7+j*1.4)));
      n++;
     }
    }
    for(let j=0;j<sparksPerTree;j++){
     const anchor=r.profile.anchors[j%r.profile.anchors.length];
+    if(progress<anchor.height*.5)continue;
     const phase=(r.phase+j*.618+time*.19)%1;
     worldPoint.set(anchor.x+Math.sin(phase*17+j)*.17,
      anchor.y+phase*1.3,anchor.z+Math.cos(phase*19+j)*.17)

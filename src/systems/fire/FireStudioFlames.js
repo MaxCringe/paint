@@ -60,7 +60,7 @@ export function createFireTongueMaterial(){
    float height=uHeight*aInstanceParams.y*(.42+.58*vActivity);
    vec3 p=position;
    p.xz*=width;p.y*=height;
-   float sway=pow(h,1.35)*(.17*sin(h*5.-t*2.)+.11*cos(h*8.-t*3.));
+   float sway=pow(h,1.25)*(.24*sin(h*5.-t*2.)+.15*cos(h*8.-t*3.));
    p.x+=sway+.08*h*sin(t+vPhase*12.);
    p.z+=.7*sway+.06*h*cos(t*.8+vPhase*7.);
    vSurface=p;
@@ -81,7 +81,7 @@ export function createFireTongueMaterial(){
    float n=.58*fireNoise(p)+.29*fireNoise(p*2.1+vec3(0.,-t,1.));
    float body=smoothstep(0.,.09,h)*(1.-smoothstep(.71,1.03,h+(1.-n)*.13));
    float fringe=smoothstep(.18,.68,n);
-   float alpha=body*(.48+.52*fringe)*(vOuter>.5?.52:1.)*uOpacity*.92*vActivity;
+   float alpha=body*(.46+.54*fringe)*(vOuter>.5?.50:1.)*uOpacity*.67*vActivity;
     if(alpha<.035)discard;
     vec3 red=vec3(.69,.05,.012),orange=vec3(1.,.31,.018),gold=vec3(1.,.84,.39);
    vec3 color=mix(red,orange,smoothstep(.12,.55,fringe));
@@ -89,6 +89,6 @@ export function createFireTongueMaterial(){
     gl_FragColor=vec4(color,min(.85,alpha));
   }`,
   transparent:true,depthWrite:false,side:THREE.DoubleSide,
-  blending:THREE.AdditiveBlending,toneMapped:false
+  blending:THREE.NormalBlending,toneMapped:false,forceSinglePass:true
  });
 }
