@@ -18,6 +18,26 @@ test('3D Fiona DEV worn-hat editor previews and exports manual fitting',async({p
  await expect(button).toBeVisible();
  await button.click();
  await expect(page.locator('#fiona-hat-dev-panel')).toBeVisible();
+ await expect(page.locator('canvas').first()).toHaveClass(/hat-orbit-active/);
+ await page.locator('[data-hat-cam="front"]').click();
+ await expect(page.locator('#hat-dev-camera-angle-output')).toHaveText('180°');
+ await page.locator('[data-hat-cam="top"]').click();
+ await expect(page.locator('#hat-dev-camera-pitch-output')).toHaveText('75°');
+ await page.locator('#hat-dev-camera-reset').click();
+ await expect(page.locator('#hat-dev-camera-angle-output')).toHaveText('0°');
+ // Drag directly over the canvas: the CAMERA moves, not the skeleton.
+ const canvas=page.locator('canvas').first();
+ const rect=await canvas.boundingBox();
+ expect(rect).toBeTruthy();
+ const x=rect.x+rect.width*.3,yPos=rect.y+rect.height*.4;
+ await page.mouse.move(x,yPos);
+ await page.mouse.down();
+ await page.mouse.move(x+110,yPos-45,{steps:5});
+ await page.mouse.up();
+ await expect(page.locator('#hat-dev-camera-angle-output')).not.toHaveText('0°');
+ const beforeZoom=Number(await page.locator('#hat-dev-camera-zoom').inputValue());
+ await page.mouse.wheel(0,-400);
+ await expect.poll(async()=>Number(await page.locator('#hat-dev-camera-zoom').inputValue())).toBeLessThan(beforeZoom);
  const y=page.getByRole('slider',{name:'Выше / ниже'});
  await y.evaluate(input=>{input.value='.26';input.dispatchEvent(new Event('input',{bubbles:true}));});
  await expect(page.locator('#fiona-hat-dev-panel .hat-dev-row').nth(1).locator('output')).toHaveText('0.26м');
@@ -31,6 +51,7 @@ test('3D Fiona DEV worn-hat editor previews and exports manual fitting',async({p
  expect(exported.settings.y).toBe(.26);
  expect(exported.settings.size).toBe(115);
  await page.locator('#hat-dev-close').click();
+ await expect(canvas).not.toHaveClass(/hat-orbit-active/);
  await expect(button).toBeVisible();
  await expect(page.locator('#pause-button')).toBeVisible();
  expect(errors).toEqual([]);

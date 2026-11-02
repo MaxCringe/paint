@@ -1,10 +1,12 @@
 import '../styles/hat-dev-editor.css';
 import {HAT_DEV_CONTROLS,DEFAULT_HAT_DEV_PLACEMENT,normalizeHatDevPlacement} from '../powerups/HatDevPlacement.js';
+import {DEFAULT_HAT_CAMERA,normalizeHatCamera} from './HatOrbitCamera.js';
 
 // Visible only in the optional 3D Fiona DEV run. The hat is previewed on
 // Fiona's head regardless of magnet pickup, with real-time transform changes.
 const STORAGE_KEY='knottyPineDevHatPlacementV1';
-export function createFionaHatEditor({onOpen,onClose,onChange,onRotate}){
+export function createFionaHatEditor({onOpen,onClose,onChange,onCameraChange}){
+ let cameraValues={...DEFAULT_HAT_CAMERA};
  let values={...DEFAULT_HAT_DEV_PLACEMENT};
  try{
   const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
@@ -29,10 +31,25 @@ export function createFionaHatEditor({onOpen,onClose,onChange,onRotate}){
   </header>
   <p class="hat-dev-info">Забег остановлен. Шляпа видна без сбора предмета. Отрегулируй положение на голове, поворот и размер.</p>
   <div id="hat-dev-sliders"></div>
-  <div class="hat-dev-view">
-   <label for="hat-dev-view-angle">Повернуть Фиону для осмотра</label>
-   <input id="hat-dev-view-angle" type="range" min="0" max="360" step="5" value="0">
-   <output id="hat-dev-view-output">0°</output>
+  <div class="hat-dev-camera">
+   <h3>Камера вокруг Фионы</h3>
+   <p>Тяни мышью или пальцем по сцене для обзора. Колесо мыши приближает и отдаляет.</p>
+   <label for="hat-dev-camera-angle">Горизонтальный ракурс</label>
+   <input id="hat-dev-camera-angle" type="range" min="0" max="360" step="1" value="0">
+   <output id="hat-dev-camera-angle-output">0°</output>
+   <label for="hat-dev-camera-pitch">Смотреть сверху / снизу</label>
+   <input id="hat-dev-camera-pitch" type="range" min="-35" max="80" step="1" value="15">
+   <output id="hat-dev-camera-pitch-output">15°</output>
+   <label for="hat-dev-camera-zoom">Приближение камеры</label>
+   <input id="hat-dev-camera-zoom" type="range" min="2" max="9" step=".1" value="4.2">
+   <output id="hat-dev-camera-zoom-output">4.2</output>
+   <div class="hat-dev-camera-presets">
+    <button type="button" data-hat-cam="front">Спереди</button>
+    <button type="button" data-hat-cam="side">Сбоку</button>
+    <button type="button" data-hat-cam="back">Сзади</button>
+    <button type="button" data-hat-cam="top">Сверху</button>
+   </div>
+   <button type="button" id="hat-dev-camera-reset">Сбросить камеру</button>
   </div>
   <div class="hat-dev-actions">
    <button type="button" id="hat-dev-reset">Сбросить</button>
@@ -68,16 +85,34 @@ export function createFionaHatEditor({onOpen,onClose,onChange,onRotate}){
   }
   onChange?.({...values});
  }
- const turn=$('hat-dev-view-angle');
- turn.addEventListener('input',()=>{
-  $('hat-dev-view-output').textContent=turn.value+'°';
-  onRotate?.(Number(turn.value));
- });
+ function setCameraValues(values){
+  cameraValues=normalizeHatCamera(values);
+  const angle=Math.round(cameraValues.angle);
+  const pitch=Math.round(cameraValues.pitch);
+  const distance=Number(cameraValues.distance.toFixed(1));
+  $('hat-dev-camera-angle').value=String(angle);
+  $('hat-dev-camera-angle-output').textContent=angle+'°';
+  $('hat-dev-camera-pitch').value=String(pitch);
+  $('hat-dev-camera-pitch-output').textContent=pitch+'°';
+  $('hat-dev-camera-zoom').value=String(distance);
+  $('hat-dev-camera-zoom-output').textContent=distance.toFixed(1);
+ }
+ for(const [id,key] of [['hat-dev-camera-angle','angle'],['hat-dev-camera-pitch','pitch'],['hat-dev-camera-zoom','distance']]){
+  $(id).addEventListener('input',()=>onCameraChange?.({[key]:Number($(id).value)}));
+ }
+ for(const button of panel.querySelectorAll('[data-hat-cam]')){
+  button.addEventListener('click',()=>{
+   const angles={front:{angle:180,pitch:12},side:{angle:90,pitch:12},
+    back:{angle:0,pitch:12},top:{angle:0,pitch:75}};
+   onCameraChange?.(angles[button.dataset.hatCam]);
+  });
+ }
+ $('hat-dev-camera-reset').addEventListener('click',()=>onCameraChange?.({...DEFAULT_HAT_CAMERA}));
+ setCameraValues(DEFAULT_HAT_CAMERA);
  function close(){
   if(panel.classList.contains('hidden'))return;
   panel.classList.add('hidden');
   document.body.classList.remove('fiona-hat-dev-open');
-  turn.value='0';$('hat-dev-view-output').textContent='0°';
   onClose?.();
  }
  toggle.addEventListener('click',()=>{
@@ -85,7 +120,7 @@ export function createFionaHatEditor({onOpen,onClose,onChange,onRotate}){
   panel.classList.remove('hidden');
   document.body.classList.add('fiona-hat-dev-open');
   $('hat-dev-json').hidden=true;
-  sync();onRotate?.(0);
+  sync();
  });
  $('hat-dev-close').addEventListener('click',close);
  $('hat-dev-reset').addEventListener('click',()=>{
@@ -116,5 +151,5 @@ export function createFionaHatEditor({onOpen,onClose,onChange,onRotate}){
   if(!enabled)close();
   toggle.classList.toggle('hidden',!enabled);
  }
- return {setAvailable,close,getValues:()=>({...values})};
+ return {setAvailable,close,setCameraValues,getValues:()=>({...values})};
 }

@@ -41,11 +41,33 @@ body.fiona-hat-dev-open #fiona-test-tools{display:none!important}
  cursor:pointer;touch-action:pan-y;
 }
 #fiona-hat-dev-panel output{font-size:11px;text-align:right;font-variant-numeric:tabular-nums;color:#f9cd9e}
-#fiona-hat-dev-panel .hat-dev-view{
- display:grid;grid-template-columns:minmax(0,1fr) 52px;
- gap:5px 8px;border-top:1px solid #b8876644;margin-top:13px;padding-top:11px;
+canvas.hat-orbit-active{cursor:grab!important;touch-action:none!important}
+canvas.hat-orbit-active:active{cursor:grabbing!important}
+#fiona-hat-dev-panel .hat-dev-camera{
+ display:grid;grid-template-columns:minmax(0,1fr) 52px;gap:5px 8px;
+ border-top:1px solid #b8876644;margin-top:13px;padding-top:11px;
 }
-#fiona-hat-dev-panel .hat-dev-view label{grid-column:1/-1;font-size:11px;font-weight:700}
+#fiona-hat-dev-panel .hat-dev-camera h3{
+ grid-column:1/-1;font-size:13px;margin:0;color:#f7d2a5;
+}
+#fiona-hat-dev-panel .hat-dev-camera p{
+ grid-column:1/-1;font-size:11px;line-height:1.4;margin:2px 0 6px;color:#cdbdb4;
+}
+#fiona-hat-dev-panel .hat-dev-camera label{
+ grid-column:1/-1;font-size:11px;font-weight:700;margin-top:4px;
+}
+#fiona-hat-dev-panel .hat-dev-camera-presets{
+ grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:8px;
+}
+#fiona-hat-dev-panel .hat-dev-camera-presets button{
+ min-width:0;padding:9px 3px;border:1px solid #ab7966;border-radius:7px;
+ background:#49363b;color:#ecd7c9;box-shadow:none;font-size:10px;
+}
+#fiona-hat-dev-panel #hat-dev-camera-reset{
+ grid-column:1/-1;margin-top:4px;min-width:0;padding:10px;
+ border:1px solid #c1946e;border-radius:8px;background:#4a3031;color:#f6d3ad;
+ box-shadow:none;font-size:11px;
+}
 #fiona-hat-dev-panel .hat-dev-actions{display:flex;gap:8px;margin-top:14px}
 #fiona-hat-dev-panel .hat-dev-actions button{
  min-width:0;flex:1;font-size:11px;padding:11px 7px;border-radius:9px;box-shadow:none;
