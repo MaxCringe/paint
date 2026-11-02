@@ -390,7 +390,7 @@ function frame(t){requestAnimationFrame(frame);
   if(useTestFiona){
    // The old Fiona is hidden. Its joints need no per-frame animation,
    // while broom visuals, obstacles and collisions keep updating normally.
-   testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,slip:slipT>0,speed:travelSpeed});
+   testAvatar?.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,ultimateLift:ultimateFlight.lift,slip:slipT>0,speed:travelSpeed});
   }else{
    const run=t*.012*travelSpeed/15;
    armL.rotation.x=Math.sin(run)*.65;armR.rotation.x=-Math.sin(run)*.65;

@@ -5,6 +5,7 @@ import { fetchPythonFionaMotionData, createPythonFionaClips } from './FionaPytho
 import { fetchCalibratedRunData, createCalibratedRunClip } from './FionaCalibratedRun.js';
 import { loadFionaFBXClips } from './FionaImportedFBX.js';
 import { SLIDE_DURATION } from './Slide.js';
+import { createPowerLevitationPose } from './PowerLevitationPose.js';
 
 // Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -73,6 +74,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   leftArm:[-.55,0,-1.05],rightArm:[-.55,0,1.05],
   leftForeArm:[-.85,0,-.12],rightForeArm:[-.85,0,.12]};
  const broomSeatTarget=new THREE.Quaternion();
+ const powerLevitationPose=createPowerLevitationPose(bones,facing);
  const mixer=new THREE.AnimationMixer(model);
  const actions=new Map([...clips].map(([id,clip])=>[id,mixer.clipAction(clip)]));
  let currentAction=null,currentName=null,baseState='run',oneShot=null;
@@ -233,7 +235,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(active)reset();
   else mixer.stopAllAction();
  }
- function update(dt,{jumping=false,sliding=false,crouch=0,broom=false,broomDuck=0,ultimate=false,slip=false,speed=15}={}){
+ function update(dt,{jumping=false,sliding=false,crouch=0,broom=false,broomDuck=0,ultimate=false,ultimateLift=0,slip=false,speed=15}={}){
   if(!active)return;
   const current={jumping,sliding,broom,ultimate};
   if(!dead){
@@ -287,6 +289,9 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
     joint.bone.quaternion.slerp(broomSeatTarget,broomSeatBlend);
    }
   }
+  // Correct the arm/leg silhouette from the real rig, after animation mixing.
+  // The active flight height supplies a smooth ramp in and out.
+  if(!dead)powerLevitationPose.apply(ultimateLift);
   // Python clips animate bones, not entire meshes. No squashing or root displacement.
   avatar.rotation.x+=(0-avatar.rotation.x)*Math.min(1,dt*12);
   avatar.position.y+=(-.62*broomSeatBlend-avatar.position.y)*Math.min(1,dt*9);

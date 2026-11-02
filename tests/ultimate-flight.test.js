@@ -43,7 +43,7 @@ test('landed Fiona regains input; descent stays immune until the animation ends'
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  assert.ok(game.includes('const ultActive=ultTimer>0||ultimateFlight.active'));
  assert.ok(game.includes('slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active'));
- assert.ok(game.includes('ultimate:ultTimer>0,slip:slipT>0'));
+ assert.ok(game.includes('ultimate:ultTimer>0,ultimateLift:ultimateFlight.lift,slip:slipT>0'));
  assert.ok(game.includes('ultimateLavaGuardDuration(gap,half,ultimateSpeed)'));
  assert.ok(game.includes('ultimateAura.update(t,ultActive,ultimateFlight.lift)'));
 });
