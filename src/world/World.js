@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { buildFernGeometry } from './buildFernGeometry.js';
-import { createLowPolyPine } from './LowPolyPine.js';
+import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine } from './LowPolyPine.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld() {
@@ -187,6 +187,10 @@ export function createWorld() {
   // One AI Studio model provides shared geometry/materials for every forest pine.
   // Each tree remains a lightweight transform proxy (wind and recycling unchanged).
   const pinePrototype=createLowPolyPine();
+  const pinePrototypes={grove_cluster:pinePrototype};
+  for(const name of PINE_ARCHETYPES){
+   if(name!=='grove_cluster')pinePrototypes[name]=createLowPolyPine(name);
+  }
   // The original 4.8-unit pine is tall and slim in the forest: stretch its
   // height without making its broad foliage cover the road.
   const pineModelScaleXZ=.50;
@@ -199,14 +203,20 @@ export function createWorld() {
    parent.add(node);batch.parts.push(node);
    return node;
   }
-  function tree(x,z,scale=1,recycleLength=180){
+  function tree(x,z,scale=1,recycleLength=180,depth='near'){
+   const archetype=chooseForestPine(depth);
+   const prototype=pinePrototypes[archetype];
+   // Giant sequoias stay rare and slightly reduced, even in the deep forest.
+   const visualScale=scale*(archetype==='sequoia_giant'?.78+Math.random()*.18:1);
    const g=new THREE.Group();g.position.set(x,0,z);
-   // Taller, varied mature pines with slightly slimmer crowns.
-   g.scale.set(scale*(.82+Math.random()*.22),scale*(.92+Math.random()*.52),scale*(.82+Math.random()*.22));
+   // Preserve the taller/slimmer version with natural height variation.
+   g.scale.set(visualScale*(.82+Math.random()*.22),visualScale*(.92+Math.random()*.52),visualScale*(.82+Math.random()*.22));
    g.rotation.y=Math.random()*Math.PI/3;
-   g.userData.recycleLength=recycleLength;g.userData.windKind='pine';scene.add(g);pineGroups.push(g);
-   // Mirror the prototype's meshes as instanced transforms, not separate draws.
-   for(const source of pinePrototype.children){
+   g.userData.recycleLength=recycleLength;g.userData.windKind='pine';
+   g.userData.pineArchetype=archetype;
+   scene.add(g);pineGroups.push(g);
+   // The same transform-only instancing covers all five prototypes.
+   for(const source of prototype.children){
     const part=pinePart(g,source.geometry,source.material);
     // Scale positions AND geometry so foliage tiers stay attached to the trunk.
     part.position.set(source.position.x*pineModelScaleXZ,source.position.y*pineModelScaleY,source.position.z*pineModelScaleXZ);
@@ -279,14 +289,14 @@ export function createWorld() {
   for(let i=0;i<roadsideCount;i++){
    const z=-i*roadsideSpacing-4+(Math.random()-.5)*1.35;
    const nearScale=.66+Math.random()*.82;
-   roadsideVegetation.push(tree(-4.95-Math.random()*1.35,z,nearScale,roadsideLoop));
-   roadsideVegetation.push(tree(4.95+Math.random()*1.35,z+(Math.random()-.5)*.9,.84+Math.random()*.4,roadsideLoop));
+   roadsideVegetation.push(tree(-4.95-Math.random()*1.35,z,nearScale,roadsideLoop,'near'));
+   roadsideVegetation.push(tree(4.95+Math.random()*1.35,z+(Math.random()-.5)*.9,.84+Math.random()*.4,roadsideLoop,'near'));
    // A more distant, staggered pine appears only every other position.
    if(i%2===0){
     const backZ=z-2.25+(Math.random()-.5)*1.7;
     const backScale=.72+Math.random()*.92;
-    roadsideVegetation.push(tree(-8.0-Math.random()*2.1,backZ,backScale,roadsideLoop));
-    roadsideVegetation.push(tree(8.0+Math.random()*2.1,backZ+(Math.random()-.5)*1.1,.92+Math.random()*.42,roadsideLoop));
+    roadsideVegetation.push(tree(-8.0-Math.random()*2.1,backZ,backScale,roadsideLoop,'middle'));
+    roadsideVegetation.push(tree(8.0+Math.random()*2.1,backZ+(Math.random()-.5)*1.1,.92+Math.random()*.42,roadsideLoop,'middle'));
    }
   }
   // More distant tree rows have their own spacing and longer recycling loop.
@@ -294,12 +304,12 @@ export function createWorld() {
   for(let i=0;i<farCount;i++){
    const z=-i*farSpacing-9+(Math.random()-.5)*1.5;
    const scale=.72+Math.random()*.96;
-   roadsideVegetation.push(tree(-13-Math.random()*9,z,scale,farForestLoop));
-   roadsideVegetation.push(tree(13+Math.random()*9,z+(Math.random()-.5)*1.4,.96+Math.random()*.5,farForestLoop));
+   roadsideVegetation.push(tree(-13-Math.random()*9,z,scale,farForestLoop,'far'));
+   roadsideVegetation.push(tree(13+Math.random()*9,z+(Math.random()-.5)*1.4,.96+Math.random()*.5,farForestLoop,'far'));
    if(i%3===0){
     const outerZ=z-1.7+(Math.random()-.5)*1.5;
-    roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.62+Math.random()*.82,farForestLoop));
-    roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.62+Math.random()*.82,farForestLoop));
+    roadsideVegetation.push(tree(-24-Math.random()*7,outerZ,.62+Math.random()*.82,farForestLoop,'far'));
+    roadsideVegetation.push(tree(24+Math.random()*7,outerZ+(Math.random()-.5)*1.4,.62+Math.random()*.82,farForestLoop,'far'));
    }
   }
   // Ferns grow in loose clumps along both verges, filling the spaces below and between the pines.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createLowPolyPine} from '../src/world/LowPolyPine.js';
+import {createLowPolyPine,PINE_ARCHETYPES,FOREST_PINE_WEIGHTS,chooseForestPine} from '../src/world/LowPolyPine.js';
 
 test('AI Studio grove pine has a tapered trunk, four crafted foliage tiers and a contact shadow',()=>{
  const pine=createLowPolyPine();
@@ -65,4 +65,71 @@ test('forest instancing keeps wind, recycling and lane obstacles separate from v
  assert.ok(world.includes('updateForestPines()'));
  assert.ok(game.includes("function makeObstacle(lane,z,type='knot')"));
  assert.ok(game.includes("type:'knot'"));
+});
+
+test('all five AI Studio forest pines have their authored trunk and foliage dimensions',()=>{
+ const variants=[
+  ['grove_cluster',4,4.8,.242,.528,6,'582b1b','143823',2.64],
+  ['runner_spruce_pro',5,5.52,.231,.504,7,'5c2d1d','143823',2.52],
+  ['dead_snag',0,4.56,.187,.408,6,'4d3228',null,2.04],
+  ['sequoia_giant',6,7.68,.33,.72,8,'7a311b','113320',3.6],
+  ['taiga_spruce',6,5.76,.209,.456,6,'4f281b','0e2b1b',2.28]
+ ];
+ assert.deepEqual([...PINE_ARCHETYPES],variants.map(v=>v[0]));
+ for(const [name,tiers,height,top,bottom,sides,bark,foliage,shadowRadius] of variants){
+  const pine=createLowPolyPine(name);
+  assert.equal(pine.userData.pineArchetype,name);
+  const trunk=pine.children[0],shadow=pine.children.at(-1);
+  assert.equal(trunk.geometry.parameters.height,height);
+  assert.equal(trunk.geometry.parameters.radiusTop,top);
+  assert.equal(trunk.geometry.parameters.radiusBottom,bottom);
+  assert.equal(trunk.geometry.parameters.radialSegments,sides);
+  assert.equal(trunk.position.y,height/2);
+  assert.equal(trunk.material.color.getHexString(),bark);
+  assert.ok(Math.abs(shadow.geometry.parameters.radius-shadowRadius)<1e-10);
+  const cones=pine.children.filter(part=>part.geometry.type==='ConeGeometry');
+  assert.equal(cones.length,tiers,name+' foliage tier count');
+  if(tiers){
+   assert.equal(cones[0].material.color.getHexString(),foliage);
+   assert.ok(cones.every(part=>part.geometry===cones[0].geometry&&part.material===cones[0].material));
+  }else{
+   // Bare dead pine has broken wooden branches, not green needles.
+   const stubs=pine.children.filter(part=>part.geometry.type==='CylinderGeometry');
+   assert.ok(stubs.length>1);
+   assert.ok(stubs.slice(1).every(part=>part.material===trunk.material));
+  }
+ }
+ assert.throws(()=>createLowPolyPine('unknown'),RangeError);
+});
+
+test('tree variety weights favor verge spruces and keep giants outside the roadside grove',()=>{
+ for(const band of ['near','middle','far']){
+  const weights=FOREST_PINE_WEIGHTS[band];
+  assert.equal(PINE_ARCHETYPES.reduce((total,kind)=>total+weights[kind],0),100);
+  assert.ok(PINE_ARCHETYPES.every(kind=>Number.isFinite(weights[kind])&&weights[kind]>=0));
+  assert.equal(chooseForestPine(band,0),'grove_cluster');
+  assert.equal(chooseForestPine(band,.999999),'taiga_spruce');
+ }
+ assert.equal(FOREST_PINE_WEIGHTS.near.sequoia_giant,0);
+ assert.ok(FOREST_PINE_WEIGHTS.far.sequoia_giant>FOREST_PINE_WEIGHTS.middle.sequoia_giant);
+ assert.equal(chooseForestPine('near',.77),'runner_spruce_pro');
+ assert.equal(chooseForestPine('near',.80),'dead_snag');
+ assert.equal(chooseForestPine('middle',.70),'dead_snag');
+ assert.equal(chooseForestPine('far',.69),'sequoia_giant');
+ assert.equal(chooseForestPine('far',.82),'taiga_spruce');
+});
+
+test('five forest pines keep instancing, original scale, recycling and untouched obstacles',()=>{
+ const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(world.includes('pinePrototypes[name]=createLowPolyPine(name)'));
+ assert.ok(world.includes('const archetype=chooseForestPine(depth)'));
+ assert.ok(world.includes("archetype==='sequoia_giant'?.78+Math.random()*.18:1"));
+ assert.ok(world.includes('for(const source of prototype.children)'));
+ for(const row of ["'near'","'middle'","'far'"])assert.ok(world.includes("farForestLoop,"+row)||world.includes("roadsideLoop,"+row));
+ assert.ok(world.includes('const pineModelScaleXZ=.50;'));
+ assert.ok(world.includes('const pineModelScaleY=.82;'));
+ assert.ok(world.includes("g.userData.recycleLength=recycleLength;g.userData.windKind='pine'"));
+ assert.ok(world.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.parts.length)'));
+ assert.ok(game.includes("function makeObstacle(lane,z,type='knot')"));
 });
