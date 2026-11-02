@@ -36,10 +36,8 @@ import { createGameMenu } from './ui/GameMenu.js';
 import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
-import { enableSceneInspector } from './dev/SceneInspector.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
-enableSceneInspector({ scene, camera, renderer });
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
