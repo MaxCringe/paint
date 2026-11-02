@@ -16,13 +16,28 @@ const PINE_SPECS=Object.freeze({
 });
 export const PINE_ARCHETYPES=Object.freeze(Object.keys(PINE_SPECS));
 
-// 100% per depth band. The sequoia is a rare distant landmark, never a
-// roadside wall; runner spruce populates the visible verge most often.
+// Near the road: mostly shorter grove pines, no tall taiga/giant archetypes.
+// Tall silhouettes become gradually more common deeper in the forest.
 export const FOREST_PINE_WEIGHTS=Object.freeze({
- near:Object.freeze({grove_cluster:50,runner_spruce_pro:28,dead_snag:8,sequoia_giant:0,taiga_spruce:14}),
- middle:Object.freeze({grove_cluster:45,runner_spruce_pro:20,dead_snag:8,sequoia_giant:4,taiga_spruce:23}),
- far:Object.freeze({grove_cluster:38,runner_spruce_pro:12,dead_snag:12,sequoia_giant:8,taiga_spruce:30})
+ near:Object.freeze({grove_cluster:72,runner_spruce_pro:16,dead_snag:12,sequoia_giant:0,taiga_spruce:0}),
+ middle:Object.freeze({grove_cluster:45,runner_spruce_pro:22,dead_snag:10,sequoia_giant:0,taiga_spruce:23}),
+ far:Object.freeze({grove_cluster:30,runner_spruce_pro:15,dead_snag:10,sequoia_giant:8,taiga_spruce:37})
 });
+
+// Separate scale envelopes make the tallest tree crowns distant landmarks.
+// Keep the same X/Z width variation, recycling and batched rendering.
+export const FOREST_PINE_DEPTH_SIZE=Object.freeze({
+ near:Object.freeze({maxScale:1.25,heightFactor:.77,minHeight:.86,heightRange:.24}),
+ middle:Object.freeze({maxScale:1.4,heightFactor:.86,minHeight:.9,heightRange:.3}),
+ far:Object.freeze({maxScale:Infinity,heightFactor:1,minHeight:.98,heightRange:.47})
+});
+
+export function forestPineScale(depth,scale,randomValue=Math.random()){
+ const cfg=FOREST_PINE_DEPTH_SIZE[depth]||FOREST_PINE_DEPTH_SIZE.near;
+ const roll=Math.min(1,Math.max(0,Number.isFinite(randomValue)?randomValue:0));
+ const base=Math.min(Math.max(0,scale),cfg.maxScale);
+ return {width:base,height:base*cfg.heightFactor*(cfg.minHeight+roll*cfg.heightRange)};
+}
 
 export function chooseForestPine(depth='near',randomValue=Math.random()){
  const weights=FOREST_PINE_WEIGHTS[depth]||FOREST_PINE_WEIGHTS.near;

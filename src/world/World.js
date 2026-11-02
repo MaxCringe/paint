@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { buildFernGeometry } from './buildFernGeometry.js';
-import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine } from './LowPolyPine.js';
+import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine, forestPineScale } from './LowPolyPine.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld() {
@@ -208,9 +208,10 @@ export function createWorld() {
    const prototype=pinePrototypes[archetype];
    // Giant sequoias stay rare and slightly reduced, even in the deep forest.
    const visualScale=scale*(archetype==='sequoia_giant'?.78+Math.random()*.18:1);
+   const pineSize=forestPineScale(depth,visualScale);
    const g=new THREE.Group();g.position.set(x,0,z);
-   // Preserve the taller/slimmer version with natural height variation.
-   g.scale.set(visualScale*(.82+Math.random()*.22),visualScale*(.92+Math.random()*.52),visualScale*(.82+Math.random()*.22));
+   // Shorter and more open by the road; tallest crowns belong in the distance.
+   g.scale.set(pineSize.width*(.82+Math.random()*.22),pineSize.height,pineSize.width*(.82+Math.random()*.22));
    g.rotation.y=Math.random()*Math.PI/3;
    g.userData.recycleLength=recycleLength;g.userData.windKind='pine';
    g.userData.pineArchetype=archetype;

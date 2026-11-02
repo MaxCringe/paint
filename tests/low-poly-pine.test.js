@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createLowPolyPine,PINE_ARCHETYPES,FOREST_PINE_WEIGHTS,chooseForestPine} from '../src/world/LowPolyPine.js';
+import {createLowPolyPine,PINE_ARCHETYPES,FOREST_PINE_WEIGHTS,FOREST_PINE_DEPTH_SIZE,chooseForestPine,forestPineScale} from '../src/world/LowPolyPine.js';
 
 test('AI Studio grove pine has a tapered trunk, four crafted foliage tiers and a contact shadow',()=>{
  const pine=createLowPolyPine();
@@ -46,8 +46,9 @@ test('preview pines grow vertically without widening into the running lanes',()=
  assert.ok(world.includes('source.position.x*pineModelScaleXZ'));
  assert.ok(world.includes('source.scale.y*pineModelScaleY'));
  assert.ok(world.includes('source.scale.x*pineModelScaleXZ'));
- assert.ok(world.includes('visualScale*(.92+Math.random()*.52)'));
- assert.ok(world.includes('visualScale*(.82+Math.random()*.22)'));
+ assert.ok(world.includes('const pineSize=forestPineScale(depth,visualScale)'));
+ assert.ok(world.includes('pineSize.height'));
+ assert.ok(world.includes('pineSize.width*(.82+Math.random()*.22)'));
  // Original pine stays unchanged; render instances are still batched.
  const pine=createLowPolyPine();
  assert.equal(pine.children[0].position.y,2.4);
@@ -57,7 +58,7 @@ test('preview pines grow vertically without widening into the running lanes',()=
 test('forest instancing keeps wind, recycling and lane obstacles separate from visual pine swap',()=>{
  const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
- assert.ok(world.includes("import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine } from './LowPolyPine.js'"));
+ assert.ok(world.includes("import { createLowPolyPine, PINE_ARCHETYPES, chooseForestPine, forestPineScale } from './LowPolyPine.js'"));
  assert.ok(world.includes('const pinePrototype=createLowPolyPine()'));
  assert.ok(world.includes('pinePart(g,source.geometry,source.material)'));
  assert.ok(world.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.parts.length)'));
@@ -108,14 +109,14 @@ test('tree variety weights favor verge spruces and keep giants outside the roads
   assert.equal(PINE_ARCHETYPES.reduce((total,kind)=>total+weights[kind],0),100);
   assert.ok(PINE_ARCHETYPES.every(kind=>Number.isFinite(weights[kind])&&weights[kind]>=0));
   assert.equal(chooseForestPine(band,0),'grove_cluster');
-  assert.equal(chooseForestPine(band,.999999),'taiga_spruce');
+  assert.equal(chooseForestPine(band,.999999),band==='near'?'dead_snag':'taiga_spruce');
  }
  assert.equal(FOREST_PINE_WEIGHTS.near.sequoia_giant,0);
  assert.ok(FOREST_PINE_WEIGHTS.far.sequoia_giant>FOREST_PINE_WEIGHTS.middle.sequoia_giant);
  assert.equal(chooseForestPine('near',.77),'runner_spruce_pro');
- assert.equal(chooseForestPine('near',.80),'dead_snag');
+ assert.equal(chooseForestPine('near',.90),'dead_snag');
  assert.equal(chooseForestPine('middle',.70),'dead_snag');
- assert.equal(chooseForestPine('far',.69),'sequoia_giant');
+ assert.equal(chooseForestPine('far',.59),'sequoia_giant');
  assert.equal(chooseForestPine('far',.82),'taiga_spruce');
 });
 
@@ -132,4 +133,32 @@ test('five forest pines keep instancing, original scale, recycling and untouched
  assert.ok(world.includes("g.userData.recycleLength=recycleLength;g.userData.windKind='pine'"));
  assert.ok(world.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.parts.length)'));
  assert.ok(game.includes("function makeObstacle(lane,z,type='knot')"));
+});
+
+test('tallest pines are reserved for the distant forest instead of the road verge',()=>{
+ assert.equal(FOREST_PINE_WEIGHTS.near.sequoia_giant,0);
+ assert.equal(FOREST_PINE_WEIGHTS.near.taiga_spruce,0);
+ assert.equal(FOREST_PINE_WEIGHTS.middle.sequoia_giant,0);
+ assert.ok(FOREST_PINE_WEIGHTS.far.sequoia_giant>0);
+ assert.ok(FOREST_PINE_WEIGHTS.far.taiga_spruce>FOREST_PINE_WEIGHTS.middle.taiga_spruce);
+
+ const nearMin=forestPineScale('near',1,0);
+ const nearMax=forestPineScale('near',1.8,1);
+ const middleMax=forestPineScale('middle',1.8,1);
+ const farMax=forestPineScale('far',1.8,1);
+ assert.equal(nearMin.height,1*.77*.86);
+ assert.equal(nearMax.width,1.25);
+ assert.equal(middleMax.width,1.4);
+ assert.equal(farMax.width,1.8);
+ assert.ok(nearMax.height<middleMax.height);
+ assert.ok(middleMax.height<farMax.height);
+ assert.ok(FOREST_PINE_DEPTH_SIZE.far.heightFactor>FOREST_PINE_DEPTH_SIZE.near.heightFactor);
+
+ const world=readFileSync(new URL('../src/world/World.js',import.meta.url),'utf8');
+ assert.ok(world.includes('const pineSize=forestPineScale(depth,visualScale)'));
+ assert.ok(world.includes('g.scale.set(pineSize.width'));
+ assert.ok(world.includes('pineSize.height'));
+ assert.ok(world.includes("roadsideLoop,'near'"));
+ assert.ok(world.includes("roadsideLoop,'middle'"));
+ assert.ok(world.includes("farForestLoop,'far'"));
 });
