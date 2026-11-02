@@ -59,7 +59,7 @@ test('inspector camera restores normal gameplay camera and ignores input when cl
  assert.ok(!classes.has('hat-orbit-active'));
  assert.equal(orbit.active,false);
  assert.ok(camera.position.distanceTo(originalPosition)<1e-9);
- assert.ok(camera.quaternion.angleTo(originalRotation)<1e-9);
+ assert.ok(camera.quaternion.equals(originalRotation),'camera rotation is restored exactly');
  const old=orbit.get();
  event('wheel',{deltaY:-200});
  assert.deepEqual(orbit.get(),old);
