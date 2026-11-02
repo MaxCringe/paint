@@ -1,6 +1,6 @@
 /* Temporary 3D Fiona workshop. Does not affect regular game layout. */
 #fiona-pose-editor-toggle{
- position:fixed;z-index:75;left:14px;bottom:14px;min-width:0;
+ position:fixed;z-index:75;right:14px;bottom:62px;min-width:0;
  padding:11px 14px;width:auto;border:1px solid #bb8869;border-radius:12px;
  background:#3b2a2d;color:#f6d0a9;box-shadow:0 7px 30px #0009;
  font-size:12px;letter-spacing:.025em;pointer-events:auto;
@@ -39,5 +39,5 @@ body.fiona-pose-editor-open #fiona-test-tools{display:none!important}
 #fiona-pose-editor #pose-export{width:100%;height:115px;resize:vertical;background:#100d0f;border:1px solid #a77b62;border-radius:9px;color:#f6e8df;font-size:10px;padding:8px;margin-top:10px;white-space:pre}
 @media(max-width:700px){
  #fiona-pose-editor{top:auto;bottom:8px;right:8px;transform:none;max-height:74dvh;width:min(350px,calc(100vw - 16px));padding:12px}
- #fiona-pose-editor-toggle{bottom:66px;left:8px}
+ #fiona-pose-editor-toggle{bottom:66px;right:8px}
 }
