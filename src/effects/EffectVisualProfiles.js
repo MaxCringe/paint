@@ -1,4 +1,4 @@
-// Visual-only parameter registry for the temporary KNOTTY PINE VFX workshop.
+// Runtime visual-only parameter profiles for KNOTTY PINE.
 // No gameplay timings, hitboxes, spawning probabilities or inventory rules live here.
 export const EFFECT_VISUAL_SCHEMA=2;
 export const EFFECT_VISUAL_DEFAULTS=Object.freeze({

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {
  EFFECT_EDITOR_AVAILABLE,EFFECT_VISUAL_SCHEMA,EFFECT_VISUAL_DEFAULTS,EFFECT_VISUAL_CONTROLS,
  effectVisualSnapshot,getEffectVisualProfile,setEffectVisualValue,
@@ -43,35 +43,17 @@ test('settings clamp invalid values and retain independent categories',()=>{
  revertEffectVisuals();
  assert.equal(getEffectVisualProfile('scarf').glowColor,'#ffffff');
 });
-test('editor isolates the real 3D models, exports all effects, and has a one-switch release guard',()=>{
- const editor=read('src/devtools/EffectEditor.js');
+test('temporary effect editor is removed but runtime visual profiles remain',()=>{
  const html=read('index.html'),main=read('src/main.js'),game=read('src/game.js');
- assert.match(html,/id="menu-open-effects-editor"[^>]+hidden/);
- assert.match(editor,/openButton.classList.remove\('hidden'\)/);
- assert.match(editor,/createFiona\(scene\)/);
-  assert.match(editor,/loadFiona\(\{runner,\.\.\.files\}\)/);
- assert.match(editor,/createBroomRide\(scene,runner\)/);
- assert.match(editor,/createWitchHatFactory\(scene,hats,runner\)/);
-  assert.match(editor,/hatFactory\.attachWearableToHead\(rig.headBone\)/);
- assert.match(editor,/createScarfModelFactory\(\)/);
- assert.match(editor,/createSoulFactory\(scene,coins\)/);
- assert.match(editor,/saveEffectVisuals\(\)/);
- assert.match(editor,/saveBroomTuning\(\)/);
- assert.match(editor,/navigator.clipboard.writeText\(json\)/);
- assert.match(editor,/scarfFlash.material.opacity=burstLife\*v.burstOpacity\/100/);
- assert.match(read('src/souls/createSoulFactory.js'),/if\(!force&&signature===lastVisualSignature\)return/);
- assert.match(editor,/schemaVersion:EFFECT_VISUAL_SCHEMA/);
- assert.ok(editor.includes('broomModel:all.broomModel'));
- assert.ok(editor.includes("['coughColor','Цвет «пыхов»','color']"));
- assert.ok(editor.includes("['sparkColor','Цвет искр','color']"));
- assert.ok(editor.includes("['streakColor','Цвет струек','color']"));
- assert.ok(editor.includes("['glowColor','Цвет свечения','color']"));
- assert.ok(editor.includes('scarfFactory.updateVisuals()'));
- assert.ok(editor.includes("broom.preview(8,now,{showTrail:false})"));
- assert.match(main,/VITE_ENABLE_EFFECT_EDITOR/);
- assert.match(main,/import\('\.\/devtools\/EffectEditor\.js'\)/);
- assert.match(game,/effect-editor-open/);
- assert.ok(!html.includes('id="menu-open-broom-lab"'));
+ assert.ok(!html.includes('menu-open-effects-editor'));
+ assert.ok(!main.includes('EffectEditor.js'));
+ assert.ok(!main.includes('VITE_ENABLE_EFFECT_EDITOR'));
+ assert.ok(!game.includes('effect-editor-open'));
+ for(const path of ['src/devtools/EffectEditor.js','src/devtools/EffectEditor.css'])
+  assert.equal(existsSync(new URL('../'+path,import.meta.url)),false,path);
+ assert.ok(existsSync(new URL('../src/effects/EffectVisualProfiles.js',import.meta.url)));
+ assert.ok(existsSync(new URL('../src/powerups/BroomVisualProfiles.js',import.meta.url)));
+ assert.ok(read('src/souls/createSoulFactory.js').includes('if(!force&&signature===lastVisualSignature)return'));
 });
 test('visual profiles drive actual hat, scarf, soul and ultimate renderers, never their game rules',()=>{
  const hat=read('src/powerups/WitchHat.js'),scarf=read('src/powerups/ScarfPickup.js');

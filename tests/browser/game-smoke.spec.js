@@ -10,6 +10,7 @@ test('ordinary runner starts, pauses and resumes with a live WebGL scene',async(
  await page.goto('/');
  await expect(page.locator('#center')).toBeVisible();
  await expect(page.locator('#menu-main')).toBeVisible();
+ await expect(page.locator('#menu-open-effects-editor')).toHaveCount(0);
  const gl=await page.locator('canvas').first().evaluate(canvas=>
   Boolean(canvas.getContext('webgl2')||canvas.getContext('webgl'))
  );
