@@ -14,6 +14,7 @@ test('ordinary runner starts, pauses and resumes with a live WebGL scene',async(
   Boolean(canvas.getContext('webgl2')||canvas.getContext('webgl'))
  );
  expect(gl,'Chromium should provide software WebGL').toBe(true);
+ await expect(page.locator('#start')).toBeEnabled({timeout:90_000});
  await page.locator('#start').click();
  await expect(page.locator('#center')).toHaveClass(/hidden/);
  await expect(page.locator('#pause-button')).toBeVisible();
@@ -26,63 +27,14 @@ test('ordinary runner starts, pauses and resumes with a live WebGL scene',async(
  expect(errors).toEqual([]);
 });
 
-test('Fiona DEV run loads hosted FBX and all 23 Python animations without updating real attempts',async({page})=>{
+test('the main run uses new hosted Fiona without DEV menus',async({page})=>{
  const errors=trackUnhandled(page);
  await page.goto('/');
- await page.locator('#menu-open-fiona-test').click();
- await expect(page.locator('#menu-fiona-test')).toBeVisible();
- await page.locator('#fiona-test-launch').click();
- await page.waitForFunction(()=>{
-  const menu=document.getElementById('center');
-  const status=document.getElementById('fiona-test-status')?.textContent||'';
-  return menu?.classList.contains('hidden')||status.startsWith('Ошибка:');
- },{timeout:90_000});
- const status=await page.locator('#fiona-test-status').textContent();
- expect(await page.locator('#center').evaluate(node=>node.classList.contains('hidden')),
-  'DEV Fiona failed to start; status: '+status+'; page errors: '+errors.join(' | ')).toBe(true);
- const tools=page.locator('#fiona-test-tools');
- await expect(tools).toBeVisible({timeout:30_000});
- expect(await tools.evaluate(el=>getComputedStyle(el).pointerEvents)).toBe('auto');
- await tools.locator('summary').click();
- const importedRun=page.locator('[data-fiona-run-variant="fbx"]');
- const newRun=page.locator('[data-fiona-run-variant="calibrated"]');
- const oldRun=page.locator('[data-fiona-run-variant="original"]');
- const fbxStatus=await page.locator('#fiona-test-preview-status').textContent();
- console.log('FBX IMPORT STATUS:',fbxStatus);
- expect(fbxStatus).toContain('FBX-файлы: 4/4');
- await expect(tools).toHaveAttribute('data-fbx-imported','4');
- await expect(importedRun).toHaveAttribute('aria-pressed','true');
- await oldRun.click();
- await expect(oldRun).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Старый бег');
- await newRun.click();
- await expect(newRun).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Новый бег');
- await importedRun.click();
- await expect(importedRun).toHaveAttribute('aria-pressed','true');
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Fast Run.fbx');
- await expect(page.locator('#fiona-test-preview-actions button:not([disabled])')).toHaveCount(23);
- const controls=page.locator('#fiona-test-preview-actions button');
- await controls.filter({hasText:'Бег'}).click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Fast Run.fbx');
- await controls.filter({hasText:'Прыжок'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Running Jump.fbx');
- await controls.filter({hasText:'Полёт на метле'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
- await controls.filter({hasText:'Сбор души'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('без анимации');
- await controls.filter({hasText:'Подкат под бревном'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Running Slide (1).fbx');
- await controls.filter({hasText:'Скольжение на луже'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Edge Slip.fbx');
- await controls.filter({hasText:'Смерть'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
- await expect(controls.filter({hasText:'Смерть от рыбы'}).first()).toBeDisabled();
- await controls.filter({hasText:'Удар о дерево'}).first().click();
- await expect(page.locator('#fiona-test-preview-status')).toContainText('Python/NumPy');
- const attempts=await page.evaluate(()=>localStorage.getItem('knottyPineRunsStarted'));
- expect(attempts,'DEV test must not count as a real run').toBeNull();
- await page.keyboard.press('Escape');
- await expect(page.locator('#resume')).toBeVisible();
+ await expect(page.locator('#menu-open-fiona-test')).toHaveCount(0);
+ await expect(page.locator('#fiona-test-tools')).toHaveCount(0);
+ await expect(page.locator('#start')).toBeEnabled({timeout:90_000});
+ await page.locator('#start').click();
+ await expect(page.locator('#center')).toHaveClass(/hidden/);
+ expect(await page.evaluate(()=>localStorage.getItem('knottyPineRunsStarted'))).toBe('1');
  expect(errors).toEqual([]);
 });

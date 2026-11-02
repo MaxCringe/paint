@@ -36,7 +36,6 @@
    <div class="menu-actions">
     <button id="resume" type="button" class="menu-action menu-primary hidden">ПРОДОЛЖИТЬ</button>
     <button id="start" type="button" class="menu-action menu-primary">НАЧАТЬ ЗАБЕГ</button>
-     <button id="menu-open-fiona-test" type="button" class="menu-action menu-secondary">✦ ТЕСТ НОВОЙ ФИОНЫ · DEV</button>
     <button id="menu-open-help" type="button" class="menu-action menu-secondary">КАК ИГРАТЬ</button>
     <button id="menu-open-settings" type="button" class="menu-action menu-secondary">НАСТРОЙКИ</button>
     <button id="menu-open-effects-editor" type="button" class="menu-action menu-secondary hidden">✦ РЕДАКТОР ЭФФЕКТОВ · DEV</button>
@@ -48,20 +47,6 @@
    </div>
    </div>
   </div>
-  <div id="menu-fiona-test" class="menu-page hidden">
-    <h2>ТЕСТ НОВОЙ ФИОНЫ</h2>
-    <p class="desc">Новая модель Фионы и 23 авторские Python-анимации загружаются автоматически. Нажми «Запустить» — больше не нужно выбирать Run Forward и Jump.</p>
-    <p class="fiona-test-hint">Семь FBX-анимаций: Fast Run (бег), Running Jump (прыжок), Crouched To Sprinting (подкат на земле), Edge Slip (лужа), Hit On Legs (отдельная смерть от сосны), Standing React Death Right (другие смерти), Stumble Backwards (смерть от рыбы). На метле наземная смерть не проигрывается; сбор душ без анимации.</p>
-    <details class="fiona-test-optional">
-      <summary>Другая версия модели (необязательно)</summary>
-      <label class="fiona-test-label" for="fiona-model-file">Модель со скелетом (.fbx)</label>
-      <input class="fiona-test-file" type="file" id="fiona-model-file" accept=".fbx">
-    </details>
-    <label class="fiona-test-label fiona-test-orientation"><input type="checkbox" id="fiona-test-turn" checked> Развернуть модель на 180°</label>
-    <p id="fiona-test-status" role="status" aria-live="polite">Готово к запуску. Модель: GitHub. Движения: Python/NumPy.</p>
-    <button id="fiona-test-launch" type="button" class="menu-action menu-primary">ЗАПУСТИТЬ ТЕСТОВЫЙ ЗАБЕГ</button>
-    <button class="menu-action menu-secondary menu-back" data-menu-back type="button">НАЗАД</button>
-   </div>
    <div id="menu-help" class="menu-page hidden">
    <h2>КАК ИГРАТЬ</h2>
    <div class="menu-tabs" role="tablist" aria-label="Устройство">
@@ -142,18 +127,7 @@
   </div>
  </section>
  <button id="pause-button" class="hidden" type="button" aria-label="Пауза, открыть меню" title="Пауза">⏸</button>
- <details id="fiona-test-tools" class="hidden" aria-label="Проверка анимаций Фионы">
-   <summary>✦ Анимации Фионы · DEV</summary>
-   <div class="fiona-test-run-comparison" role="group" aria-label="Сравнить бег Фионы">
-     <span>СРАВНЕНИЕ БЕГА</span>
-     <button type="button" data-fiona-run-variant="fbx" aria-pressed="true">Fast Run · FBX</button>
-     <button type="button" data-fiona-run-variant="calibrated" aria-pressed="false">Python · скелет</button>
-     <button type="button" data-fiona-run-variant="original" aria-pressed="false">Python · старый</button>
-   </div>
-   <p>Просмотр движения не изменяет физику, препятствия и способности.</p>
-   <div id="fiona-test-preview-actions"></div>
-   <p id="fiona-test-preview-status" role="status" aria-live="polite">Выбери действие для просмотра.</p>
- </details>
+
 </div>
 
 <script type="module" src="/src/main.js"></script>

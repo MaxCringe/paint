@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-// User-approved FBX assets for the optional Fiona DEV run only.
+// User-approved FBX assets for the production Fiona.
 // Flying.fbx was rejected and removed; flight uses the Python fallback.
 export const FIONA_FBX_FILES=Object.freeze([
  {id:'run',file:'Fast Run.fbx',action:'runFBX'},

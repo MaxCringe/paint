@@ -1,12 +1,9 @@
-import { resolveFionaAssets } from '../player/FionaAssetCache.js';
-import { FIONA_ANIMATION_SLOTS } from '../player/FionaAnimationSlots.js';
-
 // Shared start and pause menu; game-over results now have a dedicated panel.
 // Continue is visible only when a live run has been paused.
-export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTest,onTestRunVariant,haptics,fpsDisplay}){
+export function createGameMenu({onStart,onResume,onPause,haptics,fpsDisplay}){
  const $=id=>document.getElementById(id);
  const root=$('center'), pages={
-  main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings'),fionaTest:$('menu-fiona-test')
+  main:$('menu-main'),help:$('menu-help'),settings:$('menu-settings')
  };
  const tabButtons=Array.from(root.querySelectorAll('[data-help-tab]'));
  const helpPages={pc:$('help-pc'),mobile:$('help-mobile')};
@@ -56,94 +53,6 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
 
  $('menu-open-help').addEventListener('click',()=>openPage('help'));
  $('menu-open-settings').addEventListener('click',()=>openPage('settings'));
-  $('menu-open-fiona-test').addEventListener('click',()=>openPage('fionaTest'));
-  const testStatus=$('fiona-test-status'),testLaunch=$('fiona-test-launch');
-  const previews=$('fiona-test-preview-actions');
-  const previewPanel=$('fiona-test-tools');
-  const previewStatus=$('fiona-test-preview-status');
-  const runCompareButtons=[...document.querySelectorAll('[data-fiona-run-variant]')];
-  function syncRunCompareButtons(value){
-    for(const button of runCompareButtons){
-      const active=button.dataset.fionaRunVariant===value;
-      button.setAttribute('aria-pressed',String(active));
-      button.classList.toggle('is-selected',active);
-    }
-  }
-  for(const button of runCompareButtons)button.addEventListener('click',()=>{
-    const result=onTestRunVariant?.(button.dataset.fionaRunVariant);
-    if(result?.ok)syncRunCompareButtons(button.dataset.fionaRunVariant);
-    previewStatus.textContent=result?.message||'Тестовая Фиона пока не запущена.';
-  });
-  syncRunCompareButtons('fbx');
-  const previewButtons=new Map();
-  const animationGroups=new Map();
-  for(const slot of FIONA_ANIMATION_SLOTS){
-    const button=document.createElement('button');
-    button.type='button';button.className='fiona-test-preview-button';
-    button.textContent=slot.label;
-    button.title='Python-анимация ещё не загружена';
-    button.disabled=true;
-    button.addEventListener('click',()=>{
-      const result=onPreviewTest?.(slot.id);
-      previewStatus.textContent=result?.message||'Предпросмотр недоступен.';
-    });
-    previews.append(button);
-    previewButtons.set(slot.id,button);
-  }
-  // A separate fish-specific fatal reaction, not a 24th Python slot.
-  const fishDeathPreview=document.createElement('button');
-  fishDeathPreview.type='button';
-  fishDeathPreview.className='fiona-test-preview-button';
-  fishDeathPreview.textContent='Смерть от рыбы · FBX';
-  fishDeathPreview.disabled=true;
-  fishDeathPreview.addEventListener('click',()=>{
-    const result=onPreviewTest?.('fishDeath');
-    previewStatus.textContent=result?.message||'Анимация смерти от рыбы недоступна.';
-  });
-  previews.append(fishDeathPreview);
-  function showFionaPreviewTools(enabled,loaded=new Set(),prototypeIds=new Set(),importedIds=new Set(),importedFiles=[],importErrors=[],runVariant='fbx'){
-    previewPanel.classList.toggle('hidden',!enabled);
-    if(!enabled){previewPanel.open=false;return;}
-    syncRunCompareButtons(runVariant);
-    const fbxButton=runCompareButtons.find(b=>b.dataset.fionaRunVariant==='fbx');
-    if(fbxButton)fbxButton.disabled=!importedIds.has('run');
-    const names=new Set(loaded);
-    fishDeathPreview.disabled=!importedIds.has('fishDeath');
-    let count=0;
-    for(const slot of FIONA_ANIMATION_SLOTS){
-      const button=previewButtons.get(slot.id);
-      const has=names.has(slot.id);
-      button.disabled=!has;
-      button.classList.toggle('fiona-test-preview-loaded',has);
-      const isImported=importedIds.has(slot.id)||
-        (slot.id==='hitTree'&&importedIds.has('treeDeath'));
-      const passive=slot.id==='soulPickup';
-      button.title=passive?'Сбор душ не прерывает бег':has?(isImported?'FBX: '+slot.label:'Python/NumPy: '+slot.label):'Анимация пока недоступна';
-      button.textContent=slot.label+(passive?' · без анимации':isImported?' · FBX':prototypeIds.has(slot.id)?' · Python':'');
-      if(has)count++;
-    }
-    const fbxTotal=importedFiles.length+importErrors.length;
-    previewPanel.dataset.fbxImported=String(importedFiles.length);
-    previewStatus.textContent='FBX-файлы: '+importedFiles.length+'/'+fbxTotal+' ('+
-      importedFiles.map(r=>r.file+' → '+r.sourceClip+': '+r.boneCount+' костей; доступные клипы ['+
-        r.allClips.map(c=>c.name+':'+c.duration+'с').join(', ')+']').join('; ')+'). '+
-      'Доступно движений: '+count+'/'+FIONA_ANIMATION_SLOTS.length+
-      (importErrors.length?' Ошибки: '+importErrors.join(' | '):'')+'.';
-  }
-  testLaunch.addEventListener('click',async()=>{
-    const modelFile=$('fiona-model-file').files?.[0];
-    testLaunch.disabled=true;testStatus.textContent='Ищу Фиону и проверяю анимации…';
-    try{
-      const resolved=await resolveFionaAssets({modelFile});
-      const avatar=await onStartTest({...resolved.files,turn:$('fiona-test-turn').checked});
-      testStatus.textContent='Тест запущен: модель '+(resolved.origin==='website'?'из GitHub':'с компьютера')+
-        ', FBX '+avatar.importedFiles.length+'/'+(avatar.importedFiles.length+avatar.importErrors.length)+', полёт — Python, души — без анимации.'+
-        (avatar.importErrors.length?' Ошибки: '+avatar.importErrors.join(' | '):'');
-    }catch(error){
-      console.error('Fiona test load failed',error);
-      testStatus.textContent='Ошибка: '+(error?.message||String(error));
-    }finally{testLaunch.disabled=false;}
-  });
  root.querySelectorAll('[data-menu-back]').forEach(button=>
   button.addEventListener('click',()=>openPage('main')));
  tabButtons.forEach(button=>button.addEventListener('click',()=>helpTab(button.dataset.helpTab)));
@@ -180,5 +89,5 @@ export function createGameMenu({onStart,onResume,onPause,onStartTest,onPreviewTe
   if(page==='main')return false;
   openPage('main');return true;
  }
- return {show,hide,showGameOver,escape,showFionaPreviewTools,isSubpageOpen:()=>page!=='main'};
+ return {show,hide,showGameOver,escape,isSubpageOpen:()=>page!=='main'};
 }

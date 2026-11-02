@@ -136,9 +136,9 @@ test('broom ducks smoothly under pine log and returns to normal flight',()=>{
  assert.equal(pineLogBroomDuck(16,0),0);
  assert.ok(game.includes("const broomDuck=broom.active?obstacles.reduce("));
  assert.ok(!game.includes('runner.scale.y=ultActive?1:(sliding?.58:1)'));
- assert.ok(game.includes('applySlidePose(ultActive||broom.active||broom.hoverHeight>.001?0:slideAction.crouch)'));
+ assert.ok(game.includes('avatar.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck'));
  assert.ok(game.includes('runner.rotation.x=-.055*ultimateFlight.lift;'));
- assert.ok(game.includes("broom.applyPose(broomDuck)"));
+ assert.ok(!game.includes("broom.applyPose(broomDuck)"));
  assert.ok(!game.includes("runner.scale.y=ultActive?1:(sliding?.58:1-.50*broomDuck)"));
  assert.ok(game.includes("const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck"));
  assert.ok(!game.includes('pineLogBroomLift'));
@@ -250,71 +250,27 @@ test('consecutive pine logs: a second deliberate slide press refreshes the activ
  assert.equal(s.crouch,0);
 });
 
-test('natural slide bends joints and skirt; no full-body squash, repeat hold or broom pose regression',()=>{
+test('main gameplay animates the new FBX rig and no procedural body remains',()=>{
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ const rig=readFileSync(new URL('../src/player/FionaRig.js',import.meta.url),'utf8');
  const fiona=readFileSync(new URL('../src/player/Fiona.js',import.meta.url),'utf8');
- assert.ok(game.includes("slideAction.press();audio.play('slide')"));
- const input=readFileSync(new URL('../src/systems/GameInput.js',import.meta.url),'utf8');
- assert.ok(input.includes("e.code==='ArrowDown'||e.code==='KeyS'"));
- assert.ok(game.includes('slideAction.update(dt)'));
- assert.ok(!game.includes('slideT'));
- assert.ok(!game.includes('runner.scale.y='));
- assert.ok(fiona.includes('skirtPivot.rotation.x=pose.skirtPitch'));
- assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
- assert.ok(fiona.includes('knee.rotation.x=legs.kneePitch'));
- const standing=getSlidePose(0),crouched=getSlidePose(1);
- assert.ok(Math.abs(standing.waistPitch)<1e-9);
- assert.ok(Math.abs(standing.waistDrop)<1e-9);
- assert.ok(crouched.waistPitch< -.7 && crouched.waistPitch> -1);
- assert.ok(crouched.waistDrop<0);
- assert.ok(crouched.skirtPitch<0);
- assert.ok(crouched.waistRoll<0);
- assert.ok(getSlideLegPose(1).thighPitch>.5);
- assert.ok(getSlideLegPose(1).kneePitch< -1.5);
- assert.equal(getSlidePose(2).waistPitch,crouched.waistPitch);
+ assert.ok(game.includes('if(doubleJump.jump())avatar?.playJump(doubleJump.jumpsUsed)'));
+ assert.ok(game.includes('avatar.update(dt,{jumping,sliding,crouch:slideAction.crouch'));
+ assert.ok(rig.includes("if(id==='slide'&&actions.has('slideFBX'))return 'slideFBX'"));
+ assert.ok(rig.includes("if(id==='slip'&&actions.has('slipFBX'))return 'slipFBX'"));
+ assert.ok(rig.includes("broomDuck>0.14?'broomDuck':'broomFly'"));
+ assert.ok(!game.includes('useTestFiona'));
+ assert.ok(!fiona.includes('skirtPivot'));
+ const {runner}=createFiona(new THREE.Scene());
+ assert.equal(runner.children.some(node=>node.isMesh),false);
 });
 
-test('worn witch hat follows Fiona head while crouching or ducking on broom',()=>{
+test('hat attaches to new Fiona head; magnet collection unchanged',()=>{
  const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
  const hat=readFileSync(new URL('../src/powerups/WitchHat.js',import.meta.url),'utf8');
- const fiona=readFileSync(new URL('../src/player/Fiona.js',import.meta.url),'utf8');
- assert.ok(game.includes('createWitchHatFactory(scene,hats,torso)'));
- assert.ok(hat.includes('torso.add(wearable)'));
- assert.ok(hat.includes('wearable.position.set(0,1.46,0)'));
- assert.ok(!hat.includes('runner.add(wearable)'));
- assert.ok(fiona.includes('torso.rotation.x+=pose.waistPitch'));
- assert.ok(game.includes('broom.applyPose(broomDuck)'));
- // Its pickup and ten-second soul-magnet behavior must be preserved.
- assert.ok(hat.includes('hats.push({g,visual,glow,lane,z,phase:'));
- assert.ok(hat.includes('wearable.visible=active'));
+ assert.ok(game.includes('createWitchHatFactory(scene,hats,runner)'));
+ assert.ok(game.includes('attachWearableToHead(next.headBone)'));
+ assert.ok(hat.includes('headBone.add(wearable)'));
  assert.ok(game.includes('magnetTime=10;'));
-});
-
-test('sliding bends true knee joints, plants the feet and preserves avatar proportions',()=>{
- const mat=color=>new THREE.MeshStandardMaterial({color});
- const box=(w,h,d,material,x,y,z,parent)=>{
-  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
-  mesh.position.set(x,y,z);parent.add(mesh);return mesh;
- };
- const {runner,torso,legL,legR,applySlidePose}=createFiona(new THREE.Scene(),mat,box);
- applySlidePose(1);
- runner.updateMatrixWorld(true);
- assert.ok(torso.rotation.x<-.7&&torso.rotation.x> -1.1);
- assert.ok(torso.rotation.z<-.1);
- assert.ok(torso.position.y<.8);
- for(const [leg,side] of [[legL,'left'],[legR,'right']]){
-  const knee=leg.getObjectByName('fiona-'+side+'-knee');
-  const boot=leg.getObjectByName('fiona-'+side+'-boot');
-  assert.ok(knee&&boot);
-  assert.ok(leg.position.y<.4);
-  assert.ok(leg.rotation.x>.5&&knee.rotation.x< -1.5);
-  const p=boot.getWorldPosition(new THREE.Vector3());
-  assert.ok(Math.abs(p.y-.075)<.04,'ankle close to ground');
-  assert.ok(Math.abs(p.z-runner.position.z)<.04,'ankle beneath hip');
-  for(const joint of [runner,torso,leg,knee,boot])assert.deepEqual(joint.scale.toArray(),[1,1,1]);
- }
- const pose=getSlideLegPose(1);
- assert.ok(Math.abs(pose.ankleHeight-.075)<.00001);
- assert.ok(Math.abs(pose.ankleDepth)<.00001);
- assert.ok(getSlidePose(1).waistPitch> -1);
+ assert.ok(hat.includes('wearable.visible=active'));
 });

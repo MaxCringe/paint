@@ -7,14 +7,14 @@ import { loadFionaFBXClips } from './FionaImportedFBX.js';
 import { SLIDE_DURATION } from './Slide.js';
 import { createPowerLevitationPose } from './PowerLevitationPose.js';
 
-// Optional, purely visual FBX animation test. Physics/collisions remain in game.js.
+// Production skinned Fiona: animations and geometry only; collisions remain in game.js.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const SLOTS=new Map(FIONA_ANIMATION_SLOTS.map(slot=>[slot.id,slot]));
 async function parseFBX(file){
  if(!file||!/\.fbx$/i.test(file.name))throw new Error('Нужен файл FBX: '+(file?.name||'не выбран'));
  return new FBXLoader().parse(await file.arrayBuffer(),'');
 }
-export async function loadFionaTest({runner,modelFile,turn=true}){
+export async function loadFiona({runner,modelFile,turn=true}){
  const [model,generatedData,calibratedData]=await Promise.all([
   parseFBX(modelFile),fetchPythonFionaMotionData(),fetchCalibratedRunData()
  ]);
@@ -28,7 +28,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  if(!skinned||bones.size<8)throw new Error('Модель Фионы не содержит привязанного скелета.');
  // Do not read the FBX-embedded animations or user-supplied Mixamo clips.
  const clips=createPythonFionaClips(bones,generatedData);
- // The old Python clips are retained as DEV fallbacks.
+ // Python motions remain as fallbacks when an FBX clip is unavailable.
  // FBX replaces only running and the first jump; flight stays procedural.
  clips.set('runCalibrated',createCalibratedRunClip(bones,calibratedData));
  // Keep the original Python/NumPy actions as reversible fallbacks.
@@ -55,7 +55,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
  const center=bounds.getCenter(new THREE.Vector3());
  facing.position.set(-center.x,-bounds.min.y,-center.z);
  avatar.visible=false;runner.add(avatar);
- // Seated broom pose is applied to the actual skinned FBX bones, not the hidden procedural Fiona.
+ // Seated broom pose is applied directly to the real skinned bones.
  const broomJoints={};
  for(const [key,pattern] of Object.entries({hips:/hips$/i,spine:/spine$/i,
   leftUpperLeg:/leftupleg$/i,rightUpperLeg:/rightupleg$/i,

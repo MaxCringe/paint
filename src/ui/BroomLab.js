@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {createFiona} from '../player/Fiona.js';
+import {loadFiona} from '../player/FionaRig.js';
+import {resolveFionaAssets} from '../player/FionaAssetCache.js';
 import {createBroomRide} from '../powerups/BroomRide.js';
 import {
  BROOM_VISUAL_RANGES,broomTuningSnapshot,setBroomTuningValue,
@@ -81,7 +83,7 @@ export function createBroomLab(){
    message.textContent='Изменения видны сразу · нажми «Сохранить»';
   });
  }
- let mode='flight',active=false,renderer=null,scene=null,camera=null,broom=null,runner=null;
+ let mode='flight',active=false,renderer=null,scene=null,camera=null,broom=null,runner=null,rig=null;
  let frameId=0,started=0,rotation=.22,dragX=null,lastFocus=null;
  let previewWidth=0,previewHeight=0;
  const color=$('broom-lab-color-input');
@@ -121,9 +123,13 @@ export function createBroomLab(){
    const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
    mesh.position.set(x,y,z);parent.add(mesh);return mesh;
   };
-  const model=createFiona(scene,mat,box);
+  const model=createFiona(scene);
   runner=model.runner;runner.position.set(0,.77,0);
-  broom=createBroomRide(scene,runner,model);
+  broom=createBroomRide(scene,runner);
+  // The workshop also previews the production skinned Fiona, not the removed body.
+  void resolveFionaAssets().then(({files})=>loadFiona({runner,...files})).then(next=>{
+   rig=next;rig.setActive(true);
+  }).catch(error=>{message.textContent='Модель Фионы не загрузилась: '+error.message;});
   const floor=new THREE.Mesh(
    new THREE.PlaneGeometry(8,22),
    new THREE.MeshStandardMaterial({color:0x30262c,roughness:1}));
@@ -169,6 +175,7 @@ export function createBroomLab(){
   runner.position.set(0,.77+Math.sin(now*.003)*.045,0);
   runner.rotation.y=rotation;
   broom.preview(remaining,t);
+  rig?.update(1/60,{broom:true,speed:15});
   $('broom-lab-remaining').textContent=remaining.toFixed(1)+' с';
   renderer.render(scene,camera);
   frameId=requestAnimationFrame(draw);

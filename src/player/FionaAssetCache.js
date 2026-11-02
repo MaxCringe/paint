@@ -1,4 +1,4 @@
-// Optional Fiona DEV model; FBX motions and Python fallbacks load in FionaTest.
+// Hosted production FBX; animation clips load in FionaRig.
 const MODEL_URL='/models/fiona/rigged-model%20(1)%20(1).fbx';
 
 export async function resolveFionaAssets({modelFile}={}){

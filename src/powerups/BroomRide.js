@@ -29,7 +29,7 @@ export function getBroomDuckPose(duck=0, flightBlend=1){
  };
 }
 
-export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) {
+export function createBroomRide(scene, runner) {
  if (!BROOM_ENABLED) return {
   spawn(){}, advancePickups(){}, tick(){}, preview(){}, applyPose(){}, guardPineLog(){},
   reset(){}, cancel(){}, immuneTo(){return false;},
@@ -172,8 +172,7 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
  }
  function cancel(){
   remaining=0;blend=0;
-  mounted.visible=false;torso.rotation.x=0;
-  torso.position.y=1;torso.position.z=0;
+  mounted.visible=false;
   trail.hide();
  }
  function reset(){
@@ -234,23 +233,8 @@ export function createBroomRide(scene, runner, {torso, armL, armR, legL, legR}) 
    if(p.g.position.z>13){scene.remove(p.g);pickups.splice(i,1);}
   }
  }
- function applyPose(duck=0){
-  if(blend<=0){
-   torso.rotation.x=0;
-   torso.position.y=1;torso.position.z=0;
-   return;
-  }
-  // The upper body folds from the waist; hands reach forward and knees tuck.
-  // The mounted broom stays level, and the character is never squashed.
-  const pose=getBroomDuckPose(duck,blend);
-  torso.rotation.x=pose.waistPitch;
-  torso.position.y=pose.waistHeight;
-  torso.position.z=pose.waistForward;
-  armL.rotation.x+=(pose.armPitch-armL.rotation.x)*blend;
-  armR.rotation.x+=(pose.armPitch-armR.rotation.x)*blend;
-  legL.rotation.x+=(pose.legPitch-legL.rotation.x)*blend;
-  legR.rotation.x+=(pose.legPitch-legR.rotation.x)*blend;
- }
+ // The production FBX rig supplies broom and duck poses via its bones.
+ function applyPose(){}
  function immuneTo(type){
   // Upright pine trunks remain dangerous; suspended logs are ducked under.
   return remaining>0&&broomIgnoresHazard(type);
