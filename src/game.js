@@ -32,7 +32,6 @@ import { createGameMenu } from './ui/GameMenu.js';
 import { createGameOver } from './ui/GameOver.js';
 import { createGameHaptics } from './systems/Haptics.js';
 import { createGameInput } from './systems/GameInput.js';
-import { createFionaPoseEditor } from './ui/FionaPoseEditor.js';
 
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines } = createWorld();
 const audio=createGameAudio();
@@ -171,28 +170,7 @@ function updateHud(force=false){
 const popToast=message=>hud.toast(message);
 let testAvatar=null,useTestFiona=false;
 let deathRevealRemaining=0;
-let poseEditorPreviousHeight=0;
-const poseEditor=createFionaPoseEditor({
- onOpen:()=>{
-  if(!useTestFiona||!testAvatar||state!=='playing')return false;
-  poseEditorPreviousHeight=runner.position.y;
-  state='pose-edit';
-  testAvatar.setPoseEditorPreview(true);
-  return true;
- },
- onClose:()=>{
-  if(state==='pose-edit'){
-   testAvatar?.setPoseEditorPreview(false);
-   runner.position.y=poseEditorPreviousHeight;
-   state='playing';
-  }
-  testAvatar?.setPosePreviewAngle(0);
- },
- onChange:values=>testAvatar?.setPowerPose(values),
- onRotate:degrees=>testAvatar?.setPosePreviewAngle(degrees)
-});
 function restoreClassicFiona(){
- poseEditor.setAvailable(false);
  useTestFiona=false;
  attachWearableToHead();
  testAvatar?.setActive(false);
@@ -211,8 +189,6 @@ async function startFionaTest(files){
  setClassicVisible(false);
  attachWearableToHead(testAvatar.headBone);
  menu.showFionaPreviewTools(true,testAvatar.available,testAvatar.prototypeIds,testAvatar.importedIds,testAvatar.importedFiles,testAvatar.importErrors,testAvatar.runVariant);
- poseEditor.setAvailable(true);
- testAvatar.setPowerPose(poseEditor.getValues());
  start();
  return testAvatar;
 }
@@ -222,7 +198,6 @@ function startFromMenu(){
 }
 function activateUltimate(){ultimateFlight.activate(runner.position.y);broom.cancel();doubleJump.reset();slideAction.reset();audio.play('ultimate');haptics.play('ultimate');soulCharge=0;ultTimer=ULT_DURATION;popToast('УЛЬТА! ФИОНА ВЗЛЕТАЕТ');updateHud(true)}
 function start(){
- poseEditor.close();
  // A restart from pause is still a completed attempt for record purposes.
  if(state==='paused'&&!useTestFiona){
   best=Math.max(best,Math.floor(distance));
@@ -549,11 +524,6 @@ function frame(t){requestAnimationFrame(frame);
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
   updateHud();
- }else if(state==='pose-edit'&&useTestFiona){
-  // Freeze hazards, collectibles and counters, but render the editable pose.
-  runner.position.y=2.25;runner.rotation.set(0,0,0);
-  testAvatar?.update(dt,{ultimate:true,ultimateLift:1,speed:15});
-  ultimateAura.update(t,false);
  }else if(state==='over'&&useTestFiona){
   // Death clip continues while gameplay and counters remain frozen.
   testAvatar?.update(dt);
@@ -563,10 +533,7 @@ function frame(t){requestAnimationFrame(frame);
   }
  }
  // Camera follows gently; maintain forward view
- camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);
- camera.position.z+=((state==='pose-edit'?7.2:10.5)-camera.position.z)*Math.min(1,dt*5);
- if(state==='pose-edit')camera.lookAt(runner.position.x,3.25,runner.position.z);
- else camera.lookAt(runner.position.x*.2,1.05,-5);
+ camera.position.x+=(runner.position.x*.32-camera.position.x)*Math.min(1,dt*2.2);camera.position.y=5.0+(state==='playing'?Math.sin(t*.004)*.035:0);camera.lookAt(runner.position.x*.2,1.05,-5);
  // Sync grouped pine instances after recycling and wind movement.
  updateForestPines();
  renderer.render(scene,camera);

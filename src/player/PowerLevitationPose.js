@@ -1,30 +1,12 @@
 import * as THREE from 'three';
 
-// DEV-only adjustable directions on the skinned FBX rig; default parameters
-// reproduce the currently approved V-shaped levitation pose.
-export const POWER_POSE_CONTROLS=Object.freeze([
- {key:'leftUpper',label:'Левое плечо · вверх',min:0,max:85},
- {key:'rightUpper',label:'Правое плечо · вверх',min:0,max:85},
- {key:'leftLower',label:'Левое предплечье · вверх',min:0,max:85},
- {key:'rightLower',label:'Правое предплечье · вверх',min:0,max:85},
- {key:'leftForward',label:'Левая рука · вперёд / назад',min:-35,max:35},
- {key:'rightForward',label:'Правая рука · вперёд / назад',min:-35,max:35},
- {key:'leftLeg',label:'Левая нога · в сторону',min:0,max:20},
- {key:'rightLeg',label:'Правая нога · в сторону',min:0,max:20},
- {key:'chest',label:'Наклон корпуса',min:-18,max:18}
-]);
-export const DEFAULT_POWER_POSE=Object.freeze({
- leftUpper:42,rightUpper:42,leftLower:32,rightLower:32,
- leftForward:-6,rightForward:-6,leftLeg:3,rightLeg:3,chest:0
+// Approved Fiona ultimate silhouette, copied exactly from the player's
+// temporary DEV workshop export (2026-11-02). Keep the rig-calibrated aiming,
+// not FBX Euler guesses: left/right arms and legs use these same directions.
+export const ULTIMATE_POSE=Object.freeze({
+ leftUpper:0,rightUpper:0,leftLower:44,rightLower:45,
+ leftForward:35,rightForward:35,leftLeg:0,rightLeg:0,chest:-18
 });
-export function normalizePowerPose(values={}){
- const result={};
- for(const c of POWER_POSE_CONTROLS){
-  const input=values?.[c.key],num=typeof input==='number'||typeof input==='string'&&input.trim()!==''?Number(input):NaN;
-  result[c.key]=Number.isFinite(num)?Math.round(Math.max(c.min,Math.min(c.max,num))):DEFAULT_POWER_POSE[c.key];
- }
- return result;
-}
 const clamp01=x=>Math.max(0,Math.min(1,x));
 const canonical=name=>String(name).split('|').at(-1).split(':').at(-1).replace(/^mixamorig/i,'').toLowerCase();
 const rad=THREE.MathUtils.degToRad;
@@ -42,9 +24,7 @@ export function createPowerLevitationPose(bones,facing){
  const a=new THREE.Vector3(),b=new THREE.Vector3(),current=new THREE.Vector3(),desired=new THREE.Vector3(),p=new THREE.Vector3();
  const facingQuaternion=new THREE.Quaternion(),parentQuaternion=new THREE.Quaternion();
  const delta=new THREE.Quaternion(),localDelta=new THREE.Quaternion(),goal=new THREE.Quaternion(),target=new THREE.Vector3();
- let settings={...DEFAULT_POWER_POSE};
- function getSettings(){return {...settings};}
- function setSettings(values){settings=normalizePowerPose({...settings,...values});return getSettings();}
+ const settings=ULTIMATE_POSE;
  const centerX=hips?facing.worldToLocal(hips.getWorldPosition(new THREE.Vector3())).x:0;
  function sideOf(bone,fallback){
   if(!bone)return fallback;
@@ -87,5 +67,5 @@ export function createPowerLevitationPose(bones,facing){
    aim(leg.lower,leg.foot,leg.side*.02,-1,0,weight);
   }
  }
- return {apply,getSettings,setSettings};
+ return {apply};
 }

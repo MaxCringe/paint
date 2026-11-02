@@ -11,7 +11,7 @@ export function createGameInput({canvas,getState,isSubpageOpen,onStart,onEscape,
   }
   if(MOVEMENT_KEYS.has(e.code))e.preventDefault();
   const state=getState();
-  if(state==='paused'||state==='over'||state==='pose-edit')return;
+  if(state==='paused'||state==='over')return;
   if(e.repeat&&HOLD_GUARD.has(e.code))return;
   if(state!=='playing'){
    if(!isSubpageOpen()&&(e.code==='Enter'||e.code==='Space'))onStart();
