@@ -219,6 +219,22 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    ?'Новый бег: калибровка костей по FBX, цикл 0,70 с.'
    :'Старый бег: исходные Python-повороты, сохранён для сравнения.'};
  }
+ const initialFacingY=facing.rotation.y;
+ function setHatWorkshopMode(enabled){
+  if(!active||dead)return;
+  if(enabled){
+   // Show a quiet standing pose so the brim can be aligned with the head.
+   mixer.timeScale=1;mixer.stopAllAction();currentAction=null;currentName=null;
+   oneShot=null;manualSlot=null;manualSeconds=0;
+   play('idle',{force:true});mixer.update(.04);mixer.timeScale=0;
+  }else{
+   mixer.timeScale=1;
+   baseState='hat-workshop'; // Force normal gameplay base on the next frame.
+  }
+ }
+ function setHatWorkshopViewAngle(degrees=0){
+  facing.rotation.y=initialFacingY+THREE.MathUtils.degToRad(Number(degrees)||0);
+ }
  function reset(){
   mixer.timeScale=1; // Resume animations after a broom collision.
   dead=false;awaitingDeath=false;manualSlot=null;manualSeconds=0;
@@ -309,6 +325,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   });
  }
  return {setActive,playJump,trigger,preview,die,update,reset,dispose,setRunVariant,
+  setHatWorkshopMode,setHatWorkshopViewAngle,
   get runVariant(){return runVariant;},headBone,available,prototypeIds,importedIds,
   importedFiles:importResult.reports,importErrors:importResult.errors,
   get loadedCount(){return available.size;}};

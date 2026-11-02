@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
+import {normalizeHatDevPlacement,DEFAULT_HAT_DEV_PLACEMENT,applyHeadHatDevPlacement} from './HatDevPlacement.js';
 
 // Attach the wearable hat without inheriting the tiny FBX model scale.
 // Normal gameplay keeps its original torso placement and dimensions.
@@ -119,6 +120,10 @@ export function createWitchHatFactory(scene,hats,torso) {
   return group;
  }
  const wearable=model();
+ let activeHeadBone=null;
+ let devPlacement={...DEFAULT_HAT_DEV_PLACEMENT};
+ let devPreview=false;
+ let lastMagnetActive=false;
  // Attach the worn hat to Fiona's head-bearing torso pivot.
  // Local y=1.46 preserves its original world height (torso starts at y=1).
  // Sliding and broom ducking now carry the hat with her head, not through the air.
@@ -165,12 +170,29 @@ export function createWitchHatFactory(scene,hats,torso) {
  }
  function animateWearable(t,active){
   updateAppearance();
-  wearable.visible=active;
-  if(active)wearable.rotation.z=Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100;
+  lastMagnetActive=Boolean(active);
+  wearable.visible=active||devPreview;
+  // Keep the edited sideways tilt while retaining normal pickup wobble.
+  if(active||devPreview)wearable.rotation.z=
+   (activeHeadBone?THREE.MathUtils.degToRad(devPlacement.rz):0)+
+   (devPreview?0:Math.sin(t*.004)*.035*getEffectVisualProfile('hat').wobble/100);
  }
- // During a test run attach the same hat to the actual animated head.
+ function setWearableHatDevPlacement(values){
+  devPlacement=normalizeHatDevPlacement(values);
+  if(activeHeadBone)applyHeadHatDevPlacement(wearable,activeHeadBone,devPlacement);
+  return {...devPlacement};
+ }
+ function setWearableHatDevPreview(value){
+  devPreview=Boolean(value);
+  wearable.visible=devPreview||lastMagnetActive;
+  if(devPreview&&activeHeadBone)applyHeadHatDevPlacement(wearable,activeHeadBone,devPlacement);
+ }
+ // The head anchor is never used for road pickups: only the worn hat moves.
  function attachWearableToHead(bone=null){
+  activeHeadBone=bone;
   mountWearableHat(wearable,torso,bone);
+  if(bone)applyHeadHatDevPlacement(wearable,bone,devPlacement);
  }
- return {makeHat,animateHat,animateWearable,attachWearableToHead};
+ return {makeHat,animateHat,animateWearable,attachWearableToHead,
+  setWearableHatDevPlacement,setWearableHatDevPreview};
 }
