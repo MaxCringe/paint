@@ -232,7 +232,7 @@ function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,
 function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!slideAction.active){
   if(doubleJump.jump()&&useTestFiona)testAvatar?.playJump(doubleJump.jumpsUsed);
  }}
-function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
+function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 const {fpsDisplay}=createOverlays();
 const menu=createGameMenu({onStart:startFromMenu,onStartTest:startFionaTest,onPreviewTest:id=>testAvatar?.preview(id),onTestRunVariant:variant=>testAvatar?.setRunVariant(variant),onResume:togglePause,onPause:togglePause,haptics,fpsDisplay});
 createGameInput({
@@ -384,8 +384,8 @@ function frame(t){requestAnimationFrame(frame);
   runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
   runner.position.z=2.3;
   const slipRoll=!useTestFiona&&slipT>0?Math.sin(t*.045)*.2:0;
-  runner.rotation.z=Math.sin(t*.003)*.035*ultimateFlight.lift+slipRoll*(1-ultimateFlight.lift);
-  runner.rotation.x=-.12*ultimateFlight.lift;
+  runner.rotation.z=Math.sin(t*.0016)*.012*ultimateFlight.lift+slipRoll*(1-ultimateFlight.lift);
+  runner.rotation.x=-.055*ultimateFlight.lift;
   ultimateAura.update(t,ultActive,ultimateFlight.lift);
   if(useTestFiona){
    // The old Fiona is hidden. Its joints need no per-frame animation,

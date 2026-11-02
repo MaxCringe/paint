@@ -47,3 +47,36 @@ test('landed Fiona regains input; descent stays immune until the animation ends'
  assert.ok(game.includes('ultimateLavaGuardDuration(gap,half,ultimateSpeed)'));
  assert.ok(game.includes('ultimateAura.update(t,ultActive,ultimateFlight.lift)'));
 });
+
+test('levitation has small slow bob and lands without residual vertical motion',()=>{
+ const f=createUltimateFlight();
+ f.activate(0);
+ f.update(ULTIMATE_RISE_SECONDS,true);
+ const heights=[0,400,800,1200,1600,2000,2400].map(t=>f.height(t));
+ assert.ok(Math.max(...heights)-Math.min(...heights)<.10);
+ assert.ok(Math.min(...heights)>ULTIMATE_FLIGHT_HEIGHT-.051);
+ assert.ok(Math.max(...heights)<ULTIMATE_FLIGHT_HEIGHT+.051);
+ f.update(ULTIMATE_LAND_SECONDS,false);
+ for(const t of [0,260,950,1800])assert.equal(f.height(t),0);
+});
+test('take-off has direct priority and landing cannot trigger a ground slide',()=>{
+ const controller=readFileSync(new URL('../src/player/FionaTest.js',import.meta.url),'utf8');
+ const game=readFileSync(new URL('../src/game.js',import.meta.url),'utf8');
+ assert.ok(controller.includes("if(!previous.ultimate&&ultimate){"));
+ assert.ok(controller.includes("if(!trigger('ultimateStart'))playBase();"));
+ assert.ok(controller.includes("if(!trigger('ultimateEnd'))playBase();"));
+ assert.ok(controller.includes("const fadeSeconds=flightTransition?.20:.13;"));
+ assert.ok(game.includes("function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active"));
+});
+test('hover pose remains calm, asymmetric and loops without a visible jump',()=>{
+ const data=JSON.parse(gunzipSync(readFileSync(new URL('../public/models/fiona/animations/motions.json.gz',import.meta.url))).toString());
+ const fly=data.motions.ultimateFly;
+ assert.ok(fly.d>=2);
+ const arms=['LeftArm','RightArm'];
+ for(const bone of arms){
+  const values=fly.f.map(([,pose])=>pose[bone][0]);
+  assert.ok(Math.max(...values)-Math.min(...values)<.10);
+ }
+ assert.notDeepEqual(fly.f[0][1].LeftUpLeg,fly.f[0][1].RightUpLeg);
+ assert.deepEqual(fly.f[0][1],fly.f.at(-1)[1]);
+});

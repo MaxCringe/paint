@@ -107,7 +107,10 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
   if(!resolved)return false;
   if(!force&&currentName===resolved)return true;
   const action=actions.get(resolved);
-  if(currentAction&&currentAction!==action)currentAction.fadeOut(.13);
+  // Do not snap from a fast run into the slow hovering silhouette.
+  const flightTransition=resolved.startsWith('ultimate')||(currentName||'').startsWith('ultimate');
+  const fadeSeconds=flightTransition?.20:.13;
+  if(currentAction&&currentAction!==action)currentAction.fadeOut(fadeSeconds);
   action.reset();
   action.enabled=true;
   action.setEffectiveWeight(1);
@@ -119,7 +122,7 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    (['runCalibrated','runFBX'].includes(resolved)||Boolean(SLOTS.get(resolved)?.loop))):!once;
   action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);
   action.clampWhenFinished=!loop;
-  action.fadeIn(.13).play();
+  action.fadeIn(fadeSeconds).play();
   currentAction=action;currentName=resolved;
   return true;
  }
@@ -241,14 +244,21 @@ export async function loadFionaTest({runner,modelFile,turn=true}){
    if(!manualSlot){
     if(baseChanged){
      oneShot=null;
-     playBase();
-     if(!previous.broom&&broom)trigger('broomStart');
-     else if(previous.broom&&!broom)trigger('broomLand');
-     else if(!previous.ultimate&&ultimate)trigger('ultimateStart');
-     else if(previous.ultimate&&!ultimate)trigger('ultimateEnd');
-     else if(previous.sliding&&!sliding&&!importedIds.has('slide'))
-      trigger('slideEnd'); // The FBX slide already contains its exit to sprint.
-     else if(previous.jumping&&!jumping)trigger('land');
+     // Directly crossfade into the take-off / landing one-shot. Previously
+     // playBase briefly queued flight or running first, and a broom ending
+     // could override the ultimate take-off altogether.
+     if(!previous.ultimate&&ultimate){
+      if(!trigger('ultimateStart'))playBase();
+     }else if(previous.ultimate&&!ultimate){
+      if(!trigger('ultimateEnd'))playBase();
+     }else{
+      playBase();
+      if(!previous.broom&&broom)trigger('broomStart');
+      else if(previous.broom&&!broom)trigger('broomLand');
+      else if(previous.sliding&&!sliding&&!importedIds.has('slide'))
+       trigger('slideEnd'); // The FBX slide already contains its exit to sprint.
+      else if(previous.jumping&&!jumping)trigger('land');
+     }
     }
    }else{
     manualSeconds-=dt;

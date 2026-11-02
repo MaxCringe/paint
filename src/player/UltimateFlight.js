@@ -3,7 +3,7 @@
 export const ULTIMATE_RISE_SECONDS = .72;
 export const ULTIMATE_LAND_SECONDS = .60;
 export const ULTIMATE_FLIGHT_HEIGHT = 2.25;
-export const ULTIMATE_BOB_AMPLITUDE = .14;
+export const ULTIMATE_BOB_AMPLITUDE = .045;
 const clamp01=x=>Math.max(0,Math.min(1,x));
 const smoothstep=x=>{const t=clamp01(x);return t*t*(3-2*t);};
 
@@ -38,8 +38,11 @@ export function createUltimateFlight(){
  function height(timeMs,groundHeight=0){
   const lift=smoothstep(progress);
   const base=landing?groundHeight:launchHeight;
-  const floating=ULTIMATE_FLIGHT_HEIGHT+Math.sin(timeMs*.008)*ULTIMATE_BOB_AMPLITUDE;
-  return base+(floating-base)*lift;
+  // Slow, almost weightless breathing: the old 0.8 s bob looked like bouncing.
+  // Suppress bob during lift-off/touchdown so the feet meet the road cleanly.
+  const bobWeight=smoothstep((lift-.55)/.45);
+  const bob=Math.sin(timeMs*.0022)*ULTIMATE_BOB_AMPLITUDE*bobWeight;
+  return base+(ULTIMATE_FLIGHT_HEIGHT-base)*lift+bob;
  }
  function reset(){progress=0;launchHeight=0;landing=false;}
  return {activate,update,height,reset,
