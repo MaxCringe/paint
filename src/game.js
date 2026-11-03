@@ -1,3 +1,4 @@
+import {readEffectPreset} from './devtools/world/FirePreset.js';
 import * as THREE from 'three';
 
 import { animateSoulFlame } from './souls/animateSoulFlame.js';
@@ -40,9 +41,10 @@ import { createGameInput } from './systems/GameInput.js';
 
 const worldEditorEnabled=import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true'||(import.meta.env.DEV&&import.meta.env.VITE_ENABLE_WORLD_EDITOR!=='false');
 const worldEditorRequested=worldEditorEnabled&&new URLSearchParams(location.search).get('worldEditor')==='1';
-const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??1337)>>>0:undefined;
+const savedEffectPreset=readEffectPreset();
+const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??savedEffectPreset?.seed??1337)>>>0:savedEffectPreset?.seed;
 const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
-let worldEditor=null,worldEditorLoading=null;
+let worldEditor=null,worldEditorLoading=null,authoredEffects=null,effectsLoading=null;
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
@@ -578,7 +580,7 @@ function frame(t){requestAnimationFrame(frame);
  camera.lookAt(runner.position.x*.2,1.05,-5);
  // Sync grouped pine instances after recycling and wind movement.
  updateForestPines();
- worldEditor?.update(dt);
+ if(authoredEffects)authoredEffects.update(dt);
  renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
@@ -591,8 +593,8 @@ async function openWorldEditor(){
  if(worldEditor){worldEditor.open();return;}
  if(worldEditorLoading)return worldEditorLoading;
  let previousState;
- worldEditorLoading=import('./devtools/world/WorldEditor.js').then(({createWorldEditor})=>{
-  worldEditor=createWorldEditor({scene,renderer,forest,seed:editorSeed??forest.seed,
+ worldEditorLoading=Promise.all([import('./devtools/world/WorldEditor.js'),ensureAuthoredEffects()]).then(([{createWorldEditor},runtime])=>{
+  worldEditor=createWorldEditor({scene,renderer,forest,seed:editorSeed??forest.seed,runtime,
    getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),
    getBurningPlants:forestFire.getActivePlants,
    defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject],
@@ -605,3 +607,15 @@ async function openWorldEditor(){
  return worldEditorLoading;
 }
 if(worldEditorRequested)openWorldEditor().catch(error=>console.error('World editor failed to open:',error));
+
+function ensureAuthoredEffects(){
+ if(authoredEffects)return Promise.resolve(authoredEffects);
+ if(!effectsLoading)effectsLoading=import('./devtools/world/WorldEffectsRuntime.js').then(({createWorldEffectsRuntime})=>{
+  authoredEffects=createWorldEffectsRuntime({scene,renderer,forest,camera,seed:forest.seed,preset:savedEffectPreset,
+   getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),getBurningPlants:forestFire.getActivePlants,
+   defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject]});
+  return authoredEffects;
+ }).finally(()=>effectsLoading=null);
+ return effectsLoading;
+}
+if(savedEffectPreset)ensureAuthoredEffects().catch(error=>console.error('Saved world effects unavailable:',error));

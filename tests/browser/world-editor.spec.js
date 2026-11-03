@@ -10,7 +10,7 @@ test.describe('world fire authoring',()=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|World editor failed/.test(m.text()))errors.push(m.text());});
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
   const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});
-  await expect(editor.locator('[data-metrics]')).toContainText('экземпляров');
+  await expect(editor.locator('[data-metrics]')).toContainText('очагов');
   const initial=await page.locator('#distance').textContent();
   await page.keyboard.press('KeyW');await page.keyboard.press('KeyE');expect(await page.locator('#distance').textContent()).toBe(initial);
   await editor.locator('[name=species]').selectOption('pine:dead_snag');
@@ -22,11 +22,11 @@ test.describe('world fire authoring',()=>{
   // Select a near spruce and place on its actual visible triangle using a ray
   // from a deterministic projected root. The user path is a real canvas click.
   await editor.locator('[name=species]').selectOption('pine:grove_cluster');
-  await editor.getByRole('button',{name:'Добавить огонь',exact:true}).click();
+  await editor.getByRole('button',{name:'Добавить эффект',exact:true}).click();
   const canvas=page.locator('body > canvas');const box=await canvas.boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5);
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');
   await page.screenshot({path:test.info().outputPath('world-editor.png')});
-  await editor.locator('details').first().locator('summary').click();
+  await editor.locator('summary').filter({hasText:'Источник и трансформация'}).click();
   const placedId=await editor.locator('[name=anchor]').inputValue();
   const positionBefore=await editor.locator('[name=position0]').inputValue();
   await page.mouse.move(box.x+box.width*.5+30,box.y+box.height*.5+2);
@@ -38,12 +38,12 @@ test.describe('world fire authoring',()=>{
   await editor.getByRole('button',{name:'Повторить',exact:true}).click();
   await editor.locator('[name=anchor]').selectOption(placedId);
   await editor.locator('[name=position0]').fill('0.35');await editor.locator('[name=position0]').press('Tab');
-  await editor.locator('[name=size]').fill('1.2');await editor.locator('[name=size]').dispatchEvent('change');
+  await editor.locator('[name="flame.height"]').fill('1.2');await editor.locator('[name="flame.height"]').dispatchEvent('change');
   const download=page.waitForEvent('download');await editor.getByRole('button',{name:'Экспорт',exact:true}).click();const file=await download;
   const stream=await file.createReadStream();let json='';for await(const chunk of stream)json+=chunk;
-  const preset=JSON.parse(json);expect(preset.version).toBe(1);expect(preset.plants['pine:grove_cluster'].some(a=>a.position[0]===.35&&a.size===1.2)).toBe(true);
+  const preset=JSON.parse(json);expect(preset.version).toBe(2);expect(Object.values(preset.objects).some(o=>o.anchors.some(a=>a.position[0]===.35&&a.layers.flame?.height===1.2))).toBe(true);
   await editor.locator('[name=file]').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(json)});await expect(editor.locator('output')).toContainText('Пресет импортирован');
-  await editor.locator('[name=species]').selectOption('deck');await editor.locator('[name=anchor]').selectOption({index:1});
+  await editor.locator('[name=species]').selectOption('deck');await editor.locator('[name=anchor]').selectOption({index:1});await editor.locator('[name=effect-preset]').selectOption('lava');
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');
   await editor.getByRole('button',{name:'Закрыть редактор',exact:true}).click();await expect(editor).toHaveCount(0);
   await page.keyboard.press('Escape');await expect(page.locator('#center')).toBeVisible();

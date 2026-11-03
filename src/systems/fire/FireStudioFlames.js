@@ -34,7 +34,7 @@ export function createFireTongueGeometry(quality='low') {
  return geo;
 }
 
-const NOISE=String.raw`
+export const FIRE_NOISE=String.raw`
 float fireHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
 float fireNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(mix(fireHash(i),fireHash(i+vec3(1,0,0)),f.x),
@@ -72,7 +72,7 @@ export function createFireTongueMaterial(){
   varying vec2 vUv;
   varying vec3 vSurface;
   varying float vPhase,vActivity,vOuter;
-  ${NOISE}
+  ${FIRE_NOISE}
   void main(){
    if(vActivity<.02)discard;
    float h=clamp(vUv.y,0.,1.);
