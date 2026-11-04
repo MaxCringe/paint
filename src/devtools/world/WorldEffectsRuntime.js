@@ -1,3 +1,4 @@
+import {defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
 import * as THREE from 'three';
 import {createEditableFire} from './EditableFire.js';
 import {getPineFireProfile} from '../../systems/fire/ForestFireStudio.js';
@@ -13,7 +14,7 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
  function sourceFor(root,key=root.userData.plantSpecies,boundary=root.userData.fireBoundary){
   if(cache.has(root))return cache.get(root);
   const deck=!!boundary,id=deck?'deck':'plant:'+root.userData.plantId;
-  const source={root,key:deck?'deck':key,boundary,id,binding:deck?{kind:'deck',seed}:{kind:'plant',seed,id:root.userData.plantId,species:key,template:root.userData.plantTemplate}};
+  const source={root,height:deck?1:getPineFireProfile(key).height,key:deck?'deck':key,boundary,id,binding:deck?{kind:'deck',seed}:{kind:'plant',seed,id:root.userData.plantId,species:key,template:root.userData.plantTemplate}};
   cache.set(root,source);return source;
  }
  const world={root:worldRoot,key:'world',id:'world',world:true};
@@ -23,10 +24,11 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   const entry=preset.objects[source.id];
   if(matches(entry,source))return entry.anchors;
   const inherited=source.boundary?preset.deck:preset.plants[source.key]??[];
-  if(mutable){preset.objects[source.id]={binding:clonePreset(source.binding),anchors:clonePreset(inherited)};return preset.objects[source.id].anchors;}
+  if(mutable){preset.objects[source.id]={binding:clonePreset(source.binding),anchors:clonePreset(inherited),cycle:defaultBurnCycle()};return preset.objects[source.id].anchors;}
   return inherited;
  }
- function renderSources(list){return list.map(s=>({...s,anchors:anchorsFor(s)}));}
+ function cycleFor(source,mutable=false){if(source.id==='world')return defaultBurnCycle();if(mutable)anchorsFor(source,true);const entry=preset.objects[source.id];return matches(entry,source)?(entry.cycle??(mutable?(entry.cycle=defaultBurnCycle()):defaultBurnCycle())):defaultBurnCycle();}
+ function renderSources(list){return list.map(s=>({...s,anchors:anchorsFor(s),cycle:cycleFor(s)}));}
  function runtimeSources(){
   const burning=new Set(getBurningPlants()),list=[];
   for(const root of forest.plants)if(root.userData.plantSpecies.startsWith('pine:')){
@@ -39,7 +41,7 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   for(const obj of defaultFireObjects)obj.visible=false;
   fire.update(dt,renderSources(sources??runtimeSources()),preset,{camera:previewCamera??camera,pixelRatio:renderer.getPixelRatio()});
  }
- return {fire,defaults,world,sourceFor,anchorsFor,update,
+ return {fire,defaults,world,sourceFor,anchorsFor,cycleFor,update,
   get preset(){return preset;},setPreset(value){preset=value;},
   sourceById(id){if(id==='world')return world;if(id==='deck'){const root=getRivers()[0];return root?sourceFor(root):null;}const root=forest.plants.find(p=>'plant:'+p.userData.plantId===id);return root?sourceFor(root):null;},
   dispose(){fire.dispose();scene.remove(worldRoot);for(const obj of defaultFireObjects)obj.visible=true;}

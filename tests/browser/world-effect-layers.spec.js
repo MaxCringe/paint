@@ -37,7 +37,7 @@ test.describe('layered world effects',()=>{
   await editor.locator('[data-choose-layer=flame]').click();await editor.getByRole('button',{name:'Удалить слой',exact:true}).click();expect((await read(page)).world[0].layers.flame).toBeUndefined();
   await editor.getByRole('button',{name:'Отменить',exact:true}).click();await editor.locator('[name=anchor]').selectOption(id);expect((await read(page)).world[0].layers.flame.enabled).toBe(false);
   await page.screenshot({path:test.info().outputPath('layered-effects.png')});
-  const exported=await exportJson(page,editor);expect(exported.version).toBe(2);expect(exported.world[0].layers.smoke.rate).toBe(14);
+  const exported=await exportJson(page,editor);expect(exported.version).toBe(3);expect(exported.world[0].layers.smoke.rate).toBe(14);
   await editor.locator('[name=file]').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});await expect(editor.locator('output')).toContainText('Пресет импортирован');expect(await read(page)).toEqual(exported);
   const before=await read(page);await editor.locator('[name=file]').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"version":2,"seed":-4}')});await expect(editor.locator('output')).toContainText('Некорректный');expect(await read(page)).toEqual(before);
   await page.reload({waitUntil:'domcontentloaded'});await expect(editor).toBeVisible({timeout:60000});await editor.locator('[name=species]').selectOption('world');await editor.locator('[name=anchor]').selectOption(id);expect((await read(page)).world).toEqual(exported.world);

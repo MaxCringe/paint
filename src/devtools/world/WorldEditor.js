@@ -1,3 +1,6 @@
+import {createTreeComposition} from './CompositionLayout.js';
+import {applyFlameForm} from '../../systems/fire/ArtisticFire.js';
+import {defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
@@ -5,7 +8,7 @@ import {getPineFireProfile} from '../../systems/fire/ForestFireStudio.js';
 import {createLavaRiverFactory} from '../../obstacles/LavaRiver.js';
 import {createForestRandom} from '../../world/forest/PlantRegistry.js';
 import {createEffectPanel} from './EffectPanel.js';
-import {EFFECT_PRESETS,LAYER_FIELDS,EMITTER_FIELDS,defaultLayer,copy,applyEffectPreset} from './EffectLayers.js';
+import {EFFECT_PRESETS,LAYER_FIELDS,EMITTER_FIELDS,defaultLayer,copy,applyEffectPreset,COMPOSITION_PLACEMENT} from './EffectLayers.js';
 import {PINE_SPECIES,MAX_ANCHORS,newEffectAnchor,upgradePreset,readEffectPreset,saveEffectPreset,clonePreset,PresetHistory,deckToLocal,localToDeck,distributeAnchors} from './FirePreset.js';
 import './WorldEditor.css';
 
@@ -19,11 +22,12 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);
  const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo)]:[]),runtime.world];
  const defaults=runtime.defaults;
- let preset=runtime.preset,hasSavedPreset=!!readEffectPreset(),view,presetId='calm',storageWarning='';
+ let preset=runtime.preset,hasSavedPreset=!!readEffectPreset(),view,presetId='calm',addKind='fire',storageWarning='';
  let history=new PresetHistory(preset);
  const reopen=document.createElement('button');reopen.id='world-editor-reopen';reopen.textContent='Открыть редактор мира';reopen.hidden=true;document.body.append(reopen);reopen.onclick=()=>open();
  const list=(mutable=false)=>selected?runtime.anchorsFor(selected,mutable):[];
  const anchor=(mutable=false)=>list(mutable).find(a=>a.id===anchorId);
+ const cycleFields={stage:{value:0,min:0,max:1,type:'number'},speed:{value:1,min:.1,max:5,type:'number'},duration:{value:24,min:2,max:120,type:'number'}};
  const effect=()=>presetId.startsWith('user:')?preset.customPresets[Number(presetId.slice(5))]??EFFECT_PRESETS.calm:EFFECT_PRESETS[presetId]??EFFECT_PRESETS.calm;
  function message(text){if(panel)panel.querySelector('output').textContent=storageWarning?storageWarning+' '+text:text;}
  function persist(){try{saveEffectPreset(preset);storageWarning='';return true;}catch{storageWarning='Не удалось сохранить в браузере. Экспортируйте JSON перед закрытием.';message('');return false;}}
@@ -73,7 +77,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    marker.position.fromArray(selected.boundary?deckToLocal(item,selected.boundary):item.position).applyMatrix4(selected.root.matrixWorld);
    marker.userData.anchorId=item.id;markers.add(marker);
   }
-  view.refresh({preset,selected,anchor:a,list:list(),anchorId,history,armed,paused:fire.paused,presetId});
+  view.refresh({preset,selected,anchor:a,list:list(),anchorId,history,armed,paused:fire.paused,presetId,addKind,cycle:selected?runtime.cycleFor(selected):undefined});
   message(armed?(snapId?'Щёлкните по поверхности для привязки очага.':'Щёлкните по поверхности или свободной точке сцены.'):a?'Изменяется только выбранный очаг. Массовые действия находятся в отдельном разделе.':'Выберите очаг или добавьте новый эффект.');
  }
  const markerGeometry=new THREE.SphereGeometry(.10,8,6),markerMaterial=new THREE.MeshBasicMaterial({color:0xffca80,depthTest:false}),selectedMaterial=new THREE.MeshBasicMaterial({color:0xcfff72,depthTest:false});
@@ -101,6 +105,14 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   mutation(()=>{
    const local=target.root.worldToLocal(worldHit);
    let a;
+   const composition=COMPOSITION_PLACEMENT[presetId];
+   if(!oldAnchor&&composition&&target.key.startsWith('pine:')){
+    const items=runtime.anchorsFor(target,true),space=MAX_ANCHORS-items.length;
+    if(space<=0){message('Максимум 32 очага.');return;}
+    const created=createTreeComposition(getPineFireProfile(target.key),effect(),{seed:preset.seed,...composition,count:Math.min(space,composition.count)});
+    for(const item of created)if(items.some(v=>v.id===item.id))item.id=crypto.randomUUID();
+    items.push(...created);choose(target,{focus:false});anchorId=created[0]?.id??null;armed=false;snapId=null;return;
+   }
    if(oldAnchor){
     a=oldAnchor;
     const q=oldSource.root.getWorldQuaternion(new THREE.Quaternion()).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...a.rotation)));
@@ -136,9 +148,11 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   panel.addEventListener('focusin',()=>keys.clear());
   panel.addEventListener('click',e=>{
    const button=e.target.closest('button');if(!button)return;
+   if(button.dataset.addKind){addKind=button.dataset.addKind;presetId={fire:'calm',smoke:'thinSmoke',sparks:'sparkStream',smolder:'smolder'}[addKind];anchorId=null;snapId=null;armed=true;refresh();return;}
+   if(button.dataset.composition){presetId=button.dataset.composition;if(anchor()&&!armed)mutation(()=>applyEffectPreset(anchor(true),effect()));else refresh();return;}
    if(button.dataset.mode){gizmo.setMode(button.dataset.mode);panel.querySelectorAll('[data-mode]').forEach(b=>b.dataset.active=String(b===button));return;}
    if(button.dataset.chooseLayer){view.chooseLayer(button.dataset.chooseLayer);refresh();return;}
-   if(button.dataset.resetKind){const kind=button.dataset.resetKind,key=button.dataset.resetParam;mutation(()=>{const a=anchor(true);if(a)(kind==='emitter'?a.emitter:a.layers[kind])[key]=(kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key].value;});return;}
+   if(button.dataset.resetKind){const kind=button.dataset.resetKind,key=button.dataset.resetParam;mutation(()=>{const a=anchor(true);if(kind==='cycle')runtime.cycleFor(selected,true)[key]=cycleFields[key].value;else if(a)(kind==='emitter'?a.emitter:a.layers[kind])[key]=(kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key].value;});return;}
    const action=button.dataset.action,a=anchor();
    if(action==='close'){close();return;}
    if(action==='focus')focusAnchor();
@@ -152,19 +166,21 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    if(action==='export')download();if(action==='copy')void copyToClipboard();if(action==='import')$('file').click();
    if(action==='pause-effects'){fire.setPaused(!fire.paused);refresh();}
    if(action==='restart-effects'){fire.restart();refresh();}
+   if(action==='pause-cycle'&&selected){mutation(()=>{const cycle=runtime.cycleFor(selected,true);cycle.paused=!cycle.paused;if(cycle.paused)cycle.stage=fire.cycleProgress(selected.id)?.progress??cycle.stage;});}
+   if(action==='restart-cycle'&&selected){mutation(()=>{runtime.cycleFor(selected,true).stage=0;fire.restartCycle(selected.id);});}
    if(action==='add-layer'&&a&&$('add-layer').value)mutation(()=>{const kind=$('add-layer').value;anchor(true).layers[kind]=defaultLayer(kind);view.chooseLayer(kind);});
    if(action==='delete-layer'&&a)mutation(()=>{delete anchor(true).layers[view.layer];});
    if(action==='reset-layer'&&a?.layers[view.layer])mutation(()=>{anchor(true).layers[view.layer]=defaultLayer(view.layer);});
    if((action==='apply-object'||action==='apply-group')&&a){
-    const settings={layers:copy(a.layers),emitter:copy(a.emitter)};
-    mutation(()=>{const targets=action==='apply-object'?[selected]:preset.group.map(id=>sources().find(s=>s.id===id)).filter(Boolean);for(const source of targets)for(const item of runtime.anchorsFor(source,true))applyEffectPreset(item,settings);});
+    const settings={layers:copy(a.layers),emitter:copy(a.emitter),cycle:copy(runtime.cycleFor(selected))};
+    mutation(()=>{const targets=action==='apply-object'?[selected]:preset.group.map(id=>sources().find(s=>s.id===id)).filter(Boolean);for(const source of targets){for(const item of runtime.anchorsFor(source,true))applyEffectPreset(item,settings);if(source.id!=='world')Object.assign(runtime.cycleFor(source,true),settings.cycle);}});
     message(action==='apply-group'?'Настройки явно применены к группе.':'Настройки применены к очагам объекта.');
    }
    if(action==='clear-group')mutation(()=>preset.group=[]);
    if(action==='save-named'&&a){
     const name=$('preset-name').value.trim();if(!name){message('Введите имя пресета.');return;}
     if(preset.customPresets.length>=32&&!preset.customPresets.some(v=>v.name===name)){message('Максимум 32 пользовательских пресета.');return;}
-    mutation(()=>{const value={name,layers:copy(a.layers),emitter:copy(a.emitter)},index=preset.customPresets.findIndex(v=>v.name===name);if(index<0){preset.customPresets.push(value);presetId='user:'+(preset.customPresets.length-1);}else{preset.customPresets[index]=value;presetId='user:'+index;}});message('Пресет сохранён: '+name);
+    mutation(()=>{const value={name,layers:copy(a.layers),emitter:copy(a.emitter),cycle:copy(runtime.cycleFor(selected))},index=preset.customPresets.findIndex(v=>v.name===name);if(index<0){preset.customPresets.push(value);presetId='user:'+(preset.customPresets.length-1);}else{preset.customPresets[index]=value;presetId='user:'+index;}});message('Пресет сохранён: '+name);
    }
    if(action==='distribute'&&selected?.key.startsWith('pine:')){
     const count=Number($('distribution-count').value),minHeight=Number($('distribution-min').value),maxHeight=Number($('distribution-max').value),minSize=Number($('distribution-size-min').value),maxSize=Number($('distribution-size-max').value),distributionSeed=Number($('distribution-seed').value);
@@ -177,7 +193,10 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   });
   $('species').onchange=e=>chooseSpecies(e.target.value);
   $('anchor').onchange=e=>{anchorId=e.target.value;refresh();};
-  $('effect-preset').onchange=e=>{presetId=e.target.value;if(anchor())mutation(()=>applyEffectPreset(anchor(true),effect()));};
+  $('effect-preset').onchange=e=>{presetId=e.target.value;const value=effect();addKind=value.layers.flame?'fire':value.layers.coals?'smolder':value.layers.smoke?'smoke':'sparks';if(anchor())mutation(()=>{applyEffectPreset(anchor(true),value);if(presetId.startsWith('user:')&&selected.id!=='world'&&value.cycle)Object.assign(runtime.cycleFor(selected,true),value.cycle);});else refresh();};
+  $('cycle-mode').onchange=e=>mutation(()=>{runtime.cycleFor(selected,true).mode=e.target.value;});
+  $('cycle-repeat').onchange=e=>mutation(()=>{runtime.cycleFor(selected,true).repeat=e.target.checked;});
+  $('work-light').onchange=e=>{if(e.target.checked){scene.add(workLight);scene.fog=null;}else{scene.remove(workLight);scene.fog=previousFog;}};
   $('emitter-shape').onchange=e=>{if(anchor())mutation(()=>anchor(true).emitter.shape=e.target.value);};
   $('group-member').onchange=e=>mutation(()=>{if(e.target.checked){if(preset.group.length<128&&!preset.group.includes(selected.id))preset.group.push(selected.id);}else preset.group=preset.group.filter(id=>id!==selected.id);});
   $('budget').onchange=e=>{const v=Number(e.target.value);if(Number.isInteger(v)&&v>=128&&v<=16384)mutation(()=>preset.budget=v);else{refresh();message('Бюджет: целое число 128…16384.');}};
@@ -187,17 +206,17 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   };
   panel.addEventListener('input',e=>{
    const input=e.target,kind=input.dataset.kind,key=input.dataset.param;
-   if(!anchor()||!kind||!key)return;
+   if((!anchor()&&kind!=='cycle')||!kind||!key)return;
    if(preset.seed!==seed){message('Примените seed импортированного леса перед редактированием.');return;}
-   const spec=(kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key];
+   const spec=(kind==='cycle'?cycleFields:kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key];
    const value=spec.type==='number'?input.valueAsNumber:input.value;
    if(spec.type==='number'&&(!Number.isFinite(value)||value<spec.min||value>spec.max||spec.integer&&!Number.isInteger(value)))return;
-   const a=anchor(true);(kind==='emitter'?a.emitter:a.layers[kind])[key]=value;
+   if(kind==='cycle')runtime.cycleFor(selected,true)[key]=value;else{const a=anchor(true);(kind==='emitter'?a.emitter:a.layers[kind])[key]=value;if(kind==='flame'&&key==='shape')applyFlameForm(a.layers.flame,value);}
    panel.querySelectorAll('[data-kind="'+kind+'"][data-param="'+key+'"]').forEach(other=>{if(other!==input)other.value=value;});
    fire.invalidate();
   });
   panel.addEventListener('change',e=>{
-   const input=e.target;if(!anchor())return;
+   const input=e.target;if(!anchor()&&input.dataset.kind!=='cycle')return;
    if(input.dataset.enableLayer){mutation(()=>anchor(true).layers[input.dataset.enableLayer].enabled=input.checked);return;}
    if(input.dataset.kind){commit();return;}
    const match=/^(position|rotation|scale)([012])$/.exec(input.name??'');
@@ -251,7 +270,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   const ids=new Set([selected?.id,...preset.group]);
   const visibleSources=sources().filter(s=>ids.has(s.id)||s.id==='world'&&preset.world.length);
   if(active)runtime.update(dt,{sources:visibleSources,camera});else runtime.update(dt);
-  if(active){const stats=fire.stats();panel.querySelector('[data-metrics]').textContent=stats.anchors+' очагов · '+stats.particles+'/'+stats.budget+' частиц · пламя '+stats.flames+' · дым '+stats.smoke+' · искры '+stats.sparks+' · угольки '+stats.embers+(stats.truncated?' · лимит':'');renderer.render(scene,camera);}
+  if(active){const stats=fire.stats();panel.querySelector('[data-metrics]').textContent=stats.anchors+' очагов · '+stats.particles+'/'+stats.budget+' частиц · пламя '+stats.flames+' · дым '+stats.smoke+' · искры '+stats.sparks+' · летящие угольки '+stats.embers+' · тление '+stats.coals+(stats.truncated?' · лимит':'');const state=selected?fire.cycleProgress(selected.id):null;const cycleText=panel.querySelector('[data-cycle-state]');if(state)cycleText.textContent=state.label+' · '+Math.round(state.progress*100)+'%';renderer.render(scene,camera);}
  }
  open();
  return {get active(){return active;},update,open,close,getPreset:()=>clonePreset(preset),stats:fire.stats,dispose(){close();if(demo){demo.userData.dispose?.();demo=null;}reopen.remove();scene.remove(handle);markerGeometry.dispose();markerMaterial.dispose();selectedMaterial.dispose();}};

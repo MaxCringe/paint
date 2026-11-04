@@ -41,7 +41,7 @@ test.describe('world fire authoring',()=>{
   await editor.locator('[name="flame.height"]').fill('1.2');await editor.locator('[name="flame.height"]').dispatchEvent('change');
   const download=page.waitForEvent('download');await editor.getByRole('button',{name:'Экспорт',exact:true}).click();const file=await download;
   const stream=await file.createReadStream();let json='';for await(const chunk of stream)json+=chunk;
-  const preset=JSON.parse(json);expect(preset.version).toBe(2);expect(Object.values(preset.objects).some(o=>o.anchors.some(a=>a.position[0]===.35&&a.layers.flame?.height===1.2))).toBe(true);
+  const preset=JSON.parse(json);expect(preset.version).toBe(3);expect(Object.values(preset.objects).some(o=>o.anchors.some(a=>a.position[0]===.35&&a.layers.flame?.height===1.2))).toBe(true);
   await editor.locator('[name=file]').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(json)});await expect(editor.locator('output')).toContainText('Пресет импортирован');
   await editor.locator('[name=species]').selectOption('deck');await editor.locator('[name=anchor]').selectOption({index:1});await editor.locator('[name=effect-preset]').selectOption('lava');
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');

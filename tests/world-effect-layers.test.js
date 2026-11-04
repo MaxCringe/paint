@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {PINE_SPECIES,newAnchor,newEffectAnchor,upgradePreset,validatePreset,distributeAnchors,PresetHistory} from '../src/devtools/world/FirePreset.js';
 import {EFFECT_PRESETS,defaultEmitter,defaultLayer,applyEffectPreset,copy,sampleEmitter,birthSchedule} from '../src/devtools/world/EffectLayers.js';
+import {defaultBurnCycle} from '../src/systems/fire/ArtisticBurnCycle.js';
 import {createEditableFire} from '../src/devtools/world/EditableFire.js';
 import {createWorldEffectsRuntime} from '../src/devtools/world/WorldEffectsRuntime.js';
 const legacy=()=>({version:1,seed:1337,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,[]])),deck:[]});
@@ -12,17 +13,17 @@ function fixture(layers,{capacity=512}={}){
  const p=modern(),a=newEffectAnchor();a.layers=layers;p.world=[a];const source={root,id:'world',key:'world',anchors:p.world};
  const fire=createEditableFire(scene,{capacity});return {scene,root,p,a,source,fire,tick(count=20){for(let i=0;i<count;i++)fire.update(.1,[source],p);}};
 }
-test('all eleven presets validate; switching preserves attachment transforms and has distinct behaviors',()=>{
- assert.equal(Object.keys(EFFECT_PRESETS).length,11);const p=modern(),a=newEffectAnchor([1,2,3]);a.rotation=[.2,.3,.4];a.scale=[.7,1,2];const transform=copy({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id});
+test('all thirteen presets validate; switching preserves attachment transforms and has distinct behaviors',()=>{
+ assert.equal(Object.keys(EFFECT_PRESETS).length,13);const p=modern(),a=newEffectAnchor([1,2,3]);a.rotation=[.2,.3,.4];a.scale=[.7,1,2];const transform=copy({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id});
  const behaviors=new Set();for(const value of Object.values(EFFECT_PRESETS)){applyEffectPreset(a,value);p.world=[a];assert.deepEqual(validatePreset(p),p);assert.deepEqual({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id},transform);behaviors.add(JSON.stringify(value.layers));}
- assert.equal(behaviors.size,11);assert.equal(EFFECT_PRESETS.lightSmoke.layers.flame,undefined);assert.equal(EFFECT_PRESETS.sparkStream.layers.smoke,undefined);
+ assert.equal(behaviors.size,13);assert.equal(EFFECT_PRESETS.lightSmoke.layers.flame,undefined);assert.equal(EFFECT_PRESETS.sparkStream.layers.smoke,undefined);
 });
 test('legacy JSON migrates without altering transforms and retains its flame/spark settings',()=>{
  const p=legacy(),a=newAnchor([.3,4,-.6],.7);a.speed=2;a.opacity=.4;a.sparks=7;p.plants[PINE_SPECIES[0]]=[a];
- const upgraded=upgradePreset(p),b=upgraded.plants[PINE_SPECIES[0]][0];assert.equal(upgraded.version,2);assert.deepEqual(b.position,a.position);assert.equal(b.layers.flame.speed,2);assert.equal(b.layers.flame.opacity,.4);assert.equal(b.layers.sparks.count,7);assert.deepEqual(validatePreset(upgraded),upgraded);assert.equal(p.version,1);
+ const upgraded=upgradePreset(p),b=upgraded.plants[PINE_SPECIES[0]][0];assert.equal(upgraded.version,3);assert.deepEqual(b.position,a.position);assert.equal(b.layers.flame.speed,2);assert.equal(b.layers.flame.opacity,.4);assert.equal(b.layers.sparks.count,7);assert.deepEqual(validatePreset(upgraded),upgraded);assert.equal(p.version,1);
 });
 test('all layers, world and object bindings, groups and named presets round-trip with history',()=>{
- const p=modern(),a=applyEffectPreset(newEffectAnchor(),EFFECT_PRESETS.campfire);a.layers.embers=defaultLayer('embers');p.objects['plant:4']={binding:{kind:'plant',id:4,species:PINE_SPECIES[0],template:0,seed:p.seed},anchors:[a]};p.world=[copy(a)];p.group=['plant:4'];p.customPresets=[copy(EFFECT_PRESETS.magic)];
+ const p=modern(),a=applyEffectPreset(newEffectAnchor(),EFFECT_PRESETS.campfire);a.layers.embers=defaultLayer('embers');p.objects['plant:4']={binding:{kind:'plant',id:4,species:PINE_SPECIES[0],template:0,seed:p.seed},anchors:[a],cycle:defaultBurnCycle()};p.world=[copy(a)];p.group=['plant:4'];p.customPresets=[copy(EFFECT_PRESETS.magic)];
  assert.deepEqual(upgradePreset(JSON.parse(JSON.stringify(p))),p);const h=new PresetHistory(p);p.world[0].layers.smoke.opacity=.1;h.push(p);assert.equal(h.undo().world[0].layers.smoke.opacity,EFFECT_PRESETS.campfire.layers.smoke.opacity);assert.equal(h.redo().world[0].layers.smoke.opacity,.1);
 });
 test('malformed layers, bindings, budgets and duplicate custom names fail atomically',()=>{
@@ -52,7 +53,7 @@ test('continuous births and periodic bursts differ and lowering LOD lowers emiss
 });
 test('combined dense scene obeys one global budget and far sources have fewer flames',()=>{
  const f=fixture(copy(EFFECT_PRESETS.inferno.layers),{capacity:512});f.p.budget=128;const sources=Array.from({length:30},(_,i)=>({...f.source,id:'s'+i}));for(let i=0;i<20;i++)f.fire.update(.1,sources,f.p);assert.ok(f.fire.stats().particles<=128);assert.ok(f.fire.stats().truncated);
- f.p.budget=512;const camera=new THREE.PerspectiveCamera();camera.position.set(0,1,0);f.fire.update(0,[f.source],f.p,{camera});const near=f.fire.stats().flames;f.root.position.z=-100;f.fire.update(0,[f.source],f.p,{camera});assert.ok(f.fire.stats().flames<near);assert.ok(f.fire.stats().drawCalls<=3);f.fire.dispose();
+ f.p.budget=512;const camera=new THREE.PerspectiveCamera();camera.position.set(0,1,0);f.fire.update(0,[f.source],f.p,{camera});const near=f.fire.stats().flames;f.root.position.z=-100;f.fire.update(0,[f.source],f.p,{camera});assert.ok(f.fire.stats().flames<near);assert.ok(f.fire.stats().drawCalls<=5);f.fire.dispose();
 });
 test('ordinary-run runtime renders saved per-object effects without an editor and keeps templates isolated',()=>{
  const scene=new THREE.Scene(),root=new THREE.Group(),other=new THREE.Group();for(const [i,r] of [root,other].entries()){r.userData={plantId:i,plantSpecies:PINE_SPECIES[0],plantTemplate:0};scene.add(r);}

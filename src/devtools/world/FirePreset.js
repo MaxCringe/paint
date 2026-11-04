@@ -1,3 +1,4 @@
+import {validateBurnCycle,defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
 import {defaultEmitter,legacyLayers,copy,validateLayers,validateEmitter,EFFECT_PRESETS,hash} from './EffectLayers.js';
 // Versioned authoring data. GPU matrices are derived outputs, never saved state.
 export const PINE_SPECIES=['grove_cluster','runner_spruce_pro','taiga_spruce','dead_snag','sequoia_giant','scots_pine'].map(n=>'pine:'+n);
@@ -53,14 +54,14 @@ export const EFFECT_STORAGE='knottyPine.worldFire.v1';
 export function newEffectAnchor(position=[0,1,0],size=.6){const a=newAnchor(position,size);return {...a,emitter:defaultEmitter(),layers:legacyLayers(a)};}
 export function upgradePreset(input){
  if(!input||typeof input!=='object')throw Error('Некорректный JSON: ожидался объект пресета.');
- if(input.version===2)return validateModernPreset(input);
+ if(input.version===2||input.version===3)return validateModernPreset(input);
  const legacy=validateLegacyPreset(input),convert=a=>({...a,emitter:defaultEmitter(),layers:legacyLayers(a)});
- return {version:2,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:legacy.deck.map(convert),world:[],objects:{},group:[],customPresets:[],budget:6000};
+ return {version:3,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:legacy.deck.map(convert),world:[],objects:{},group:[],customPresets:[],budget:6000};
 }
-export function validatePreset(input){return input?.version===2?validateModernPreset(input):validateLegacyPreset(input);}
+export function validatePreset(input){return (input?.version===2||input?.version===3)?validateModernPreset(input):validateLegacyPreset(input);}
 function validateModernPreset(p){
  const fail=message=>{throw Error('Некорректный JSON: '+message);};
- if(!p||p.version!==2||!Number.isInteger(p.seed)||p.seed<0||p.seed>0xffffffff)fail('нужна версия 2 и seed от 0 до 4294967295');
+ if(!p||![2,3].includes(p.version)||!Number.isInteger(p.seed)||p.seed<0||p.seed>0xffffffff)fail('нужна версия 2/3 и seed от 0 до 4294967295');
  if(!p.plants||Object.keys(p.plants).some(k=>!PINE_SPECIES.includes(k)))fail('неизвестный вид растения');
  let total=0;
  const anchors=(list,deck=false)=>{
@@ -83,16 +84,16 @@ function validateModernPreset(p){
   if(!/^(plant:\d+|deck)$/.test(id)||!entry?.binding)fail('неизвестная привязка '+id);
   const b=entry.binding;
   if(b.seed!==p.seed||(id==='deck'?b.kind!=='deck':b.kind!=='plant'||!PINE_SPECIES.includes(b.species)||!Number.isInteger(b.template)||b.template<0||b.id!==Number(id.slice(6))))fail('привязка не соответствует seed/виду/шаблону');
-  objects[id]={binding:copy(b),anchors:anchors(entry.anchors,id==='deck')};
+  objects[id]={binding:copy(b),anchors:anchors(entry.anchors,id==='deck'),cycle:validateBurnCycle(entry.cycle)};
  }
  if(!Array.isArray(p.group)||p.group.length>128||p.group.some(id=>typeof id!=='string'||!/^(plant:\d+|deck)$/.test(id)))fail('неверная группа');
  if(!Number.isInteger(p.budget)||p.budget<128||p.budget>16384)fail('бюджет частиц: 128…16384');
  if(!Array.isArray(p.customPresets)||p.customPresets.length>32)fail('не более 32 пользовательских пресетов');
  const names=new Set(),customPresets=p.customPresets.map(v=>{
   if(typeof v.name!=='string'||!v.name.trim()||v.name.length>60||names.has(v.name))fail('нужны уникальные имена пресетов до 60 символов');names.add(v.name);
-  return {name:v.name,layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter)};
+  return {name:v.name,layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter),cycle:validateBurnCycle(v.cycle)};
  });
- return {version:2,seed:p.seed,plants,deck:anchors(p.deck,true),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget};
+ return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget};
 }
 export function readEffectPreset(){try{const raw=localStorage.getItem(EFFECT_STORAGE);return raw?upgradePreset(JSON.parse(raw)):null;}catch(error){console.warn('World effect preset ignored:',error.message);return null;}}
 export function saveEffectPreset(p){localStorage.setItem(EFFECT_STORAGE,JSON.stringify(p));}
