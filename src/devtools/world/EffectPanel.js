@@ -63,6 +63,7 @@ export function createEffectPanel(){
  <details><summary>Мои пресеты</summary><label>Имя<input name="preset-name" maxlength="60" placeholder="Например: Синий дым"></label><button data-action="save-named" data-needs-anchor>Сохранить именованный пресет</button></details>
  <div class="row"><button data-action="reset">Сбросить объект</button><button data-action="copy">Скопировать настройки</button></div>
  <div class="row"><button data-action="import">Импорт</button><button data-action="export">Экспорт</button></div>
+ <p>Сброс удаляет только эффекты мира и пользовательские пресеты. Рекорды и настройки игры сохраняются.</p><button type="button" data-action="reset-all-effects">Сбросить все эффекты</button>
  <input name="file" type="file" accept="application/json,.json" hidden>
  <details><summary>Сцена и бюджет</summary><label>Seed леса<input name="seed" type="number" min="0" max="4294967295"></label><button data-action="seed">Пересоздать сцену</button>
  <label>Бюджет частиц<input name="budget" type="number" min="128" max="16384" step="128"></label><p>Дальние эффекты автоматически упрощаются.</p></details>

@@ -9,7 +9,7 @@ import {createLavaRiverFactory} from '../../obstacles/LavaRiver.js';
 import {createForestRandom} from '../../world/forest/PlantRegistry.js';
 import {createEffectPanel} from './EffectPanel.js';
 import {EFFECT_PRESETS,LAYER_FIELDS,EMITTER_FIELDS,defaultLayer,copy,applyEffectPreset,COMPOSITION_PLACEMENT} from './EffectLayers.js';
-import {PINE_SPECIES,MAX_ANCHORS,newEffectAnchor,upgradePreset,readEffectPreset,saveEffectPreset,clonePreset,PresetHistory,deckToLocal,localToDeck,distributeAnchors} from './FirePreset.js';
+import {PINE_SPECIES,MAX_ANCHORS,newEffectAnchor,upgradePreset,readEffectPreset,saveEffectPreset,EFFECT_STORAGE,clonePreset,PresetHistory,deckToLocal,localToDeck,distributeAnchors} from './FirePreset.js';
 import './WorldEditor.css';
 
 const LABELS=['Сосновая группа','Ель бегуна','Таёжная ель','Сухая сосна','Секвойя','Сосна обыкновенная'];
@@ -155,6 +155,12 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    if(button.dataset.resetKind){const kind=button.dataset.resetKind,key=button.dataset.resetParam;mutation(()=>{const a=anchor(true);if(kind==='cycle')runtime.cycleFor(selected,true)[key]=cycleFields[key].value;else if(a)(kind==='emitter'?a.emitter:a.layers[kind])[key]=(kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key].value;});return;}
    const action=button.dataset.action,a=anchor();
    if(action==='close'){close();return;}
+   if(action==='reset-all-effects'){
+    if(!window.confirm('Сбросить все сохранённые эффекты огня, дыма, искр и тления, включая пользовательские пресеты?\nРекорды и настройки игры сохранятся. Отменить сброс после подтверждения нельзя.'))return;
+    try{localStorage.removeItem(EFFECT_STORAGE);}catch{message('Не удалось очистить сохранённые эффекты. Проверьте настройки хранения браузера.');return;}
+    location.reload();
+    return;
+   }
    if(action==='focus')focusAnchor();
    if(action==='next'&&selected){const copies=sources().filter(s=>s.key===selected.key);const i=copies.findIndex(s=>s.root===selected.root);if(copies.length)choose(copies[(i+1)%copies.length]);}
    if(action==='add'){snapId=null;armed=!armed;anchorId=null;refresh();}

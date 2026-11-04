@@ -86,4 +86,28 @@ test('settings exposes the world editor only in enabled builds and restores audi
  await expect(page.locator('#menu-settings')).toBeVisible();await page.locator('#menu-settings [data-menu-back]').click();
  await expect(page.locator('#resume')).toBeVisible();await page.locator('#resume').click();await expect(page.locator('#center')).toHaveClass(/hidden/);
  expect(errors).toEqual([]);
+ test('reset all effects confirms, preserves unrelated saves and restores default world',async({page})=>{
+  test.setTimeout(120000);
+  await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
+  const editor=page.locator('.world-editor');
+  await expect(editor).toBeVisible({timeout:60000});
+  await page.evaluate(()=>localStorage.setItem('knottyPine.reset-test-other','preserved'));
+  await editor.locator('[name=species]').selectOption('pine:dead_snag');
+  await editor.locator('[name=anchor]').selectOption({index:1});
+  await editor.locator('[data-action=duplicate]').click();
+  const saved=await page.evaluate(()=>localStorage.getItem('knottyPine.worldFire.v1'));
+  expect(saved).toBeTruthy();
+  page.once('dialog',dialog=>dialog.dismiss());
+  await editor.locator('[data-action=reset-all-effects]').click();
+  expect(await page.evaluate(()=>localStorage.getItem('knottyPine.worldFire.v1'))).toBe(saved);
+  page.once('dialog',dialog=>dialog.accept());
+  await Promise.all([page.waitForEvent('framenavigated'),editor.locator('[data-action=reset-all-effects]').click()]);
+  await expect(editor).toBeVisible({timeout:60000});
+  expect(await page.evaluate(()=>({
+   effects:localStorage.getItem('knottyPine.worldFire.v1'),
+   unrelated:localStorage.getItem('knottyPine.reset-test-other')
+  }))).toEqual({effects:null,unrelated:'preserved'});
+  await page.evaluate(()=>localStorage.removeItem('knottyPine.reset-test-other'));
+ });
+
 });
