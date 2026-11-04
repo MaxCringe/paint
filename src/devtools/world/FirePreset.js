@@ -1,3 +1,4 @@
+import {validateAndNormalizePreset} from '../../systems/fire/OriginalPreset.js';
 import {validateBurnCycle,defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
 import {defaultEmitter,legacyLayers,copy,validateLayers,validateEmitter,EFFECT_PRESETS,hash} from './EffectLayers.js';
 // Versioned authoring data. GPU matrices are derived outputs, never saved state.
@@ -74,7 +75,7 @@ function validateModernPreset(p){
    if(++total>2048)fail('общий лимит — 2048 очагов');
    // Keep legacy scalar values for consumers of v1; rendering uses layers.
    const legacy=validateLegacyPreset({version:1,seed:p.seed,plants:Object.fromEntries(PINE_SPECIES.map((k,i)=>[k,i===0?[a]:[]])),deck:[]}).plants[PINE_SPECIES[0]][0];
-   return {...legacy,layers:validateLayers(a.layers),emitter:validateEmitter(a.emitter)};
+   return {...legacy,...(a.original?{original:validateAndNormalizePreset(a.original)}:{}),layers:validateLayers(a.layers),emitter:validateEmitter(a.emitter)};
   });
  };
  const plants=Object.fromEntries(PINE_SPECIES.map(k=>[k,anchors(p.plants[k])]));
@@ -91,7 +92,7 @@ function validateModernPreset(p){
  if(!Array.isArray(p.customPresets)||p.customPresets.length>32)fail('не более 32 пользовательских пресетов');
  const names=new Set(),customPresets=p.customPresets.map(v=>{
   if(typeof v.name!=='string'||!v.name.trim()||v.name.length>60||names.has(v.name))fail('нужны уникальные имена пресетов до 60 символов');names.add(v.name);
-  return {name:v.name,layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter),cycle:validateBurnCycle(v.cycle)};
+  return {name:v.name,...(v.original?{original:validateAndNormalizePreset(v.original)}:{}),layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter),cycle:validateBurnCycle(v.cycle)};
  });
  return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget};
 }

@@ -3,7 +3,7 @@ import {newEffectAnchor} from './FirePreset.js';
 // Distinct surface pockets, not a regular ring. This operates on the actual
 // procedural species profile, so tree composition is separate from a local emitter.
 export function createTreeComposition(profile,composition,{seed=1337,zone='crown',count=7}={}){
- let candidates=profile.anchors.filter(a=>zone==='trunk'?a.zone==='trunk':a.zone!=='trunk'&&a.height>.46);
+ let candidates=profile.anchors.filter(a=>zone==='all'?true:zone==='trunk'?a.zone==='trunk':a.zone!=='trunk'&&a.height>.46);
  if(!candidates.length)candidates=profile.anchors;
  const ordered=candidates.map((a,i)=>({a,rank:hash(seed+i*109)})).sort((a,b)=>a.rank-b.rank);
  return ordered.slice(0,count).map(({a},i)=>{

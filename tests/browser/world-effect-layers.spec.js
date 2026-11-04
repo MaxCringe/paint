@@ -3,7 +3,7 @@ const enabled=process.env.WORLD_EDITOR_TESTS==='1';
 const STORAGE='knottyPine.worldFire.v1';
 const read=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),STORAGE);
 async function errorsAndShaders(page){
- const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|world effect|World editor/i.test(m.text()))errors.push(m.text());});
+ const errors=[];page.on('dialog',d=>d.accept());page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|world effect|World editor/i.test(m.text()))errors.push(m.text());});
  await page.addInitScript(()=>{window.__effectShaders={smoke:0,particles:0};for(const proto of [WebGLRenderingContext.prototype,WebGL2RenderingContext.prototype]){const original=proto.shaderSource;proto.shaderSource=function(shader,source){if(source.includes('attribute vec4 aTint'))window.__effectShaders.smoke++;if(source.includes('attribute float aSize,aKind'))window.__effectShaders.particles++;return original.call(this,shader,source);};}});
  return errors;
 }
@@ -14,10 +14,10 @@ test.describe('layered world effects',()=>{
  test.skip(!enabled,'Requires VITE_ENABLE_WORLD_EDITOR=true build');
  test('independent smoke/sparks, combination, live controls, named preset, history and ordinary-run reload',async({page})=>{
   test.setTimeout(240000);const errors=await errorsAndShaders(page);
-  await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});
+  await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   await editor.locator('[name=species]').selectOption('world');
   await editor.locator('[name=effect-preset]').selectOption('lightSmoke');await editor.getByRole('button',{name:'Добавить эффект',exact:true}).click();
-  const box=await page.locator('body > canvas').boundingBox();await page.mouse.click(box.width*.5,box.height*.65);
+  const box=await page.locator('body > canvas').boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.65);
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');const id=await editor.locator('[name=anchor]').inputValue();
   await expect(editor.locator('[data-choose-layer=smoke]')).toBeVisible();await expect(editor.locator('[data-choose-layer=flame]')).toHaveCount(0);
   await expect(editor.locator('[data-metrics]')).toHaveText(/дым [1-9]/);
@@ -40,7 +40,7 @@ test.describe('layered world effects',()=>{
   const exported=await exportJson(page,editor);expect(exported.version).toBe(3);expect(exported.world[0].layers.smoke.rate).toBe(14);
   await editor.locator('[name=file]').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});await expect(editor.locator('output')).toContainText('Пресет импортирован');expect(await read(page)).toEqual(exported);
   const before=await read(page);await editor.locator('[name=file]').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from('{"version":2,"seed":-4}')});await expect(editor.locator('output')).toContainText('Некорректный');expect(await read(page)).toEqual(before);
-  await page.reload({waitUntil:'domcontentloaded'});await expect(editor).toBeVisible({timeout:60000});await editor.locator('[name=species]').selectOption('world');await editor.locator('[name=anchor]').selectOption(id);expect((await read(page)).world).toEqual(exported.world);
+  await page.reload({waitUntil:'domcontentloaded'});await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();await editor.locator('[name=species]').selectOption('world');await editor.locator('[name=anchor]').selectOption(id);expect((await read(page)).world).toEqual(exported.world);
   await editor.getByRole('button',{name:'Закрыть редактор',exact:true}).click();
   // Same saved preset, no editor URL and no editor interaction: real smoke and
   // particle programs must be compiled by the ordinary game's runtime.
@@ -50,7 +50,7 @@ test.describe('layered world effects',()=>{
  });
  test('object isolation, explicit group application, seeded placement and saturated budget',async({page})=>{
   test.setTimeout(200000);const errors=await errorsAndShaders(page);
-  await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});
+  await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   await editor.locator('[name=anchor]').selectOption({index:1});await editor.locator('[name=effect-preset]').selectOption('magic');const first=Object.keys((await read(page)).objects)[0];
   await details(editor,'Группа и массовые действия');await editor.locator('[name=group-member]').check();
   await editor.locator('[name=species]').selectOption('pine:dead_snag');await editor.locator('[name=group-member]').check();expect(Object.keys((await read(page)).objects)).toEqual([first]);

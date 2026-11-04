@@ -1,6 +1,7 @@
 // Static vector thumbnails describe composition/layout. They allocate no canvas,
 // WebGLRenderer, geometry or material. Actual GPU previews live in comparison scene.
 export function compositionThumbnail(id){
+ id=({'original:tree':'crown','original:lava':'lava','original:smoldering':'smolder'})[id]??id;
  const flame=(x,y,s=1,blue=false)=>`<path transform="translate(${x} ${y}) scale(${s})" d="M0 0C-13-8-7-19-2-31C1-17 7-25 6-38C20-16 17-7 0 0Z" fill="${blue?'#45b7ff':'#ff9637'}"/><path transform="translate(${x} ${y}) scale(${s*.6})" d="M0 0C-7-8-1-14 3-25C7-13 12-6 0 0Z" fill="${blue?'#d4f6ff':'#ffe5a2'}"/>`;
  const puff=(x,y,s=1,dark=false)=>`<ellipse cx="${x}" cy="${y}" rx="${11*s}" ry="${8*s}" fill="${dark?'#62616b':'#adb0b8'}" opacity=".55"/>`;
  let content='';

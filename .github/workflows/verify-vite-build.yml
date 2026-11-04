@@ -52,3 +52,33 @@ jobs:
           name: browser-test-results
           path: test-results/
           if-no-files-found: ignore
+
+  world-editor:
+    runs-on: ubuntu-latest
+    env:
+      VITE_ENABLE_WORLD_EDITOR: 'true'
+      WORLD_EDITOR_TESTS: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium and software-WebGL system libraries
+        run: npx playwright install --with-deps chromium
+      - name: Validate effects and gameplay
+        run: npm test
+      - name: Build opt-in Fire Studio
+        run: npm run build
+      - name: Exercise authoring UI and WebGL
+        run: npm run test:browser -- tests/browser/world-editor.spec.js tests/browser/world-effect-layers.spec.js tests/browser/artistic-fire.spec.js tests/browser/fire-studio-2.spec.js
+      - name: Upload editor diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-editor-test-results
+          path: test-results/
+          if-no-files-found: ignore

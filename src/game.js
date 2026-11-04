@@ -611,7 +611,7 @@ if(worldEditorRequested)openWorldEditor().catch(error=>console.error('World edit
 function ensureAuthoredEffects(){
  if(authoredEffects)return Promise.resolve(authoredEffects);
  if(!effectsLoading)effectsLoading=import('./devtools/world/WorldEffectsRuntime.js').then(({createWorldEffectsRuntime})=>{
-  authoredEffects=createWorldEffectsRuntime({scene,renderer,forest,camera,seed:forest.seed,preset:savedEffectPreset,
+  authoredEffects=createWorldEffectsRuntime({scene,renderer,forest,camera,seed:forest.seed,preset:savedEffectPreset,getWorldOffset:()=>distance/.72,
    getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),getBurningPlants:forestFire.getActivePlants,
    defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject]});
   return authoredEffects;

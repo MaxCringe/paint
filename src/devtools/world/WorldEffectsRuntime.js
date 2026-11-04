@@ -6,7 +6,7 @@ import {PINE_SPECIES,newAnchor,upgradePreset,clonePreset,readEffectPreset} from 
 
 // This controller is also loaded in normal play when an authored preset exists.
 // It owns the only effect batches; opening the UI never creates a second engine.
-export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,getRivers,getBurningPlants,defaultFireObjects,preset:initial}){
+export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,getRivers,getBurningPlants,defaultFireObjects,preset:initial,getWorldOffset=()=>0}){
  const defaults=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(key=>[key,getPineFireProfile(key).anchors.map(a=>newAnchor([a.x,a.y,a.z],a.size))])),deck:[]});
  let preset=initial??readEffectPreset()??clonePreset(defaults);
  const fire=createEditableFire(scene),worldRoot=new THREE.Group();worldRoot.name='AuthoredWorldEffects';scene.add(worldRoot);
@@ -38,6 +38,7 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   if(preset.world.length)list.push(world);return list;
  }
  function update(dt,{sources,camera:previewCamera}={}){
+  worldRoot.position.z=getWorldOffset();
   for(const obj of defaultFireObjects)obj.visible=false;
   fire.update(dt,renderSources(sources??runtimeSources()),preset,{camera:previewCamera??camera,pixelRatio:renderer.getPixelRatio()});
  }

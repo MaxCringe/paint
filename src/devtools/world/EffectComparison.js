@@ -15,7 +15,7 @@ if(!EDITOR_BUILD.editorEnabled){document.body.textContent='Редактор от
  const hemi=new THREE.HemisphereLight(0xff8b76,0x120308,1.45),sun=new THREE.DirectionalLight(0xff3927,2.8),work=new THREE.HemisphereLight(0xffecd1,0x849478,2.5);sun.position.set(-8,35,8);scene.add(hemi,sun);
  const floor=new THREE.Mesh(new THREE.PlaneGeometry(70,70),new THREE.MeshStandardMaterial({color:'#252229',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.04;scene.add(floor);
  const preset=upgradePreset({version:1,seed:1337,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,[]])),deck:[]});preset.budget=2400;
- const engine=createEditableFire(scene);const groups={forms:[],compositions:[],stages:[]};
+ const engine=createEditableFire(scene);const groups={forms:[],compositions:[],stages:[],originals:[]};
  const labels=document.querySelector('.labels'),labelNodes=[];
  const add=(view,id,x,z,anchors,{model,cycle,height=1,label=id}={})=>{
   const root=model??new THREE.Group();root.position.set(x,0,z);scene.add(root);
@@ -31,6 +31,7 @@ if(!EDITOR_BUILD.editorEnabled){document.body.textContent='Редактор от
   const a=applyEffectPreset(newEffectAnchor([0,.1,0]),EFFECT_PRESETS[id]);a.id='composition:'+id;
   add('compositions',id,(i-1.5)*4.4,0,[a],{label:EFFECT_PRESETS[id].name});
  }
+ for(const [i,id] of ['original:tree','original:lava','original:smoldering'].entries()){const a=applyEffectPreset(newEffectAnchor([0,.1,0]),EFFECT_PRESETS[id]);a.id=id;add('originals',id,(i-1)*4.4,0,[a],{label:EFFECT_PRESETS[id].name});}
  const profile=getPineFireProfile('pine:grove_cluster');
  for(const [i,stage] of [.2,.55,.95].entries()){
   const model=createLowPolyPine('grove_cluster');model.scale.setScalar(.55);

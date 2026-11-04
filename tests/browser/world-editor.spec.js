@@ -9,7 +9,7 @@ test.describe('world fire authoring',()=>{
   test.setTimeout(180000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|World editor failed/.test(m.text()))errors.push(m.text());});
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
-  const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});
+  const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   await expect(editor.locator('[data-metrics]')).toContainText('очагов');
   const initial=await page.locator('#distance').textContent();
   await page.keyboard.press('KeyW');await page.keyboard.press('KeyE');expect(await page.locator('#distance').textContent()).toBe(initial);
@@ -93,7 +93,7 @@ test('reset all effects confirms, preserves unrelated saves and restores default
   test.setTimeout(120000);
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
   const editor=page.locator('.world-editor');
-  await expect(editor).toBeVisible({timeout:60000});
+  await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   await page.evaluate(()=>localStorage.setItem('knottyPine.reset-test-other','preserved'));
   await editor.locator('[name=species]').selectOption('pine:dead_snag');
   await editor.locator('[name=anchor]').selectOption({index:1});
@@ -105,7 +105,7 @@ test('reset all effects confirms, preserves unrelated saves and restores default
   expect(await page.evaluate(()=>localStorage.getItem('knottyPine.worldFire.v1'))).toBe(saved);
   page.once('dialog',dialog=>dialog.accept());
   await Promise.all([page.waitForEvent('framenavigated'),editor.locator('[data-action=reset-all-effects]').click()]);
-  await expect(editor).toBeVisible({timeout:60000});
+  await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   expect(await page.evaluate(()=>({
    effects:localStorage.getItem('knottyPine.worldFire.v1'),
    unrelated:localStorage.getItem('knottyPine.reset-test-other')

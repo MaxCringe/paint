@@ -13,10 +13,10 @@ function fixture(layers,{capacity=512}={}){
  const p=modern(),a=newEffectAnchor();a.layers=layers;p.world=[a];const source={root,id:'world',key:'world',anchors:p.world};
  const fire=createEditableFire(scene,{capacity});return {scene,root,p,a,source,fire,tick(count=20){for(let i=0;i<count;i++)fire.update(.1,[source],p);}};
 }
-test('all thirteen presets validate; switching preserves attachment transforms and has distinct behaviors',()=>{
- assert.equal(Object.keys(EFFECT_PRESETS).length,13);const p=modern(),a=newEffectAnchor([1,2,3]);a.rotation=[.2,.3,.4];a.scale=[.7,1,2];const transform=copy({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id});
+test('all sixteen presets validate; switching preserves attachment transforms and has distinct behaviors',()=>{
+ assert.equal(Object.keys(EFFECT_PRESETS).length,16);const p=modern(),a=newEffectAnchor([1,2,3]);a.rotation=[.2,.3,.4];a.scale=[.7,1,2];const transform=copy({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id});
  const behaviors=new Set();for(const value of Object.values(EFFECT_PRESETS)){applyEffectPreset(a,value);p.world=[a];assert.deepEqual(validatePreset(p),p);assert.deepEqual({position:a.position,rotation:a.rotation,scale:a.scale,id:a.id},transform);behaviors.add(JSON.stringify(value.layers));}
- assert.equal(behaviors.size,13);assert.equal(EFFECT_PRESETS.lightSmoke.layers.flame,undefined);assert.equal(EFFECT_PRESETS.sparkStream.layers.smoke,undefined);
+ assert.equal(behaviors.size,16);assert.equal(EFFECT_PRESETS.lightSmoke.layers.flame,undefined);assert.equal(EFFECT_PRESETS.sparkStream.layers.smoke,undefined);
 });
 test('legacy JSON migrates without altering transforms and retains its flame/spark settings',()=>{
  const p=legacy(),a=newAnchor([.3,4,-.6],.7);a.speed=2;a.opacity=.4;a.sparks=7;p.plants[PINE_SPECIES[0]]=[a];

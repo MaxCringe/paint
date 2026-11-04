@@ -7,7 +7,7 @@ export default defineConfig(({command,mode})=>{
  const editorEnabled=env.VITE_ENABLE_WORLD_EDITOR==='true'||(command==='serve'&&env.VITE_ENABLE_WORLD_EDITOR!=='false');
  let commit=env.VERCEL_GIT_COMMIT_SHA??'unknown',dirty=!env.VERCEL_GIT_COMMIT_SHA;
  try{commit=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();dirty=Boolean(execFileSync('git',['status','--porcelain'],{encoding:'utf8'}).trim());}catch{}
- const build={revision:3,commit,dirty,editorEnabled,builtAt:new Date().toISOString()};
+ const build={revision:4,commit,dirty,editorEnabled,builtAt:new Date().toISOString()};
  return {
   base:'./',define:{__EDITOR_BUILD__:JSON.stringify(build)},
   plugins:[{name:'editor-build-identity',generateBundle(){this.emitFile({type:'asset',fileName:'editor-build.json',source:JSON.stringify(build,null,2)});}}],

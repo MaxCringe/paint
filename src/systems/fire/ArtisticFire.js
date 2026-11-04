@@ -3,9 +3,10 @@ import {createFireTongueGeometry,FIRE_NOISE} from './FireStudioFlames.js';
 
 // Independent r160 adaptation of the requested artistic techniques. The AI Studio
 // archive was not supplied; these are not claimed to be its original algorithms.
-export const FLAME_FORMS={legacy:'Совместимый язык v2',tongue:'Простой вытянутый язык',forked:'Раздвоенные рваные кончики',roaring:'Широкое бушующее пламя',creeping:'Низкое стелющееся пламя',bent:'Изогнутое направленное пламя'};
+export const FLAME_FORMS={legacy:'Совместимый язык v2',tongue:'Простой вытянутый язык',forked:'Раздвоенные рваные кончики',roaring:'Широкое бушующее пламя',creeping:'Низкое стелющееся пламя',bent:'Изогнутое направленное пламя',studio:'Оригинальное объёмное пламя'};
 export const FLAME_FORM_IDS=Object.keys(FLAME_FORMS);
 export const FLAME_FORM_DEFAULTS={
+ studio:{forkStrength:.85,shellOpacity:.58,bend:0,curl:0},
  legacy:{forkStrength:0,shellOpacity:0,bend:0,curl:0},
  tongue:{forkStrength:0,shellOpacity:.18,bend:.08,curl:.18},
  forked:{forkStrength:1,shellOpacity:.24,bend:.12,curl:.55},
