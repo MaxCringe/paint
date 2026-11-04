@@ -86,7 +86,9 @@ test('settings exposes the world editor only in enabled builds and restores audi
  await expect(page.locator('#menu-settings')).toBeVisible();await page.locator('#menu-settings [data-menu-back]').click();
  await expect(page.locator('#resume')).toBeVisible();await page.locator('#resume').click();await expect(page.locator('#center')).toHaveClass(/hidden/);
  expect(errors).toEqual([]);
- test('reset all effects confirms, preserves unrelated saves and restores default world',async({page})=>{
+});
+
+test('reset all effects confirms, preserves unrelated saves and restores default world',async({page})=>{
   test.setTimeout(120000);
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
   const editor=page.locator('.world-editor');
@@ -109,5 +111,3 @@ test('settings exposes the world editor only in enabled builds and restores audi
   }))).toEqual({effects:null,unrelated:'preserved'});
   await page.evaluate(()=>localStorage.removeItem('knottyPine.reset-test-other'));
  });
-
-});
