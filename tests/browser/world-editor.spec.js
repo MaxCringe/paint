@@ -89,6 +89,7 @@ test('settings exposes the world editor only in enabled builds and restores audi
 });
 
 test('reset all effects confirms, preserves unrelated saves and restores default world',async({page})=>{
+  test.skip(!editorEnabled,'Opt-in editor build');
   test.setTimeout(120000);
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});
   const editor=page.locator('.world-editor');
