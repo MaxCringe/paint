@@ -242,6 +242,7 @@ export function createBroomRide(scene, runner) {
  }
  return {
   spawn,advancePickups,tick,preview,applyPose,reset,cancel,immuneTo,guardPineLog,
+  pendingPickups:()=>pickups.filter(p=>!p.passed).map(p=>({type:'broom',s:p.pathS,lane:p.lane})),
   get active(){return remaining>0;},
   get remaining(){return remaining;},
   get hoverHeight(){

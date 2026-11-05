@@ -3,8 +3,8 @@ export const SLIDE_DURATION = .82;
 export const SLIDE_JUMP_BUFFER_SECONDS = .7;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-export function createSlide({duration=SLIDE_DURATION}={}) {
- let remaining=0, crouch=0, queuedJump=0;
+export function createSlide({duration=SLIDE_DURATION,initialState}={}) {
+ let remaining=initialState?.remaining??0, crouch=initialState?.crouch??0, queuedJump=initialState?.queuedJump??0;
  function press(){ remaining=duration; queuedJump=0; }
  function queueJump(){queuedJump=SLIDE_JUMP_BUFFER_SECONDS;}
  function consumeJump(){if(queuedJump<=0)return false;queuedJump=0;return true;}
@@ -19,6 +19,7 @@ export function createSlide({duration=SLIDE_DURATION}={}) {
  }
  function reset(){cancel();}
  return {press,update,reset,cancel,queueJump,consumeJump,
+  snapshot:()=>({remaining,crouch,queuedJump}),
   get active(){return remaining>0;},
   get remaining(){return remaining;},
   get crouch(){return crouch;},

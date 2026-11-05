@@ -66,3 +66,12 @@ export function pineLogFlightGuardDuration(gap,travelSpeed){
  if(!Number.isFinite(gap)||!Number.isFinite(travelSpeed)||travelSpeed<=0||gap< -16||gap>=9)return 0;
  return (9-gap)/travelSpeed+.08;
 }
+
+// Broom blend descends in 1/4 second (BroomRide.tick). Start the existing
+// crossing hold before that descent could carry Fiona into the near bank.
+export function broomLavaGuardDuration(gap,halfDepth,speed){
+ if(!Number.isFinite(gap)||!Number.isFinite(halfDepth)||!Number.isFinite(speed)||halfDepth<=0||speed<=0)return 0;
+ const farBank=halfDepth+1,approach=-farBank-speed*.25;
+ if(gap<approach||gap>=halfDepth+6)return 0;
+ return Math.max(.16,(farBank-gap)/speed+.12);
+}

@@ -30,7 +30,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, pineLogBlocksSlideJump, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
+import { broomLavaGuardDuration, lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, pineLogBlocksSlideJump, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
@@ -44,7 +44,7 @@ import { createGameInput } from './systems/GameInput.js';
 const worldEditorEnabled=import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true'||(import.meta.env.DEV&&import.meta.env.VITE_ENABLE_WORLD_EDITOR!=='false');
 const worldEditorRequested=worldEditorEnabled&&new URLSearchParams(location.search).get('worldEditor')==='1';
 const savedEffectPreset=readEffectPreset();
-const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??savedEffectPreset?.seed??1337)>>>0:savedEffectPreset?.seed;
+const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??savedEffectPreset?.seed??1337)>>>0:savedEffectPreset?.seed??(import.meta.env.MODE==='test'?(Number(new URLSearchParams(location.search).get('runSeed')??1337)>>>0):undefined);
 const { scene, skyBackdrop, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
 let worldEditor=null,worldEditorLoading=null,authoredEffects=null,effectsLoading=null;
 const audio=createGameAudio();
@@ -261,7 +261,7 @@ function beginJump(){
 }
 function jump(){
  if(state!=='playing'||slipT>0||ultTimer>0||ultimateFlight.active||broom.active)return;
- if(slideAction.active){
+ if(slideAction.active||slideAction.jumpQueued){
   if(slideJumpBlocked()){slideAction.queueJump();return;}
   beginJump();return;
  }
@@ -383,18 +383,14 @@ function frame(t){requestAnimationFrame(frame);
     if(o.type!=='lava'||o.passed)continue;
     const half=o.g.userData.halfDepth||2.95;
     const gap=o.g.position.z-runner.position.z;
-    if(gap>=-half-1&&gap<half+6){
-     const seconds=(gap+half+1)/broomSpeed+.12;
-     broom.guardPineLog(Math.max(.16,seconds));
-    }
+    const guard=broomLavaGuardDuration(gap,half,broomSpeed);
+    if(guard>0)broom.guardPineLog(guard);
    }
   }
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
   runPath+=travelSpeed*dt;distance=runPath*.72;speed=Math.min(29,15+distance*.009);
-  makeSegment({path:runPath,speed:29*BROOM_CONFIG.ultimateSpeedMultiplier});
-  scarfPickup.offer(distance,()=>makeSegment.reservePickup('scarf',{path:runPath}));
   if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
   animateWearable(t,magnetTime>0);
   if(!ultActive&&!broom.active)doubleJump.update(dt);
@@ -418,6 +414,9 @@ function frame(t){requestAnimationFrame(frame);
   runner.rotation.x=-.055*ultimateFlight.lift;
   ultimateAura.update(t,ultActive,ultimateFlight.lift);
   avatar.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,ultimateLift:ultimateFlight.lift,slip:slipT>0,speed:travelSpeed});
+  makeSegment({path:runPath,lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),
+   slip:slipT,shield:revivalShield,getBroomPickups:broom.pendingPickups,broomRemaining:broom.remaining,ultimateRemaining:ultTimer,ultimateProgress:ultimateFlight.progress});
+  scarfPickup.offer(distance,()=>makeSegment.reservePickup('scarf',{path:runPath}));
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z=pathToZ(o.pathS,runPath);
@@ -637,3 +636,10 @@ function ensureAuthoredEffects(){
  return effectsLoading;
 }
 if(savedEffectPreset)ensureAuthoredEffects().catch(error=>console.error('Saved world effects unavailable:',error));
+
+// Read-only diagnostics and real input commands for browser integration tests.
+// Vite removes this branch from ordinary production builds; no gameplay bypass.
+if(import.meta.env.MODE==='test')window.__knottyRunTest={
+ snapshot:()=>({state,seed:forest.seed,fps:fpsDisplay.textContent,path:runPath,speed,travelSpeed:speed*travelSpeedMultiplier(ultTimer>0||ultimateFlight.active,broom.active),lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),broomRemaining:broom.remaining,ultimateRemaining:ultTimer,scarfCount:scarfPickup.count,obstacles:obstacles.map(o=>({s:o.pathS,z:o.g.position.z,lane:o.lane,type:o.type,passed:o.passed})),coins:coins.length,hats:hats.length,director:makeSegment.diagnostics()}),
+ command(type,direction){if(type==='move')move(direction);else if(type==='jump')jump();else if(type==='slide')slide();}
+};

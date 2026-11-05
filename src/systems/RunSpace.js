@@ -6,11 +6,12 @@ export const zToPath=(z,path)=>RUNNER_Z+path-z;
 export const laneMask=lane=>lane<0?7:1<<lane;
 export const hazardDepth=type=>type==='lava'?2.95:type==='pineLog'?PINE_LOG_COLLISION_HALF_DEPTH:type==='knot'?SMALL_PINE_COLLISION_HALF_DEPTH:1.1;
 const isHazard=r=>r.kind==='hazard';
-export function createRunSpace(){
+export function createRunSpace({rewardRecovery=0}={}){
  const records=[];
  function available(r){return records.every(other=>{
   if(!(laneMask(r.lane)&laneMask(other.lane)))return true;
-  const margin=isHazard(r)||isHazard(other)?1.4:.25;
+  let margin=isHazard(r)||isHazard(other)?1.4:.25;
+  if(isHazard(r)!==isHazard(other)){const h=isHazard(r)?r:other,reward=isHazard(r)?other:r;if(h.s>reward.s)margin=Math.max(margin,rewardRecovery);}
   return Math.abs(r.s-other.s)>=r.half+other.half+margin;
  });}
  return {records,available,
