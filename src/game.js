@@ -28,7 +28,7 @@ import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
 import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
-import { lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
+import { lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, pineLogBlocksSlideJump, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
 import { createOverlays } from './ui/GameOverlays.js';
 import { createGameHud } from './ui/GameHud.js';
@@ -247,9 +247,23 @@ function end(reason='other'){
  showDeathResult();
 }
 function move(d){if(state!=='playing'||slipT>0)return;const nextLane=Math.max(0,Math.min(2,lane+d));if(nextLane!==lane){lane=nextLane;audio.play('move');avatar?.trigger(d<0?'moveLeft':'moveRight')}}
-function jump(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!slideAction.active){
-  if(doubleJump.jump())avatar?.playJump(doubleJump.jumpsUsed);
- }}
+// Buffer an attempted jump while Fiona is inside the fallen trunk.
+function slideJumpBlocked(){
+ return obstacles.some(o=>o.type==='pineLog'&&
+  pineLogBlocksSlideJump(o.g.position.z-runner.position.z,o.passed));
+}
+function beginJump(){
+ slideAction.cancel();
+ if(doubleJump.jump())avatar?.playJump(doubleJump.jumpsUsed);
+}
+function jump(){
+ if(state!=='playing'||slipT>0||ultTimer>0||ultimateFlight.active||broom.active)return;
+ if(slideAction.active){
+  if(slideJumpBlocked()){slideAction.queueJump();return;}
+  beginJump();return;
+ }
+ if(doubleJump.jump())avatar?.playJump(doubleJump.jumpsUsed);
+}
 function slide(){if(state==='playing'&&slipT<=0&&ultTimer<=0&&!ultimateFlight.active&&!broom.active&&!doubleJump.airborne){slideAction.press();audio.play('slide')}}
 const {fpsDisplay}=createOverlays();
 const menu=createGameMenu({onStart:startFromMenu,onResume:togglePause,onPause:togglePause,haptics,fpsDisplay,onWorldEditor:worldEditorEnabled?openWorldEditor:undefined});
@@ -475,6 +489,12 @@ function frame(t){requestAnimationFrame(frame);
      }
     }
    }
+  }
+  // Run all obstacle collisions while still sliding; after the log has
+  // been marked as passed, execute the queued jump on this frame.
+  if(state==='playing'&&slideAction.jumpQueued&&!ultActive&&!broom.active&&
+     slipT<=0&&!doubleJump.airborne&&!slideJumpBlocked()&&slideAction.consumeJump()){
+   beginJump();
   }
   for(let i=obstacles.length-1;i>=0;i--)if(obstacles[i].g.position.z>13){
    if(obstacles[i].type==='lava'){

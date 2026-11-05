@@ -30,6 +30,11 @@ export const travelSpeedMultiplier=(ultimate,broom,broomFactor=1.2,ultimateFacto
 // Fiona must get her feet above its top (~2.24), plus a safety margin.
 export const PINE_LOG_DOUBLE_JUMP_CLEARANCE=2.45;
 export const PINE_LOG_COLLISION_HALF_DEPTH=.85;
+// Prevent early takeoff while inside (or just approaching) the full-width tree.
+export const PINE_LOG_SLIDE_JUMP_APPROACH=5;
+export const pineLogBlocksSlideJump=(gap,passed=false)=>
+ !passed&&Number.isFinite(gap)&&
+ gap>=-PINE_LOG_SLIDE_JUMP_APPROACH&&gap<=PINE_LOG_COLLISION_HALF_DEPTH;
 
 // Requiring BOTH the second jump and enough height prevents a late second press
 // from creating invulnerability while Fiona physically intersects the trunk.

@@ -1,21 +1,28 @@
 // Ground slide controller: repeated deliberate inputs refresh the timer.
 export const SLIDE_DURATION = .82;
+export const SLIDE_JUMP_BUFFER_SECONDS = .7;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function createSlide({duration=SLIDE_DURATION}={}) {
- let remaining=0, crouch=0;
- function press(){ remaining=duration; }
+ let remaining=0, crouch=0, queuedJump=0;
+ function press(){ remaining=duration; queuedJump=0; }
+ function queueJump(){queuedJump=SLIDE_JUMP_BUFFER_SECONDS;}
+ function consumeJump(){if(queuedJump<=0)return false;queuedJump=0;return true;}
+ // Exit the crouch pose when the next action is a jump.
+ function cancel(){remaining=0;crouch=0;queuedJump=0;}
  function update(dt){
+  queuedJump=Math.max(0,queuedJump-dt);
   remaining=Math.max(0,remaining-dt);
   const target=remaining>0?1:0;
   crouch+=(target-crouch)*Math.min(1,dt*(target?24:14));
   if(Math.abs(target-crouch)<.001)crouch=target;
  }
- function reset(){remaining=0;crouch=0;}
- return {press,update,reset,
+ function reset(){cancel();}
+ return {press,update,reset,cancel,queueJump,consumeJump,
   get active(){return remaining>0;},
   get remaining(){return remaining;},
-  get crouch(){return crouch;}
+  get crouch(){return crouch;},
+  get jumpQueued(){return queuedJump>0;}
  };
 }
 
