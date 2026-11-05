@@ -21,18 +21,18 @@ export function createGameHud({soulGoal,ultimateDuration}){
   element.textContent=next;
   cache.set(key,next);
  }
- function update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld=false},force=false){
+ function update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfCount=0},force=false){
   const now=performance.now();
   if(!force&&now-lastPaint<100)return; // Ten HUD updates/sec, independent of FPS.
   lastPaint=now;
   const active=ultTimer>0;
   text(els.distance,'distance',Math.floor(distance)+' m');
   text(els.coins,'coins',coinCount);
-  const hasScarf=Boolean(scarfHeld);
-  text(els.scarfCount,'scarf-count',hasScarf?1:0);
+  const hasScarf=scarfCount>0;
+  text(els.scarfCount,'scarf-count',scarfCount);
   els.scarfIndicator.classList.toggle('is-ready',hasScarf);
-  els.scarfIndicator.setAttribute('aria-label','Платок Мисти: '+(hasScarf?'1, готов к воскрешению':'0, отсутствует'));
-  els.scarfIndicator.title=hasScarf?'Платок Мисти: 1 — можно воскреснуть':'Платок Мисти: 0';
+  els.scarfIndicator.setAttribute('aria-label','Платок Мисти: '+scarfCount+(hasScarf?', готов к воскрешению':', отсутствует'));
+  els.scarfIndicator.title='Платок Мисти: '+scarfCount+(hasScarf?' — можно воскреснуть':'');
   const amount=active?Math.max(0,ultTimer/ultimateDuration*100):soulCharge/soulGoal*100;
   const width=Math.max(0,Math.min(100,amount)).toFixed(1)+'%';
   if(cache.get('bar')!==width){

@@ -85,5 +85,5 @@ export function createScarfPickup(scene){
   }else if(p.group.position.z>13)clearPickup();
  }
  function revive(position){if(!rules.consume())return false;burst(position);return true}
- return {reset,offer,update,revive,get canRevive(){return rules.canRevive}};
+ return {reset,offer,update,revive,get count(){return rules.count},get canRevive(){return rules.canRevive}};
 }

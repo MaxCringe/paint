@@ -19,7 +19,7 @@ const LABELS=['Сосновая группа','Ель бегуна','Таёжн�
 const editableTarget=e=>e.target instanceof HTMLElement&&!!e.target.closest('input,select,textarea,button,summary');
 export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
  const canvas=renderer.domElement,pineMeshes=forest.pickMeshes('pine');
- const camera=new THREE.PerspectiveCamera(55,1,.05,400);
+ const camera=new THREE.PerspectiveCamera(55,1,.05,800);
  let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null;
  const keys=new Set(),point=new THREE.Vector3(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);

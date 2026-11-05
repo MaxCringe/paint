@@ -13,20 +13,30 @@ test('one opportunity per kilometre, with a random location in each interval',()
  assert.equal(r.milestone(3000),true);
  assert.equal(r.milestone(3001),false);
 });
-test('one scarf held at a time; another can be found after use',()=>{
+test('scarves stack without a gameplay cap and each revival consumes one',()=>{
  const r=createScarfRules();
- assert.equal(r.collect(),true);
- assert.equal(r.collect(),false);
+ assert.equal(r.count,0);
+ assert.equal(r.consume(),false);
+ for(let i=1;i<=10000;i++){
+  assert.equal(r.collect(),true);
+  assert.equal(r.count,i);
+ }
+ assert.equal(r.held,true);
  assert.equal(r.canRevive,true);
  assert.equal(r.milestone(1000),true);
- assert.equal(r.consume(),true);
+ for(let i=9999;i>=0;i--){
+  assert.equal(r.consume(),true);
+  assert.equal(r.count,i);
+  assert.equal(r.canRevive,i>0);
+ }
  assert.equal(r.consume(),false);
- assert.equal(r.canRevive,false);
+ assert.equal(r.count,0);
+ assert.equal(r.held,false);
  assert.equal(r.milestone(2000),true);
- assert.equal(r.collect(),true);
- assert.equal(r.canRevive,true);
+ r.collect();r.collect();
  assert.equal(REVIVAL_PROTECTION_SECONDS,3);
  r.reset();
+ assert.equal(r.count,0);
  assert.equal(r.canRevive,false);
  assert.equal(r.milestone(1000),true);
 });
