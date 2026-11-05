@@ -82,13 +82,39 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    marker.userData.anchorId=item.id;markers.add(marker);
   }
   view.refresh({preset,selected,anchor:a,list:list(),anchorId,history,armed,paused:fire.paused,presetId,addKind,cycle:selected?runtime.cycleFor(selected):undefined});
-  panel.querySelector('[data-scene-tip]').textContent=preview?'Предпросмотр: '+effect().name+'. Чтобы сохранить, нажмите «Добавить в сцену».':armed?'Нажмите на дерево или поверхность, чтобы поставить эффект.':a?'Эффект выбран. Измените размер и цвет справа.':'Выберите эффект слева, затем нажмите на дерево или поверхность.';
+  panel.querySelector('[data-scene-tip]').textContent=preview?'Предпросмотр: '+effect().name+'. Чтобы сохранить, нажмите «Добавить в сцену».':armed?(selected?.boundary?'Нажмите на деревянные доски рядом с лавой, чтобы поставить очаг.':'Нажмите на дерево или поверхность, чтобы поставить эффект.'):a?'Эффект выбран. Измените размер и цвет справа.':'Выберите эффект слева, затем нажмите на дерево или поверхность.';
   message(armed?(snapId?'Щёлкните по поверхности для привязки очага.':'Щёлкните по поверхности или свободной точке сцены.'):a?'Изменяется только выбранный очаг. Массовые действия находятся в отдельном разделе.':'Выберите очаг или добавьте новый эффект.');
  }
  const markerGeometry=new THREE.SphereGeometry(.10,8,6),markerMaterial=new THREE.MeshBasicMaterial({color:0xffca80,depthTest:false}),selectedMaterial=new THREE.MeshBasicMaterial({color:0xcfff72,depthTest:false});
  function surfaceHit(event){
   const rect=canvas.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);ray.setFromCamera(pointer,camera);
   return ray.intersectObjects([...pineMeshes,...(demo?[demo]:[]),...getRivers()],true);
+ }
+ // The road planks are a world mesh, not a child of the lava river. The
+ // narrow charred strips already raycast; this fallback catches clicks on
+ // adjacent visible wood and projects the emitter onto the curved deck edge.
+ function deckBoardHit(){
+  const roots=selected?.boundary?[selected.root]:[...(demo?[demo]:[]),...getRivers()];
+  let nearest=null;
+  for(const root of roots){
+   const boundary=root?.userData.fireBoundary;
+   if(!boundary)continue;
+   root.updateWorldMatrix(true,false);
+   const deckY=root.localToWorld(new THREE.Vector3(0,.022,0)).y;
+   const hit=ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-deckY),new THREE.Vector3());
+   if(!hit)continue;
+   const local=root.worldToLocal(hit.clone());
+   if(Math.abs(local.x)>4.34)continue;
+   const mid=boundary.center(local.x),half=boundary.halfWidth(local.x);
+   const offset=Math.abs(local.z-mid)-half;
+   if(offset<-.02||offset>3.2)continue; // Wood close to the river, not the molten center or distant road.
+   const side=local.z<mid?-1:1;
+   local.y=.022;
+   local.z=mid+side*(half+Math.max(.02,Math.min(.39,offset)));
+   const distance=ray.ray.origin.distanceTo(hit);
+   if(!nearest||distance<nearest.distance)nearest={target:runtime.sourceFor(root),worldHit:root.localToWorld(local),distance};
+  }
+  return nearest;
  }
  function pick(event){
   if(event.button!==0||dragged||!pointerStart||Math.hypot(event.clientX-pointerStart.x,event.clientY-pointerStart.y)>5)return;
@@ -103,7 +129,11 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    else{let root=hit.object;while(root&&!root.userData.fireBoundary)root=root.parent;if(root&&hit.object.userData.fireDeckSurface)target=runtime.sourceFor(root);}
    if(target){worldHit=hit.point.clone();break;}
   }
-  if(!target||!worldHit){if(armed)message('Нажмите на видимую сосну, деревянную кромку или выберите свободное размещение.');return;}
+  if(!target&&armed){
+   const deckHit=deckBoardHit();
+   if(deckHit){target=deckHit.target;worldHit=deckHit.worldHit;}
+  }
+  if(!target||!worldHit){if(armed)message(selected?.boundary?'Нажмите на деревянные доски рядом с лавой, чтобы добавить очаг на переправу.':'Нажмите на видимую сосну, деревянную кромку или выберите свободное размещение.');return;}
   const adding=armed,oldSource=selected,oldId=snapId,oldAnchor=oldId?copy(anchor()):null;
   if(!adding){choose(target,{focus:false});return;}
   if(runtime.anchorsFor(target).length>=MAX_ANCHORS&&(!oldAnchor||target.id!==oldSource?.id)){message('Максимум 32 очага на объект.');return;}
