@@ -1,3 +1,4 @@
+import {pathToZ} from '../systems/RunSpace.js';
 import * as THREE from 'three';
 import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
 import { broomIgnoresHazard } from '../systems/HazardRules.js';
@@ -150,7 +151,7 @@ export function createBroomRide(scene, runner) {
  }
  updateAppearance();
 
- function spawn(lane,z){
+ function spawn(lane,z,pathS){
   updateAppearance();
   const group = new THREE.Group();
   group.position.set((lane-1)*2.55,0,z);
@@ -163,7 +164,7 @@ export function createBroomRide(scene, runner) {
   glow.scale.set(2.65,2.2,1);
   glow.position.set(0,1.04,.02);
   group.add(glow);scene.add(group);
-  pickups.push({g:group,visual,glow,lane,phase:Math.random()*Math.PI*2,passed:false});
+  pickups.push({g:group,visual,glow,lane,pathS,phase:Math.random()*Math.PI*2,passed:false});
  }
  function activate(){
   remaining=BROOM_CONFIG.duration;
@@ -212,10 +213,10 @@ export function createBroomRide(scene, runner) {
   if(showTrail)trail.update(Math.max(.001,remaining),t);
   else trail.hide();
  }
- function advancePickups(dt,t,speed,lane,runnerX,{canCollect=true,onCollect=()=>{}}={}){
+ function advancePickups(dt,t,speed,lane,runnerX,{canCollect=true,onCollect=()=>{},path}={}){
   for(let i=pickups.length-1;i>=0;i--){
    const p=pickups[i];
-   p.g.position.z+=speed*dt;
+   p.g.position.z=Number.isFinite(p.pathS)&&Number.isFinite(path)?pathToZ(p.pathS,path):p.g.position.z+speed*dt;
    if(!p.passed){
     p.visual.rotation.y=t*.0016+p.phase;
     p.visual.position.y=.88+Math.sin(t*.0035+p.phase)*.095;

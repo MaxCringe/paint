@@ -43,7 +43,7 @@ test('scarves stack without a gameplay cap and each revival consumes one',()=>{
 test('pickup, independent revival screen and disabled advertisements are wired',()=>{
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
  const game=read('src/game.js'),html=read('index.html'),screen=read('src/ui/GameOver.js');
- assert.match(game,/scarfPickup\.offer\(distance,spawnZ/);
+ assert.match(game,/scarfPickup\.offer\(distance,/);
  assert.match(game,/scarfPickup\.update\(dt,t,travelSpeed/);
  assert.match(game,/revivalShield=REVIVAL_PROTECTION_SECONDS/);
  assert.match(game,/scarfPickup\.reset\(\)/);
@@ -58,8 +58,9 @@ test('release rarity is restored and abundant pickups disabled',()=>{
  assert.ok(SCARF_TEST_SPAWN_CHANCE>=.075&&SCARF_TEST_SPAWN_CHANCE<=1);
  const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
  const game=read('src/game.js'),scarf=read('src/powerups/ScarfPickup.js');
- assert.ok(game.includes('if(SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ'));
- assert.ok(game.includes('if(!SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ'));
+ assert.ok(game.includes("makeSegment.reservePickup('scarf'"));
+ assert.ok(scarf.includes('if(SCARF_TEST_MODE)'));
+ assert.ok(scarf.includes('rules.milestone(distance)'));
  assert.ok(scarf.includes('firstTestOffer'));
  assert.ok(read('index.html').includes('id="scarf-indicator"'));
  assert.ok(read('index.html').includes('id="scarf-count"'));

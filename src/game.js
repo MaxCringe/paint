@@ -1,3 +1,5 @@
+import {pathToZ} from './systems/RunSpace.js';
+import {createForestRandom} from './world/forest/PlantRegistry.js';
 import {readEffectPreset} from './devtools/world/FirePreset.js';
 import * as THREE from 'three';
 
@@ -26,7 +28,7 @@ import { createWindSystem } from './systems/WindSystem.js';
 import { createSoulFactory } from './souls/createSoulFactory.js';
 import { createWitchHatFactory } from './powerups/WitchHat.js';
 import { createScarfPickup } from './powerups/ScarfPickup.js';
-import { REVIVAL_PROTECTION_SECONDS,SCARF_TEST_MODE } from './systems/ScarfRules.js';
+import { REVIVAL_PROTECTION_SECONDS } from './systems/ScarfRules.js';
 import { BROOM_ENABLED, BROOM_CONFIG, createBroomRide } from './powerups/BroomRide.js';
 import { lavaJumpCleared, lavaCrossingTouchesRunner, travelSpeedMultiplier, clearsPineLog, pineLogBroomDuck, pineLogFlightGuardDuration, pineLogCrossingTouchesRunner, PINE_LOG_COLLISION_HALF_DEPTH, pineLogBlocksSlideJump, smallPineDoubleJumpCleared, smallPineCrossingTouchesRunner, SMALL_PINE_COLLISION_HALF_DEPTH } from './systems/HazardRules.js';
 import { createUltimateFlight, ultimateLavaGuardDuration, ULTIMATE_LAND_SECONDS } from './player/UltimateFlight.js';
@@ -166,20 +168,21 @@ const makeLavaRiver = createLavaRiverFactory(scene, obstacles, {
 });
 const makePineLog = createPineLogFactory(scene, obstacles, trunkMat);
 const makeSegment = createSegmentGenerator({
-  makeLavaRiver,
-  makePineLog,
-  makeFish,
-  makePuddle,
-  makeObstacle,
-  makeSoul,
-  makeHat,
-  makeBroom:BROOM_ENABLED?broom.spawn:undefined,
+  makeLavaRiver:(z,s)=>{makeLavaRiver(z);obstacles.at(-1).pathS=s;},
+  makePineLog:(z,s)=>{makePineLog(z);obstacles.at(-1).pathS=s;},
+  makeFish:(lane,z,s)=>{makeFish(lane,z);obstacles.at(-1).pathS=s;},
+  makePuddle:(lane,z,s)=>{makePuddle(lane,z);obstacles.at(-1).pathS=s;},
+  makeObstacle:(lane,z,type,s)=>{makeObstacle(lane,z,type);obstacles.at(-1).pathS=s;},
+  makeSoul:(lane,z,y,s)=>{makeSoul(lane,z,y);coins.at(-1).pathS=s;},
+  makeHat:(lane,z,_y,s)=>{makeHat(lane,z);hats.at(-1).pathS=s;},
+  makeBroom:BROOM_ENABLED?(lane,z,_y,s)=>broom.spawn(lane,z,s):undefined,
+  random:createForestRandom(forest.seed^0x72a9b341),
   broomChance:BROOM_CONFIG.pickupChance
 });
 const doubleJump=createDoubleJump({onJump:()=>audio.play('jump'),onLand:()=>audio.play('land')});
 const slideAction=createSlide();
 let footstepTimer=0;
-let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, spawnZ=-50, slipT=0, invuln=0, revivalShield=0, last=0, spawnTimer=0;
+let lane=1, state='ready', distance=0, coinCount=0, soulCharge=0, ultTimer=0, magnetTime=0, speed=15, runPath=0, slipT=0, invuln=0, revivalShield=0, last=0;
 const $=id=>document.getElementById(id);
 createAudioControls(audio,music);
 const hud=createGameHud({soulGoal:SOULS_PER_ULT,ultimateDuration:ULT_DURATION});
@@ -229,7 +232,7 @@ function start(){
  }
  runRecords.start(best,bestSouls);
  hud.setRecordHighlights({metres:false,souls:false});
- audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();forestFire.reset();lavaForest.reset();lavaDeckFire.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;spawnZ=-48;makeSegment.reset();spawnTimer=.2;footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
+ audio.unlock();audio.play('start');music.start();airLite.reset();windSystem.reset();meteorEcosystem.reset();ratEcosystem.reset();forestFire.reset();lavaForest.reset();lavaDeckFire.reset();for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.()}for(const h of hats)scene.remove(h.g);broom.reset();scarfPickup.reset();for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}obstacles.length=0;coins.length=0;hats.length=0;lane=1;distance=0;coinCount=0;soulCharge=0;ultTimer=0;ultimateFlight.reset();magnetTime=0;animateWearable(0,false);speed=15;runPath=0;makeSegment.reset();footstepTimer=0;doubleJump.reset();slideAction.reset();slipT=0;invuln=0;revivalShield=0;runner.rotation.set(0,0,0);runner.position.set(0,0,2.3);ultimateAura.reset();batEcosystem.reset();avatar.reset();state='playing';menu.hide();hud.clearToast();updateHud(true)}
 function showDeathResult(){
  menu.showGameOver();
  gameOver.show({metres:Math.floor(distance),collectedSouls:coinCount,records:runRecords.status(),canRevive:scarfPickup.canRevive});
@@ -389,14 +392,9 @@ function frame(t){requestAnimationFrame(frame);
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
   pineFloorTexture.offset.y=(pineFloorTexture.offset.y+travelSpeed*dt*15/220)%1;
-  distance+=travelSpeed*dt*.72;speed=Math.min(29,15+distance*.009);spawnTimer-=dt;
-  if(!SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ,obstacles,hats,coins);
-  if(spawnTimer<=0){
-   makeSegment(spawnZ);
-   if(SCARF_TEST_MODE)scarfPickup.offer(distance,spawnZ,obstacles,hats,coins);
-   spawnZ-=18+Math.random()*7;spawnTimer=Math.max(.48,1.02-(speed-15)*.025);
-  }
-  if(spawnZ<-150)spawnZ= -50;
+  runPath+=travelSpeed*dt;distance=runPath*.72;speed=Math.min(29,15+distance*.009);
+  makeSegment({path:runPath,speed:29*BROOM_CONFIG.ultimateSpeedMultiplier});
+  scarfPickup.offer(distance,()=>makeSegment.reservePickup('scarf',{path:runPath}));
   if(magnetTime>0)magnetTime=Math.max(0,magnetTime-dt);
   animateWearable(t,magnetTime>0);
   if(!ultActive&&!broom.active)doubleJump.update(dt);
@@ -422,7 +420,7 @@ function frame(t){requestAnimationFrame(frame);
   avatar.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,ultimateLift:ultimateFlight.lift,slip:slipT>0,speed:travelSpeed});
   for(const o of obstacles){
    const previousZ=o.g.position.z;
-   o.g.position.z+=travelSpeed*dt;
+   o.g.position.z=pathToZ(o.pathS,runPath);
    // During ultimate flight Fiona can pass over lava rivers and all ground hazards.
    if(ultActive&&o.g.position.z>-3.5)o.passed=true;
    if(o.type==='fish')animateFishOdor(o.g,t);
@@ -505,16 +503,16 @@ function frame(t){requestAnimationFrame(frame);
   }
   ratEcosystem.update(dt,{playing:state==='playing',runnerX:runner.position.x,runnerZ:runner.position.z,ultimate:ultActive,speed:travelSpeed,obstacles});
   if(state==='playing')broom.advancePickups(dt,t,travelSpeed,lane,runner.position.x,{
-   canCollect:!ultActive,
+   canCollect:!ultActive,path:runPath,
    onCollect:()=>{doubleJump.reset();slideAction.reset();slipT=0;audio.play('hat');haptics.play('item');popToast('ВЕДЬМИНА МЕТЛА — ПОЛЁТ 9 СЕКУНД');updateHud(true);}
   });
   if(state==='playing')scarfPickup.update(dt,t,travelSpeed,lane,runner.position.x,()=>{
    audio.play('hat');haptics.play('item');
    avatar?.trigger('scarfPickup');popToast('ПЛАТОК МИСТИ — ОДНО ВОСКРЕШЕНИЕ');updateHud(true);
-  });
+  },runPath);
   // Floating hat is collected without changing obstacle collisions.
   for(const h of hats){
-   h.g.position.z+=travelSpeed*dt;
+   h.g.position.z=pathToZ(h.pathS,runPath);
    if(!h.collected)animateHat(h,t);
    if(!h.passed&&h.g.position.z>1.2){
     h.passed=true;
@@ -551,7 +549,7 @@ function frame(t){requestAnimationFrame(frame);
     c.g.position.z+=(runner.position.z+.08-c.g.position.z)*easing;
     c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.11+arc*.85;
    }else{
-    c.g.position.z+=travelSpeed*dt;
+    c.g.position.z=pathToZ(c.pathS,runPath);
     c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14;
    }
    c.g.rotation.y=Math.sin(t*.0018+phase)*.62;
