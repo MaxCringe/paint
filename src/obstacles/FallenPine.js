@@ -364,12 +364,12 @@ export function createFallenPineObstacle(options = {}) {
     // Visible silhouettes: sparse, forked, swept, thick, branchy and bare.
     // The seed controls unique details within each silhouette.
     const profiles = [
-      {name:'splintered', thickness:.86, bend:.03, lift:.02, branches:2, branchSize:.65, crown:9},
-      {name:'forked', thickness:1.03, bend:-.20, lift:.05, branches:7, branchSize:1.55, crown:5},
-      {name:'swept', thickness:.93, bend:.32, lift:-.02, branches:5, branchSize:1.05, crown:7},
-      {name:'massive', thickness:1.23, bend:-.28, lift:.12, branches:3, branchSize:.90, crown:4},
-      {name:'branchy', thickness:.97, bend:.17, lift:0, branches:9, branchSize:1.70, crown:7},
-      {name:'stripped', thickness:1.11, bend:-.09, lift:.07, branches:1, branchSize:1.10, crown:3},
+      {name:'splintered', thickness:.84, bend:.06, lift:.02, branches:2, branchSize:1.05, crown:12, tint:0xeed0a5},
+      {name:'forked', thickness:1.02, bend:-.22, lift:.08, branches:5, branchSize:1.30, crown:5, tint:0xd6bda2},
+      {name:'swept', thickness:.91, bend:.42, lift:.02, branches:8, branchSize:1.75, crown:4, tint:0xc9b4a5},
+      {name:'massive', thickness:1.32, bend:-.32, lift:.20, branches:2, branchSize:1.00, crown:4, tint:0xb39a84},
+      {name:'branchy', thickness:.97, bend:.12, lift:.04, branches:10, branchSize:1.85, crown:7, tint:0xc9ad8e},
+      {name:'stripped', thickness:1.10, bend:-.12, lift:.12, branches:0, branchSize:0, crown:2, tint:0x68605d},
     ];
     const profileIndex = ((Number.isInteger(options.profile) ? options.profile : seed) % profiles.length + profiles.length) % profiles.length;
     const profile = profiles[profileIndex];
@@ -444,11 +444,37 @@ export function createFallenPineObstacle(options = {}) {
       const dir=new THREE.Vector3((rand()-.5)*1.4,.95+rand()*.5,(rand()-.5)*1.35).normalize();
       const rHere=radiusAt(bt);
       const base=P0.clone().addScaledVector(dir,rHere*.8);
-      const len=(.40+rand()*.45)*profile.branchSize;
-      woodParts.push(buildBranchStub(rand,base,dir,len,.05+rand()*.035));
+      const len=(.55+rand()*.65)*profile.branchSize;
+      woodParts.push(buildBranchStub(rand,base,dir,len,.075+rand()*.06));
       woodParts.push(makeShard(rand,base.clone().addScaledVector(dir,len),
         dir.clone().add(new THREE.Vector3((rand()-.5)*.6,rand()*.4,(rand()-.5)*.6)).normalize(),
         .12+rand()*.14,.028,C.barkDark,C.woodOld,C.woodFresh));
+    }
+
+    // Large, recognizable branches and torn forks. All rise away from the
+    // passage, so changing the silhouette never changes collision logic.
+    const signatureArms = [
+      // Two tall broken "antlers" at opposite ends of a shattered trunk.
+      [[.13,-.50,1.7,-.25,2.7,.17],[.84,.48,1.6,.35,2.5,.15]],
+      // A giant Y-shaped split exactly over the central trunk.
+      [[.43,-.85,1.65,-.55,3.5,.21],[.46,.95,1.6,.65,3.4,.21]],
+      // Bent storm-swept branches, all leaning toward the distant side.
+      [[.20,.15,1.05,1.25,3.0,.12],[.44,.15,1.05,1.40,3.25,.13],[.69,.1,.9,1.35,2.8,.13]],
+      // A very thick fallen trunk with two short, stout broken limbs.
+      [[.22,-.55,1.4,.35,1.65,.26],[.72,.60,1.25,-.35,1.8,.24]],
+      // An unmistakable high fan of long branches.
+      [[.26,-1,1.25,-.4,3.15,.15],[.32,.9,1.3,.4,3.2,.16],[.49,-.45,1.4,.9,2.7,.13],[.59,.5,1.25,-1,3.0,.15],[.75,.75,1.3,.5,2.45,.12]],
+      // Almost no branches: a single huge splinter at the broken base.
+      [[.09,-.14,1.8,.20,2.4,.22]]
+    ];
+    for(const [at,x,y,z,len,width] of signatureArms[profileIndex]){
+      const pivot=new THREE.Vector3();
+      catmullRom(spine,at,pivot);
+      pivot.y+=radiusAt(at)*.75;
+      const dir=new THREE.Vector3(x,y,z).normalize();
+      woodParts.push(buildBranchStub(rand,pivot,dir,len,width));
+      const tip=pivot.clone().addScaledVector(dir,len*.94);
+      woodParts.push(makeShard(rand,tip,dir,len*.16,width*.58,C.barkDark,C.woodFresh,C.woodOld));
     }
     const stumpCenter = new THREE.Vector3(spine[0].x - 0.28, 0, spine[0].z - 0.12);
     woodParts.push(buildStump(rand, noise2, stumpCenter, rButt * 1.15, 0.85 + rand() * 0.35, 12, 5));
@@ -475,8 +501,11 @@ export function createFallenPineObstacle(options = {}) {
     }
     const woodGeom = mergeGeometries(woodParts, false);
     woodGeom.computeVertexNormals();
+    // Color is a multiplier over Kimi's original vertex-colored bark.
+    // Pale splintered wood and soot-black deadwood now read differently
+    // even at normal runner distance.
     const woodMat = new THREE.MeshStandardMaterial({
-        vertexColors: true, roughness: 0.94, metalness: 0.0, flatShading: true,
+        color: profile.tint, vertexColors: true, roughness: 0.94, metalness: 0.0, flatShading: true,
     });
     const woodMesh = new THREE.Mesh(woodGeom, woodMat);
     woodMesh.castShadow = true;
@@ -508,6 +537,7 @@ export function createFallenPineObstacle(options = {}) {
         profile: profileIndex,
         silhouette: profile.name,
         branchCount: profile.branches,
+        signatureArmCount: signatureArms[profileIndex].length,
         length: L,
         clearance: Number(underside.toFixed(3)),
         trunkMidDiameter: Number((rMid * 2).toFixed(3)),
