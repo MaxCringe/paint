@@ -360,18 +360,31 @@ export function createFallenPineObstacle(options = {}) {
     const clearanceTarget = options.clearance ?? 1.0;
     const rand = mulberry32((seed * 2654435761) >>> 0);
     const noise2 = makeNoise2(mulberry32((seed ^ 0x9e3779b9) >>> 0));
+
+    // Visible silhouettes: sparse, forked, swept, thick, branchy and bare.
+    // The seed controls unique details within each silhouette.
+    const profiles = [
+      {name:'splintered', thickness:.86, bend:.03, lift:.02, branches:2, branchSize:.65, crown:9},
+      {name:'forked', thickness:1.03, bend:-.20, lift:.05, branches:7, branchSize:1.55, crown:5},
+      {name:'swept', thickness:.93, bend:.32, lift:-.02, branches:5, branchSize:1.05, crown:7},
+      {name:'massive', thickness:1.23, bend:-.28, lift:.12, branches:3, branchSize:.90, crown:4},
+      {name:'branchy', thickness:.97, bend:.17, lift:0, branches:9, branchSize:1.70, crown:7},
+      {name:'stripped', thickness:1.11, bend:-.09, lift:.07, branches:1, branchSize:1.10, crown:3},
+    ];
+    const profileIndex = ((Number.isInteger(options.profile) ? options.profile : seed) % profiles.length + profiles.length) % profiles.length;
+    const profile = profiles[profileIndex];
     const group = new THREE.Group();
     group.name = 'fallen-pine-obstacle';
     const lift = clearanceTarget - 0.35;
     const spine = [
         new THREE.Vector3(-L * 0.52, 1.02 + lift * 0.3, -0.18),
-        new THREE.Vector3(-L * 0.30, 1.12 + lift * 0.6, 0.06),
-        new THREE.Vector3(0.02, 0.72 + lift, 0.26),
-        new THREE.Vector3(L * 0.28, 0.66 + lift * 0.8, 0.14),
+        new THREE.Vector3(-L * 0.30, 1.12 + lift * 0.6 + profile.lift * .5, 0.06 + profile.bend * .55),
+        new THREE.Vector3(0.02, 0.72 + lift + profile.lift, 0.26 + profile.bend),
+        new THREE.Vector3(L * 0.28, 0.66 + lift * 0.8 + profile.lift * .6, 0.14 + profile.bend * .55),
         new THREE.Vector3(L * 0.44, 0.50, -0.06),
         new THREE.Vector3(L * 0.51, 0.30, -0.20),
     ];
-    const rMid = 0.275 + rand() * 0.075;
+    const rMid = (0.275 + rand() * 0.075) * profile.thickness;
     const rButt = rMid * (1.35 + rand() * 0.15);
     const rTip = 0.07 + rand() * 0.04;
     const radiusAt = (t) => {
@@ -410,7 +423,7 @@ export function createFallenPineObstacle(options = {}) {
     woodParts.push(buildBreakCap(rand, noise2, P0, tan0.clone().negate(), rButt * 0.97, 9));
     woodParts.push(buildBreakCap(rand, noise2, PT, tanT, rTip * 1.6 + 0.06, 8));
     const crownBase = P0.clone();
-    const nCrown = 5 + Math.floor(rand() * 3);
+    const nCrown = profile.crown + Math.floor(rand() * 2);
     for (let i = 0; i < nCrown; i++) {
         const a = rand() * TAU;
         const dir = new THREE.Vector3(Math.cos(a) * 0.3 + tan0.x * 0.3, 1.0 + rand() * 0.5, Math.sin(a) * 0.3 + tan0.z * 0.3).normalize();
@@ -423,16 +436,19 @@ export function createFallenPineObstacle(options = {}) {
         const bp = PT.clone().add(new THREE.Vector3(Math.cos(a) * 0.05, 0.02, Math.sin(a) * 0.05));
         woodParts.push(makeShard(rand, bp, dir, 0.14 + rand() * 0.2, 0.035 + rand() * 0.03, C.barkDark, C.woodOld, C.woodFresh));
     }
-    const branchTs = [0.16 + rand() * 0.06, 0.3 + rand() * 0.08, 0.62 + rand() * 0.08, 0.78 + rand() * 0.06];
-    for (const bt of branchTs) {
-        catmullRom(spine, bt, P0);
-        const aTop = Math.PI / 2 + (rand() - 0.5) * 1.6;
-        const dir = new THREE.Vector3((rand() - 0.5) * 0.9, 0.8 + rand() * 0.5, (rand() - 0.5) * 0.9).normalize();
-        const rHere = radiusAt(bt);
-        const base = P0.clone().addScaledVector(dir, rHere * 0.8);
-        const len = 0.28 + rand() * 0.4;
-        woodParts.push(buildBranchStub(rand, base, dir, len, 0.05 + rand() * 0.035));
-        woodParts.push(makeShard(rand, base.clone().addScaledVector(dir, len), dir.clone().add(new THREE.Vector3((rand() - 0.5) * 0.6, rand() * 0.4, (rand() - 0.5) * 0.6)).normalize(), 0.1 + rand() * 0.12, 0.028, C.barkDark, C.woodOld, C.woodFresh));
+    const branchTs = Array.from({length:profile.branches},(_,i)=>
+      0.15 + ((i + .3 + rand()*.4)/profile.branches)*.66);
+    for(const bt of branchTs){
+      catmullRom(spine,bt,P0);
+      // All stubs grow above the trunk; keep the slide corridor unobstructed.
+      const dir=new THREE.Vector3((rand()-.5)*1.4,.95+rand()*.5,(rand()-.5)*1.35).normalize();
+      const rHere=radiusAt(bt);
+      const base=P0.clone().addScaledVector(dir,rHere*.8);
+      const len=(.40+rand()*.45)*profile.branchSize;
+      woodParts.push(buildBranchStub(rand,base,dir,len,.05+rand()*.035));
+      woodParts.push(makeShard(rand,base.clone().addScaledVector(dir,len),
+        dir.clone().add(new THREE.Vector3((rand()-.5)*.6,rand()*.4,(rand()-.5)*.6)).normalize(),
+        .12+rand()*.14,.028,C.barkDark,C.woodOld,C.woodFresh));
     }
     const stumpCenter = new THREE.Vector3(spine[0].x - 0.28, 0, spine[0].z - 0.12);
     woodParts.push(buildStump(rand, noise2, stumpCenter, rButt * 1.15, 0.85 + rand() * 0.35, 12, 5));
@@ -489,6 +505,9 @@ export function createFallenPineObstacle(options = {}) {
     group.add(rockMesh);
     group.userData = {
         seed,
+        profile: profileIndex,
+        silhouette: profile.name,
+        branchCount: profile.branches,
         length: L,
         clearance: Number(underside.toFixed(3)),
         trunkMidDiameter: Number((rMid * 2).toFixed(3)),

@@ -4,25 +4,24 @@ import * as THREE from 'three';
 import { createFallenPineObstacle } from '../src/obstacles/FallenPine.js';
 import { createPineLogFactory } from '../src/obstacles/PineLog.js';
 
-test('Kimi pine geometry has two merged meshes, useful metadata and varied seeds', () => {
- const left=createFallenPineObstacle({seed:17,length:8.9,clearance:1.7});
- const right=createFallenPineObstacle({seed:41,length:8.9,clearance:1.7});
- for(const tree of [left,right]){
+test('six silhouette profiles change shape while preserving slide clearance',()=>{
+ const trees=Array.from({length:6},(_,profile)=>createFallenPineObstacle({seed:17,profile,length:8.9,clearance:1.7}));
+ assert.deepEqual(trees.map(t=>t.userData.branchCount),[2,7,5,3,9,1]);
+ assert.equal(new Set(trees.map(t=>t.userData.silhouette)).size,6);
+ assert.equal(new Set(trees.map(t=>t.userData.trunkMidDiameter)).size,6);
+ for(const tree of trees){
   assert.equal(tree.children.length,2);
   assert.ok(tree.children.every(mesh=>mesh.isMesh&&mesh.geometry.attributes.position.count>0));
-  assert.ok(tree.userData.clearance>1.3,'clearance should allow slide');
+  assert.ok(tree.userData.clearance>1.3,'slide clearance');
   assert.ok(tree.userData.triangles>200);
  }
- assert.notEqual(left.userData.trunkMidDiameter,right.userData.trunkMidDiameter);
 });
-
-test('new log factory preserves all-lanes pineLog hazard and shares meshes across instances',()=>{
- const scene=new THREE.Scene(), obstacles=[];
- const add=createPineLogFactory(scene,obstacles);
- for(let i=0;i<5;i++)add(-40-i*20);
- assert.equal(obstacles.length,5);
+test('log spawning reuses 12 distinct cached designs with original collision type',()=>{
+ const scene=new THREE.Scene(), obstacles=[], add=createPineLogFactory(scene,obstacles);
+ for(let i=0;i<13;i++)add(-40-i*20);
  assert.ok(obstacles.every(o=>o.type==='pineLog'&&o.lane===-1&&!o.passed));
- assert.deepEqual(obstacles.map(o=>o.g.position.z),[-40,-60,-80,-100,-120]);
- assert.equal(obstacles[0].g.children[0].geometry,obstacles[4].g.children[0].geometry);
- assert.equal(obstacles[0].g.children[0].material,obstacles[4].g.children[0].material);
+ assert.equal(new Set(obstacles.slice(0,12).map(o=>o.g.children[0].geometry)).size,12);
+ assert.equal(new Set(obstacles.slice(0,12).map(o=>o.g.userData.silhouette)).size,6);
+ assert.equal(new Set(obstacles.slice(0,12).map(o=>o.g.rotation.y)).size,2);
+ assert.ok(obstacles.slice(0,12).some(o=>o.g.children[0].geometry===obstacles[12].g.children[0].geometry));
 });
