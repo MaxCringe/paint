@@ -31,14 +31,14 @@ export function createEffectPanel({onLayout=()=>{}}={}){
  <label>Композиция / пресет<select name="effect-preset"></select></label><p>Форма пламени, состав слоёв и источник настраиваются отдельно.</p>
  <h3>3. Поставить в сцене</h3><label>Объект<select name="species">${PINE_SPECIES.map((id,i)=>`<option value="${id}">${LABELS[i]}</option>`).join('')}<option value="deck">Деревянная переправа</option><option value="world">Свободные эффекты сцены</option></select></label>
  <div class="row"><button data-action="focus">К очагу · F</button><button data-action="next">Другой экземпляр</button></div>
- <label>Очаг<select name="anchor"></select></label>
+ <label class="advanced-only">Очаг<select name="anchor"></select></label>
  <label>Размещение<select name="placement"><option value="surface">На выбранном объекте</option><option value="world">Свободная точка сцены</option></select></label>
- <div class="row"><button class="primary" data-action="add">Добавить эффект</button><button data-action="delete" data-needs-anchor>Удалить</button></div>
+ <div class="row"><button class="primary" data-action="add">Разместить вручную</button><button data-action="delete" data-needs-anchor>Удалить</button></div>
  <div class="row"><button data-action="duplicate" data-needs-anchor>Дублировать</button><button data-action="snap" data-needs-anchor>На поверхность</button></div>
  <div class="row"><button data-mode="translate">Двигать</button><button data-mode="rotate">Повернуть</button><button data-mode="scale">Масштаб</button></div>
 
  <p>Пресет меняет слои и источник, сохраняя позицию и привязку.</p>
- <h3>4. Настроить</h3><div data-layers></div><div class="row"><select name="add-layer"></select><button data-action="add-layer" data-needs-anchor>Добавить слой</button></div>
+ <details open class="scene-objects"><summary>Объекты сцены</summary><p data-scene-count></p><p data-scene-empty>Пока нет созданных эффектов.</p><select name="scene-effects" size="4" aria-label="Объекты сцены"></select><div class="row"><button data-action="scene-focus" data-needs-anchor>К эффекту</button><button data-action="scene-duplicate" data-needs-anchor>Копия</button><button data-action="scene-delete" data-needs-anchor>Удалить эффект</button></div></details><h3>4. Настроить</h3><div data-layers></div><div class="row"><select name="add-layer"></select><button data-action="add-layer" data-needs-anchor>Добавить слой</button></div>
  <div class="row"><button data-action="delete-layer" data-needs-anchor>Удалить слой</button><button data-action="reset-layer" data-needs-anchor>Сбросить слой</button></div>
  <div data-basic-controls></div>
  <details data-advanced><summary>Дополнительные настройки слоя</summary><div data-advanced-controls></div></details>
@@ -91,7 +91,7 @@ export function createEffectPanel({onLayout=()=>{}}={}){
  const extra=document.createElement('div');extra.className='row';extra.innerHTML='<button data-action="paste" data-needs-anchor>Вставить настройки</button><button data-action="restore-preset" data-needs-anchor>Вернуть пресет</button>';panel.querySelector('[data-action=copy]').parentElement.after(extra);
  const changes=document.createElement('p');changes.dataset.presetChanges='';extra.after(changes);
  const sceneTip=panel.querySelector('.hint');sceneTip.innerHTML='<span data-scene-tip>Выберите эффект слева, затем нажмите на дерево или поверхность.</span><small>ЛКМ — выбор и вращение · ПКМ — панорама · WASD — полёт · Q/E — высота · F — фокус</small>';
- for(const details of inspector.querySelectorAll('details'))if(!details.hasAttribute('data-tree-cycle'))details.classList.add('advanced-only');
+ for(const details of inspector.querySelectorAll('details'))if(!details.hasAttribute('data-tree-cycle')&&!details.classList.contains('scene-objects'))details.classList.add('advanced-only');
  for(const action of ['add-layer','delete-layer','reset-layer'])panel.querySelector('[data-action='+action+']').parentElement.classList.add('advanced-only');
  panel.querySelector('[name=emitter-shape]').closest('details').classList.add('advanced-only');
  panel.querySelector('[name=work-light]').parentElement.classList.add('advanced-only');panel.querySelector('.comparison-link').classList.add('advanced-only');
@@ -100,14 +100,15 @@ export function createEffectPanel({onLayout=()=>{}}={}){
  panel.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.layout){const name=b.dataset.layout,hidden=panel.classList.toggle(name+'-hidden');b.setAttribute('aria-expanded',String(!hidden));onLayout();}if(b.dataset.inspector){panel.dataset.inspectorMode=b.dataset.inspector;panel.querySelectorAll('[data-inspector]').forEach(v=>v.dataset.active=String(v===b));if(lastRefresh)refresh(lastRefresh);}});
  const identity=panel.querySelector('[data-build]');identity.dataset.editorRevision=EDITOR_BUILD.revision;identity.textContent='Редактор r'+EDITOR_BUILD.revision+' · '+EDITOR_BUILD.commit.slice(0,7)+(EDITOR_BUILD.dirty?' · рабочая копия':'');identity.title=EDITOR_BUILD.commit+' '+EDITOR_BUILD.builtAt;
  let selectedKind='flame',lastRefresh;
- function refresh(state){lastRefresh=state;const {preset,selected,anchor,list,anchorId,history,armed,paused,presetId,addKind='fire',cycle}=state;
+ function refresh(state){lastRefresh=state;const {preset,selected,anchor,list,anchorId,history,armed,paused,presetId,addKind='fire',cycle,mode='idle',sceneEntries=[],sceneLimit=2048,sceneTotal=sceneEntries.length}=state;
   const $=s=>panel.querySelector(s),a=anchor;
+  panel.dataset.mode=mode;const sceneList=$('[name=scene-effects]');sceneList.replaceChildren();for(const entry of sceneEntries){const option=new Option(entry.label,entry.key);option.disabled=!entry.available;sceneList.add(option);}sceneList.value=sceneEntries.find(v=>v.sourceId===selected?.id&&v.id===anchorId)?.key??'';sceneList.hidden=!sceneEntries.length;$('[data-scene-empty]').hidden=sceneEntries.length>0;$('[data-scene-count]').textContent=sceneEntries.length+' эффектов · '+list.length+'/32 у цели · '+sceneTotal+'/'+sceneLimit+' всего';
 if(a&&!a.layers[selectedKind])selectedKind=Object.keys(a.layers)[0]??'flame';
   $('[name=species]').value=selected?.key??'world';$('[name=anchor]').replaceChildren(new Option('Выберите очаг',''));
   list.forEach((item,i)=>$('[name=anchor]').add(new Option('Очаг '+(i+1),item.id)));$('[name=anchor]').value=anchorId??'';
   panel.querySelectorAll('[data-needs-anchor]').forEach(el=>el.disabled=!a);
   $('[data-action=undo]').disabled=history.index===0;$('[data-action=redo]').disabled=history.index===history.entries.length-1;
-  $('[data-action=add]').dataset.active=String(armed);$('[data-action=add]').disabled=list.length>=32;
+  $('[data-action=add]').dataset.active=String(armed);$('[data-action=add]').textContent=armed?'Отменить размещение':'Разместить вручную';$('[data-action=add]').disabled=false;
   $('[data-action=pause-effects]').textContent=paused?'Продолжить эффекты':'Пауза эффектов';
   $('[name=seed]').value=preset.seed;$('[name=budget]').value=preset.budget;
   $('[name=group-member]').checked=preset.group.includes(selected?.id);$('[name=group-member]').disabled=!selected||selected.id==='world';

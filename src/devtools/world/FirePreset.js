@@ -4,6 +4,7 @@ import {defaultEmitter,legacyLayers,copy,validateLayers,validateEmitter,EFFECT_P
 // Versioned authoring data. GPU matrices are derived outputs, never saved state.
 export const PINE_SPECIES=['grove_cluster','runner_spruce_pro','taiga_spruce','dead_snag','sequoia_giant','scots_pine'].map(n=>'pine:'+n);
 export const MAX_ANCHORS=32;
+export const MAX_SCENE_ANCHORS=2048;
 export function newAnchor(position=[0,1,0],size=.6){
  return {id:globalThis.crypto.randomUUID(),position:[...position],rotation:[0,0,0],scale:[1,1,1],size,strength:1,color:'#ff9b32',speed:1,sparks:4,opacity:.94,side:1};
 }
@@ -72,10 +73,11 @@ function validateModernPreset(p){
    for(const k of ['position','rotation','scale'])if(!Array.isArray(a[k])||a[k].length!==3||a[k].some(n=>!Number.isFinite(n)||Math.abs(n)>100||(k==='scale'&&n<.05)))fail('неверная трансформация очага');
    if(![1,-1].includes(a.side))fail('неверная сторона переправы');
    if(deck&&(Math.abs(a.position[0])>4.34||a.position[2]<.02||a.position[2]>.39||a.position[1]<-.03||a.position[1]>.5))fail('очаг вне деревянной кромки');
-   if(++total>2048)fail('общий лимит — 2048 очагов');
+   if(++total>MAX_SCENE_ANCHORS)fail('общий лимит — 2048 очагов');
    // Keep legacy scalar values for consumers of v1; rendering uses layers.
    const legacy=validateLegacyPreset({version:1,seed:p.seed,plants:Object.fromEntries(PINE_SPECIES.map((k,i)=>[k,i===0?[a]:[]])),deck:[]}).plants[PINE_SPECIES[0]][0];
-   return {...legacy,...(a.original?{original:validateAndNormalizePreset(a.original)}:{}),layers:validateLayers(a.layers),emitter:validateEmitter(a.emitter)};
+   if(a.name!==undefined&&(typeof a.name!=='string'||!a.name.trim()||a.name.length>60))fail('неверное название эффекта');
+   return {...legacy,...(a.name?{name:a.name}:{}),...(a.original?{original:validateAndNormalizePreset(a.original)}:{}),layers:validateLayers(a.layers),emitter:validateEmitter(a.emitter)};
   });
  };
  const plants=Object.fromEntries(PINE_SPECIES.map(k=>[k,anchors(p.plants[k])]));

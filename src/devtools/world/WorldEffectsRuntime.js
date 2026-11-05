@@ -37,10 +37,11 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   for(const root of getRivers())list.push(sourceFor(root));
   if(preset.world.length)list.push(world);return list;
  }
- function update(dt,{sources,camera:previewCamera}={}){
+ function update(dt,{sources,camera:previewCamera,placementPreview}={}){
   worldRoot.position.z=getWorldOffset();
   for(const obj of defaultFireObjects)obj.visible=false;
-  fire.update(dt,renderSources(sources??runtimeSources()),preset,{camera:previewCamera??camera,pixelRatio:renderer.getPixelRatio()});
+  const resolved=renderSources(sources??runtimeSources());if(placementPreview)resolved.push(placementPreview);
+  fire.update(dt,resolved,preset,{camera:previewCamera??camera,pixelRatio:renderer.getPixelRatio()});
  }
  return {fire,defaults,world,sourceFor,anchorsFor,cycleFor,update,
   get preset(){return preset;},setPreset(value){preset=value;},

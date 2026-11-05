@@ -16,7 +16,7 @@ test.describe('layered world effects',()=>{
   test.setTimeout(240000);const errors=await errorsAndShaders(page);
   await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const editor=page.locator('.world-editor');await expect(editor).toBeVisible({timeout:60000});await editor.locator('[data-inspector=advanced]').click();
   await editor.locator('[name=species]').selectOption('world');
-  await editor.locator('[name=effect-preset]').selectOption('lightSmoke');await editor.getByRole('button',{name:'Добавить эффект',exact:true}).click();
+  await editor.locator('[name=effect-preset]').selectOption('lightSmoke');await editor.locator('[data-action=add]').click();
   const box=await page.locator('body > canvas').boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.65);
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');const id=await editor.locator('[name=anchor]').inputValue();
   await expect(editor.locator('[data-choose-layer=smoke]')).toBeVisible();await expect(editor.locator('[data-choose-layer=flame]')).toHaveCount(0);

@@ -22,7 +22,7 @@ test.describe('world fire authoring',()=>{
   // Select a near spruce and place on its actual visible triangle using a ray
   // from a deterministic projected root. The user path is a real canvas click.
   await editor.locator('[name=species]').selectOption('pine:grove_cluster');
-  await editor.getByRole('button',{name:'Добавить эффект',exact:true}).click();
+  await editor.locator('[data-action=add]').click();
   const canvas=page.locator('body > canvas');const box=await canvas.boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5);
   await expect(editor.locator('[name=anchor]')).not.toHaveValue('');
   await page.screenshot({path:test.info().outputPath('world-editor.png')});
