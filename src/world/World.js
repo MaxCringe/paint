@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import {createForestGenerator,populateForest} from './forest/ForestGenerator.js';
+import {createDistantBackdrop} from './DistantBackdrop.js';
 
 // Build the scene, forest, volcanic horizon, track, and recycled roadside vegetation.
 export function createWorld({forestSeed}={}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1b050b);
   scene.fog = new THREE.Fog(0x3b101b, 14, 68);
-  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 180);
+  const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 500);
   camera.position.set(0,5.3,10.5);
   const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.2)); renderer.setSize(innerWidth,innerHeight);
@@ -22,6 +23,8 @@ export function createWorld({forestSeed}={}) {
   pineFloorTexture.wrapS=THREE.RepeatWrapping; pineFloorTexture.wrapT=THREE.RepeatWrapping;
   pineFloorTexture.repeat.set(1.8,15); pineFloorTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
   roadMat.map=pineFloorTexture; roadMat.needsUpdate=true;
+  const skyBackdrop=createDistantBackdrop(camera.position);
+  scene.add(skyBackdrop);
   // Layered jagged mountain ranges across the horizon, with a lava volcano far to the right.
   const mountainFarMat=new THREE.MeshBasicMaterial({color:0x241019,side:THREE.DoubleSide,fog:false});
   const mountainMidMat=new THREE.MeshBasicMaterial({color:0x3b111c,side:THREE.DoubleSide,fog:false});
@@ -35,7 +38,7 @@ export function createWorld({forestSeed}={}) {
    for(let i=1;i<points.length;i++)shape.lineTo(points[i][0],points[i][1]);
    shape.lineTo(points[points.length-1][0],-6);shape.lineTo(points[0][0],-6);shape.closePath();
    const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),material);
-   mesh.position.set(x,-1,z);mesh.renderOrder=-2;scene.add(mesh);return mesh;
+   mesh.position.set(x,-1,z);mesh.renderOrder=-2;skyBackdrop.add(mesh);return mesh;
   }
   horizonShape([[-105,0],[-92,7],[-82,4],[-69,12],[-57,6],[-45,15],[-31,8],[-18,12],[-5,5],[9,13],[22,7],[36,16],[48,9],[61,14],[73,6],[87,11],[99,4],[108,0]],-91,mountainFarMat);
   horizonShape([[-105,0],[-91,4],[-79,3],[-67,9],[-54,4],[-41,11],[-29,5],[-15,9],[-2,4],[12,10],[26,5],[39,12],[52,6],[66,10],[79,4],[94,8],[108,0]],-84,mountainMidMat);
@@ -103,7 +106,7 @@ export function createWorld({forestSeed}={}) {
   const volcano3D=new THREE.Mesh(volcano3DGeo,
    new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,fog:false}));
   volcano3D.renderOrder=-1.8;
-  scene.add(volcano3D);
+  skyBackdrop.add(volcano3D);
 
   // Elliptical dark interior and glowing magma visible inside the crater rim.
   const craterDark=new THREE.Mesh(
@@ -114,7 +117,7 @@ export function createWorld({forestSeed}={}) {
   craterDark.scale.y=.36;
   craterDark.position.set(30,21.6,-72.51);
   craterDark.renderOrder=-1.5;
-  scene.add(craterDark);
+  skyBackdrop.add(craterDark);
   const craterMagma=new THREE.Mesh(
    new THREE.CircleGeometry(1.25,20),
    new THREE.MeshBasicMaterial({color:0xff5410,side:THREE.DoubleSide,fog:false})
@@ -123,7 +126,7 @@ export function createWorld({forestSeed}={}) {
   craterMagma.scale.y=.32;
   craterMagma.position.set(30,21.64,-72.5);
   craterMagma.renderOrder=-1.4;
-  scene.add(craterMagma);
+  skyBackdrop.add(craterMagma);
 
   // One lightweight particle system for ash and glowing fragments above the vent.
   const ventCount=64,ventPos=new Float32Array(ventCount*3),ventColor=new Float32Array(ventCount*3);
@@ -162,7 +165,7 @@ export function createWorld({forestSeed}={}) {
    }
    ventPosAttr.needsUpdate=true;ventColorAttr.needsUpdate=true;
   };
-  scene.add(ventPoints);
+  skyBackdrop.add(ventPoints);
   // Animated molten rivulets visibly travel from the crater toward the foot of the volcano.
   const movingLava=[];
   const lavaDropGeo=new THREE.SphereGeometry(1,8,6);
@@ -171,7 +174,7 @@ export function createWorld({forestSeed}={}) {
     const material=new THREE.MeshBasicMaterial({color:i%3===0?0xffc04a:0xff5a0a});
     const drop=new THREE.Mesh(lavaDropGeo,material);
     drop.scale.set(.08+Math.random()*.04,.22+Math.random()*.18,.035);
-    scene.add(drop);
+    skyBackdrop.add(drop);
     movingLava.push({mesh:drop,xStart,xEnd,phase:phase+i/count});
    }
   }
@@ -188,5 +191,5 @@ export function createWorld({forestSeed}={}) {
   const forest=populateForest(createForestGenerator(scene,{seed}),{seed:seed^0x51f2a9c3});
   const roadsideVegetation=forest.plants;
   const updateForestPines=()=>forest.update();
-  return { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest };
+  return { scene, skyBackdrop, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest };
 }

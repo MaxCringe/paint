@@ -43,14 +43,14 @@ const worldEditorEnabled=import.meta.env.VITE_ENABLE_WORLD_EDITOR==='true'||(imp
 const worldEditorRequested=worldEditorEnabled&&new URLSearchParams(location.search).get('worldEditor')==='1';
 const savedEffectPreset=readEffectPreset();
 const editorSeed=worldEditorRequested?Number(new URLSearchParams(location.search).get('seed')??savedEffectPreset?.seed??1337)>>>0:savedEffectPreset?.seed;
-const { scene, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
+const { scene, skyBackdrop, camera, renderer, mat, box, trunkMat, darkStone, pineFloorTexture, movingLava, roadsideVegetation, updateForestPines, forest } = createWorld({forestSeed:editorSeed});
 let worldEditor=null,worldEditorLoading=null,authoredEffects=null,effectsLoading=null;
 const audio=createGameAudio();
 const music=createGameMusic();
 const haptics=createGameHaptics();
 const batEcosystem=createBatEcosystem(scene,{onFlee:({x})=>audio.play('bats',{pan:x<0?-1:1})});
 const ratEcosystem=createRatEcosystem(scene,{onFlee:({x})=>audio.play('rat',{pan:Math.max(-.65,Math.min(.65,x/10))})});
-const meteorEcosystem=createMeteorEcosystem(scene,roadsideVegetation,{camera});
+const meteorEcosystem=createMeteorEcosystem(skyBackdrop,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
 // One shared, low-cost GPU fire pool for the actual six procedural pine models.
@@ -187,7 +187,7 @@ let best=Number(localStorage.getItem('knottyPineBest')||0);let bestSouls=Number(
 const runRecords=createRunRecordTracker({storage:localStorage,bestMetres:best,bestSouls});
 function updateHud(force=false){
  hud.setRecordHighlights(runRecords.progress(distance,coinCount));
- hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfHeld:scarfPickup.canRevive},force);
+ hud.update({distance,coinCount,soulCharge,ultTimer,magnetTime,scarfCount:scarfPickup.count},force);
 }
 const popToast=message=>hud.toast(message);
 let avatar=null,avatarLoading=null;

@@ -37,10 +37,13 @@ test('HUD writes changed values once, and supports forced gameplay updates',()=>
   assert.equal(distance.textContent,'22 m');
   assert.equal(nodes.get('soul-state').textContent,'УЛЬТА — ПОЛЁТ');
   assert.equal(nodes.get('scarf-count').textContent,'0');
-  hud.update({...frame,scarfHeld:true},true);
+  hud.update({...frame,scarfCount:1},true);
   assert.equal(nodes.get('scarf-count').textContent,'1');
   assert.equal(nodes.get('scarf-indicator').attributes['aria-label'],'Платок Мисти: 1, готов к воскрешению');
-  hud.update({...frame,scarfHeld:false},true);
+  hud.update({...frame,scarfCount:1234},true);
+  assert.equal(nodes.get('scarf-count').textContent,'1234');
+  assert.equal(nodes.get('scarf-indicator').attributes['aria-label'],'Платок Мисти: 1234, готов к воскрешению');
+  hud.update({...frame,scarfCount:0},true);
   assert.equal(nodes.get('scarf-count').textContent,'0');
   hud.setRecords(450,99);
   assert.equal(nodes.get('best').textContent,'450 m');

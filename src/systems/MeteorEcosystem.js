@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {backdropSkyPoint} from '../world/DistantBackdrop.js';
 
 // Independent, lightweight distant meteor shower. Set to false to switch it off.
 // No impacts in the forest, no burning trees, and no gameplay collisions.
@@ -80,9 +81,7 @@ export function createMeteorEcosystem(scene, _roadsideVegetation, {
  // Convert normalized screen points to a world plane behind every mountain.
  // This maintains the intended diagonal on phones and widescreen monitors.
  function skyPoint(nx,ny,depth=SKY_Z){
-  const projected=new THREE.Vector3(nx,ny,.5).unproject(camera);
-  const ray=projected.sub(camera.position);
-  return camera.position.clone().addScaledVector(ray,(depth-camera.position.z)/ray.z);
+  return backdropSkyPoint(scene,camera,nx,ny,depth);
  }
  function createGlow(e){
   // The meteor is disappearing behind the peaks, not hitting the road/forest.
