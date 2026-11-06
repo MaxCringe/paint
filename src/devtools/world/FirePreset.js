@@ -19,16 +19,19 @@ const DEMO_RIVER_WORLD_IDS=new Set([
  '04935f25-4bef-49e3-a436-cc9470e6cf36','06943561-e891-434c-b98b-247ca0623578'
 ]);
 function migrateDemoRiverEffects(p){
- if(p.river!==undefined||p.seed!==LAVA_RIVER_AUTHORING.sourceSeed)return {...p,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
+ // An old imported demo can contain an empty object override which masks all
+ // of its valid deck anchors. Migrate it even if river effects were already saved.
+ const objects={...p.objects};
+ const exportedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
+  &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
+ if(exportedDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
+ if(p.river!==undefined||p.seed!==LAVA_RIVER_AUTHORING.sourceSeed)
+  return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
  const moved=[],world=[];
  for(const anchor of p.world??[]){
   if(!DEMO_RIVER_WORLD_IDS.has(anchor.id)){world.push(anchor);continue;}
   moved.push({...anchor,position:[anchor.position[0],anchor.position[1]-.045,anchor.position[2]-LAVA_RIVER_AUTHORING.demoRiverZ]});
  }
- const objects={...p.objects};
- // The exported demo has an empty per-instance deck override that shadows
- // its 12 valid shared wooden-edge anchors. Discard only this empty override.
- if(p.deck?.length&&objects.deck?.anchors?.length===0)delete objects.deck;
  return {...p,world,objects,river:moved.length?moved:clonePreset(LAVA_RIVER_AUTHORING.river)};
 }
 

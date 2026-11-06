@@ -51,4 +51,6 @@ test('imported user demo moves all nine lava effects onto rivers and clears empt
  assert.equal(migrated.river.length,bundle.river.length);
  assert.ok(!migrated.objects.deck,'empty demo override must not suppress charred deck flames');
  assert.deepEqual(migrated.river.map(a=>a.id),bundle.river.map(a=>a.id));
+ const alreadyMigrated=upgradePreset({...legacy,river:structuredClone(bundle.river)});
+ assert.ok(!alreadyMigrated.objects.deck,'pre-migrated river effects must not keep an empty wooden deck override');
 });
