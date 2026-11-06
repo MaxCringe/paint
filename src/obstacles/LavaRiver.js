@@ -178,14 +178,23 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null,random
    basaltBank.renderOrder=5.4;g.add(basaltBank);
    // The lava burns a broad, irregular area of pine beyond its basalt bank.
    // The charred strips and small flames are attached to the river, not the road's long outer edges.
-   const burnPos=[],burnCol=[],burnIdx=[],burnColors=[0xff6428,0xa9431d,0x2a1712,0x171413,0x36261e,0x70503a],burnSteps=64,burnRows=burnColors.length;
+   const burnPos=[],burnCol=[],burnIdx=[],burnColors=[0x873816,0x4c2419,0x241916,0x1a1715,0x382920,0x705039],burnSteps=64,burnRows=burnColors.length;
+   const emberColor=new THREE.Color(0xff7924);
+   // Cheap baked ember pockets at fire clusters: no extra mesh or particles.
+   const scorchHotspots=[-3.55,-1.4,.90,3.16];
    for(const side of [-1,1]){
     for(let i=0;i<=burnSteps;i++){
      const x=-4.34+8.68*i/burnSteps,mid=center(x)+noise(x),edge=mid+side*half(x);
-     const jag=.035*Math.sin(x*5.7+phase*1.3)+.018*Math.sin(x*11.4-phase);
-     const offsets=[.025,.14,.30+jag,.55+jag*1.2,.84+jag*1.4,1.10+jag*.7];
+     const jag=.055*Math.sin(x*5.7+phase*1.3)+.028*Math.sin(x*11.4-phase);
+     const offsets=[.025,.14,.30+jag*.55,.55+jag, .84+jag*1.3,1.10+jag*.7];
+     const pocket=scorchHotspots.reduce((strength,h)=>Math.max(strength,
+       Math.exp(-((x-h)/.38)**2)),0);
+     // Dark charcoal carries the effect. Only tiny broken patches glow.
+     const flickerMask=.45+.55*Math.sin(x*13.3+phase*2.8+side*.9)**2;
      for(let j=0;j<burnRows;j++){
       const col=new THREE.Color(burnColors[j]);
+      if(j<3)col.lerp(emberColor,pocket*flickerMask*[.59,.30,.07][j]);
+      col.multiplyScalar(.90+.10*Math.sin(x*9.1+j*1.7+phase)**2);
       burnPos.push(x,.013,edge+side*offsets[j]);burnCol.push(col.r,col.g,col.b);
      }
      if(i<burnSteps)for(let j=0;j<burnRows-1;j++){
