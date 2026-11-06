@@ -64,6 +64,7 @@ test('old heavy crossing changes to eight sparse edge flames without losing unre
 test('untouched v1 deck migrates to v2 once, preserving user-owned tree and free effects',()=>{
  const seed=1337;
  const p=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:[]});
+ p.deck=structuredClone(LAVA_RIVER_AUTHORING.deck);
  const x=[-2.997491820347495,-.9654232905479151,2.25655021270737,3.6331554423924532,
           -3.0636389651661737,-1.6136925668269395,.4204284066194668,2.3626239294605327];
  const heights=[.26,.23,.30,.34,.32,.24,.22,.27];
@@ -83,6 +84,7 @@ test('untouched v1 deck migrates to v2 once, preserving user-owned tree and free
 test('custom-edited v1 flame positions do not get overwritten during migration',()=>{
  const seed=1337,p=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:[]});
  p.riverVisualRevision=1;
+ p.deck=structuredClone(LAVA_RIVER_AUTHORING.deck);
  p.deck[0].position[0]=.12345;
  const custom=structuredClone(p.deck);
  const result=upgradePreset(p);
