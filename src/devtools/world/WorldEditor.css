@@ -25,3 +25,8 @@ body.world-editor-open #hud,body.world-editor-open #knotty-fps-counter{visibilit
 .world-editor .studio-atmosphere label.effect-field{display:block}.studio-atmosphere .effect-value{display:flex;gap:4px;align-items:center;margin-top:4px}.studio-atmosphere input[type=range]{flex:1;max-width:none}.studio-atmosphere input[type=number]{width:64px}
 .world-editor .studio-header label:has([name=hide-atmosphere-fog]){font-size:10px;white-space:nowrap}
 @media(max-width:700px){.world-editor.atmosphere-open{--right:260px}.world-editor .studio-header{overflow-x:auto}.world-editor .studio-header>*{flex-shrink:0}}
+
+.world-editor.atmosphere-open .studio-header{overflow-x:auto}
+.world-editor.atmosphere-open .studio-header button,.world-editor.atmosphere-open .studio-header strong{white-space:nowrap;flex-shrink:0}
+.world-editor.atmosphere-open .studio-header>label:has([name=preview-quality]){display:none}
+@media(max-width:1400px){.world-editor.atmosphere-open .studio-header>[data-build]{display:none}}

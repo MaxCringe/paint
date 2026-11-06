@@ -18,7 +18,7 @@ import './WorldEditor.css';
 
 const LABELS=['Сосновая группа','Ель бегуна','Таёжная ель','Сухая сосна','Секвойя','Сосна обыкновенная'];
 const editableTarget=e=>e.target instanceof HTMLElement&&!!e.target.closest('input,select,textarea,button,summary');
-export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
+export function createWorldEditor({scene,renderer,forest,atmosphere,gameCamera,lavaForest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
  const canvas=renderer.domElement,pineMeshes=forest.pickMeshes('pine');
  const camera=new THREE.PerspectiveCamera(55,1,.05,800);
  let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null,demoRiver=null,originalPlantZ=null;
@@ -28,7 +28,7 @@ export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,s
  const defaults=runtime.defaults,initialAtmosphere=atmosphere?.settings;
  const applyAtmosphere=()=>atmosphere?.configure(preset.atmosphere??initialAtmosphere);
  let preset=runtime.preset,view,presetId='calm',addKind='fire',storageWarning='';
- let preview=null,clipboardEffect=null;
+ let preview=null,clipboardEffect=null,atmosphereView=null;
  const interaction=createPlacementState(),ghostRoot=new THREE.Group();ghostRoot.name='FireStudioPlacementPreview';
  let ghost=null,placementOrigin=null,reanchorSource=null,lastPointer=null,placementDirty=false;
  const placing=()=>interaction.placing;
@@ -100,6 +100,7 @@ export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,s
    marker.position.fromArray(selected.boundary?deckToLocal(item,selected.boundary):item.position).applyMatrix4(selected.root.matrixWorld);
    marker.userData.anchorId=item.id;markers.add(marker);
   }
+  if(panel.classList.contains('atmosphere-open'))gizmo.visible=false;
   view.refresh({preset,atmosphere:preset.atmosphere??initialAtmosphere,selected,anchor:a,list:list(),anchorId,history,armed:placing(),mode:interaction.mode,sceneEntries:sceneEntries(),sceneLimit:MAX_SCENE_ANCHORS,sceneTotal:authoredAnchors(preset).length,paused:fire.paused,presetId,addKind,cycle:selected?runtime.cycleFor(selected):undefined});
   panel.querySelector('[data-scene-tip]').textContent=preview?'Предпросмотр: '+effect().name+'. Выберите «Создать сразу» или «Разместить вручную».':placing()?(interaction.mode==='reanchoring'?'Выберите новую поверхность · Esc — отмена':'Выберите поверхность · Esc — отмена'):a?'Эффект выбран. Измените размер и цвет справа.':'Выберите эффект слева, затем нажмите на дерево или поверхность.';
   message(placing()?(snapId?'Щёлкните по поверхности для привязки очага.':'Щёлкните по поверхности или свободной точке сцены.'):a?'Изменяется только выбранный очаг. Массовые действия находятся в отдельном разделе.':'Выберите очаг или добавьте новый эффект.');
@@ -222,7 +223,7 @@ export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,s
 
  function applySeed(value){const url=new URL(location.href);url.searchParams.set('seed',String(value>>>0));persist();location.href=url.href;}
  function ui(){
-  view=createEffectPanel({onLayout:resize,onAtmosphereChange:value=>mutation(()=>{preset.atmosphere=value;}),onAtmosphereTab:open=>{if(open){stopPreview();cancelPlacement(false);atmosphere?.setFogHidden(false);scene.remove(workLight);panel.querySelector('[name=work-light]').checked=false;panel.querySelector('[name=hide-atmosphere-fog]').checked=false;}if(gizmo)gizmo.visible=!open;if(markers)markers.visible=!open;}});panel=view.element;document.body.append(panel);
+  view=createEffectPanel({onLayout:resize,onAtmosphereChange:value=>mutation(()=>{preset.atmosphere=value;}),onAtmosphereTab:open=>{if(open){stopPreview();cancelPlacement(false);if(!atmosphereView){atmosphereView={position:camera.position.clone(),target:orbit.target.clone()};if(gameCamera){camera.position.copy(gameCamera.position);gameCamera.getWorldDirection(point);orbit.target.copy(camera.position).addScaledVector(point,40);orbit.update();}}atmosphere?.setFogHidden(false);scene.remove(workLight);panel.querySelector('[name=work-light]').checked=false;panel.querySelector('[name=hide-atmosphere-fog]').checked=false;}if(!open&&atmosphereView){camera.position.copy(atmosphereView.position);orbit.target.copy(atmosphereView.target);atmosphereView=null;orbit.update();}if(gizmo)gizmo.visible=!open;if(markers)markers.visible=!open;}});panel=view.element;document.body.append(panel);
   const $=name=>panel.querySelector('[name="'+name+'"]');
   panel.addEventListener('focusin',()=>keys.clear());
   panel.addEventListener('click',e=>{
@@ -353,7 +354,7 @@ export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,s
   if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){restore(history.redo());return;}
   if(e.code==='Space'){fire.setPaused(!fire.paused);refresh();return;}
   if(e.code==='KeyF'&&selected)focusAnchor();
-  if(e.code==='Delete'&&!placing()&&interaction.mode==='editing'&&anchor())mutation(()=>{const a=anchor();const items=list(true);items.splice(items.findIndex(v=>v.id===a.id),1);anchorId=null;});
+  if(e.code==='Delete'&&!panel.classList.contains('atmosphere-open')&&!placing()&&interaction.mode==='editing'&&anchor())mutation(()=>{const a=anchor();const items=list(true);items.splice(items.findIndex(v=>v.id===a.id),1);anchorId=null;});
   keys.add(e.code);
  }
  function open(){
@@ -377,7 +378,7 @@ export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,s
   canvas.addEventListener('pointerup',pick,{signal:abort.signal});
  }
  function close(){
-  if(!active)return;cancelPlacement(false);active=false;stopPreview();fire.setPaused(false);fire.setPlaybackSpeed(1);fire.setQuality('high');persist();abort.abort();keys.clear();orbit.dispose();gizmo.detach();gizmo.dispose();scene.remove(gizmo,markers);panel.remove();panel=null;view=null;markers=null;orbit=null;gizmo=null;abort=null;selected=null;snapId=null;interaction.set('idle');
+  if(!active)return;cancelPlacement(false);active=false;atmosphereView=null;stopPreview();fire.setPaused(false);fire.setPlaybackSpeed(1);fire.setQuality('high');persist();abort.abort();keys.clear();orbit.dispose();gizmo.detach();gizmo.dispose();scene.remove(gizmo,markers);panel.remove();panel=null;view=null;markers=null;orbit=null;gizmo=null;abort=null;selected=null;snapId=null;interaction.set('idle');
   if(demo){lavaForest.releaseRiver(demo);scene.remove(demo);}
   // Restore the exact forest positions so entering the editor never
   // changes a suspended game or the layout of the next real run.

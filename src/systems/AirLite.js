@@ -201,7 +201,7 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   for(const item of particles){
    const {seeds,positions,geometry}=item;
    for(let i=0;i<seeds.length;i++){
-    const s=seeds[i];s.z=rand(item.band.zMin,item.band.zMax);
+    const s=seeds[i];s.z=rand(item.band.zMin,item.band.zMax)*settings.ash.distance/125;
     positions[i*3]=s.x;positions[i*3+1]=s.y;positions[i*3+2]=s.z;
    }
    geometry.attributes.position.needsUpdate=true;

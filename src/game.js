@@ -588,7 +588,7 @@ async function openWorldEditor(){
  if(worldEditorLoading)return worldEditorLoading;
  let previousState;
  worldEditorLoading=Promise.all([import('./devtools/world/WorldEditor.js'),ensureAuthoredEffects()]).then(([{createWorldEditor},runtime])=>{
-  worldEditor=createWorldEditor({scene,renderer,forest,lavaForest,atmosphere,seed:editorSeed??forest.seed,runtime,
+  worldEditor=createWorldEditor({scene,renderer,forest,lavaForest,atmosphere,gameCamera:camera,seed:editorSeed??forest.seed,runtime,
    getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),
    getBurningPlants:forestFire.getActivePlants,
    defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject],
