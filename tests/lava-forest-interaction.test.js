@@ -87,7 +87,10 @@ test('all families avoid lava during creation and after recycling',()=>{
  }),sys=createLavaForestInteraction(plants,stubFire()),r=river(scene,-40);
  sys.registerRiver(r);
  for(const p of plants){
-  assert.ok(Math.abs(p.position.z-r.group.position.z-r.center(p.position.x))>r.halfWidth(p.position.x));
+  const offset=Math.abs(p.position.z-r.group.position.z-r.center(p.position.x));
+  const family=p.userData.plantSpecies.split(':')[0],basaltMargin=family==='pine'?1.55:.68;
+  assert.ok(offset>r.halfWidth(p.position.x)+basaltMargin,
+   family+' cannot grow on the raised basalt rim');
   p.position.z=-40;
   assert.equal(sys.onPlantRecycle(p),true);
   assert.notEqual(p.position.z,-40);

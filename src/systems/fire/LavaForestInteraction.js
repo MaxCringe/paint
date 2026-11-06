@@ -3,8 +3,9 @@
 export const LAVA_FOREST_RULES=Object.freeze({
  ignitionLead:49,
  bankClearance:1.55,
- fernClearance:.18,
- grassClearance:.12,
+ // Basalt bank reaches .68 beyond the glowing edge, with a chipped rim.
+ fernClearance:.82,
+ grassClearance:.82,
  heatReach:4.9,
  maxAdjustments:6 // retained for callers; interval merge is not iterative
 });
