@@ -17,10 +17,10 @@ import './WorldEditor.css';
 
 const LABELS=['Сосновая группа','Ель бегуна','Таёжная ель','Сухая сосна','Секвойя','Сосна обыкновенная'];
 const editableTarget=e=>e.target instanceof HTMLElement&&!!e.target.closest('input,select,textarea,button,summary');
-export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
+export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
  const canvas=renderer.domElement,pineMeshes=forest.pickMeshes('pine');
  const camera=new THREE.PerspectiveCamera(55,1,.05,800);
- let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null;
+ let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null,demoRiver=null,originalPlantZ=null;
  const keys=new Set(),point=new THREE.Vector3(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);
  const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo),runtime.riverSourceFor(demo)]:[]),runtime.world];
@@ -42,9 +42,21 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  function mutation(fn){if(preset.seed!==seed){message('Примените seed импортированного леса в разделе сцены перед редактированием.');return;}fn();fire.invalidate();commit();}
  function restore(value){stopPreview();cancelPlacement(false);const previousId=anchorId;preset=value;runtime.setPreset(preset);anchorId=list().some(a=>a.id===previousId)?previousId:null;interaction.set(anchorId?'editing':'idle');fire.invalidate();persist();refresh();}
  function makeDemo(){
-  if(demo){scene.add(demo);return;}
-  const records=[];createLavaRiverFactory(scene,records,{random:createForestRandom(seed)})(-12);
-  demo=records[0].g;
+  // The live game moves all forest plants outside each real winding river.
+  // Apply those same clearance rules to the editor demo only temporarily.
+  originalPlantZ=forest.plants.map(plant=>plant.position.z);
+  if(demo)scene.add(demo);
+  else{
+   const records=[];
+   createLavaRiverFactory(scene,records,{
+    random:createForestRandom(seed),
+    onTreeFire:river=>{demoRiver=river;}
+   })(-12);
+   demo=records[0].g;
+  }
+  if(!demoRiver)throw Error('Editor lava river missing shoreline data');
+  lavaForest.registerRiver(demoRiver);
+  forest.update(); // Refresh instanced vegetation after moving its proxies.
  }
  function choose(target,{focus=true,preservePlacement=true}={}){
   const keep=preservePlacement&&placing(),mode=interaction.mode;if(!keep)cancelPlacement(false);
@@ -359,7 +371,14 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  }
  function close(){
   if(!active)return;cancelPlacement(false);active=false;stopPreview();fire.setPaused(false);fire.setPlaybackSpeed(1);fire.setQuality('high');persist();abort.abort();keys.clear();orbit.dispose();gizmo.detach();gizmo.dispose();scene.remove(gizmo,markers);panel.remove();panel=null;view=null;markers=null;orbit=null;gizmo=null;abort=null;selected=null;snapId=null;interaction.set('idle');
-  if(demo)scene.remove(demo);
+  if(demo){lavaForest.releaseRiver(demo);scene.remove(demo);}
+  // Restore the exact forest positions so entering the editor never
+  // changes a suspended game or the layout of the next real run.
+  if(originalPlantZ){
+   for(let i=0;i<forest.plants.length;i++)forest.plants[i].position.z=originalPlantZ[i];
+   originalPlantZ=null;
+   forest.update();
+  }
   scene.fog=previousFog;scene.remove(workLight);
   document.body.classList.remove('world-editor-open');canvas.style.position='';canvas.style.left='';canvas.style.top='';renderer.setSize(innerWidth,innerHeight);fire.invalidate();update(0);fire.releaseUnused();setSuspended(false);reopen.hidden=false;
  }
