@@ -1,10 +1,36 @@
 import {validateAndNormalizePreset} from '../../systems/fire/OriginalPreset.js';
+import {LAVA_RIVER_AUTHORING} from '../../systems/fire/LavaRiverAuthored.js';
 import {validateBurnCycle,defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
 import {defaultEmitter,legacyLayers,copy,validateLayers,validateEmitter,EFFECT_PRESETS,hash} from './EffectLayers.js';
 // Versioned authoring data. GPU matrices are derived outputs, never saved state.
 export const PINE_SPECIES=['grove_cluster','runner_spruce_pro','taiga_spruce','dead_snag','sequoia_giant','scots_pine'].map(n=>'pine:'+n);
 export const MAX_ANCHORS=32;
 export const MAX_SCENE_ANCHORS=2048;
+// IDs of the exported demo-river scene effects. Only these legacy anchors are
+// migrated, leaving unrelated freely placed effects exactly where they are.
+const DEMO_RIVER_WORLD_IDS=new Set([
+ 'bef26812-fdf5-4cbc-a850-5ecf0da7dd1b','ec925d96-5187-4736-9b58-958bb88c2795',
+ '0f20d881-9473-4f69-8a41-0d720133a2d5','772355da-6298-4345-9492-bc6e13348751',
+ '56da0f28-1a06-427a-89c9-68a3fba4a543','396d00c4-adec-4b5b-910f-10cc7d24ceee',
+ '3ec50ae4-f9e5-41af-954e-235d9f2a2f18','971f44f5-be74-4900-bf2a-6f3ad95d52ea',
+ '6555dd70-c64b-4fe7-91e1-e37473ef5875','9e5ccbaf-c5e6-40ac-bc78-7b6e12750474',
+ 'addc0d04-0565-4cc1-bc4b-114c5619197f','cab62e79-9351-40e6-8dd0-964422cffe3b',
+ '04935f25-4bef-49e3-a436-cc9470e6cf36','06943561-e891-434c-b98b-247ca0623578'
+]);
+function migrateDemoRiverEffects(p){
+ if(p.river!==undefined||p.seed!==LAVA_RIVER_AUTHORING.sourceSeed)return {...p,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
+ const moved=[],world=[];
+ for(const anchor of p.world??[]){
+  if(!DEMO_RIVER_WORLD_IDS.has(anchor.id)){world.push(anchor);continue;}
+  moved.push({...anchor,position:[anchor.position[0],anchor.position[1]-.045,anchor.position[2]-LAVA_RIVER_AUTHORING.demoRiverZ]});
+ }
+ const objects={...p.objects};
+ // The exported demo has an empty per-instance deck override that shadows
+ // its 12 valid shared wooden-edge anchors. Discard only this empty override.
+ if(moved.length&&p.deck?.length&&objects.deck?.anchors?.length===0)delete objects.deck;
+ return {...p,world,objects,river:moved.length?moved:clonePreset(LAVA_RIVER_AUTHORING.river)};
+}
+
 export function newAnchor(position=[0,1,0],size=.6){
  return {id:globalThis.crypto.randomUUID(),position:[...position],rotation:[0,0,0],scale:[1,1,1],size,strength:1,color:'#ff9b32',speed:1,sparks:4,opacity:.94,side:1};
 }
@@ -58,10 +84,11 @@ export function upgradePreset(input){
  if(!input||typeof input!=='object')throw Error('Некорректный JSON: ожидался объект пресета.');
  if(input.version===2||input.version===3)return validateModernPreset(input);
  const legacy=validateLegacyPreset(input),convert=a=>({...a,emitter:defaultEmitter(),layers:legacyLayers(a)});
- return {version:3,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:legacy.deck.map(convert),world:[],objects:{},group:[],customPresets:[],budget:6000};
+ return {version:3,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:legacy.deck.map(convert),river:clonePreset(LAVA_RIVER_AUTHORING.river),world:[],objects:{},group:[],customPresets:[],budget:6000};
 }
 export function validatePreset(input){return (input?.version===2||input?.version===3)?validateModernPreset(input):validateLegacyPreset(input);}
-function validateModernPreset(p){
+function validateModernPreset(input){
+ const p=migrateDemoRiverEffects(input);
  const fail=message=>{throw Error('Некорректный JSON: '+message);};
  if(!p||![2,3].includes(p.version)||!Number.isInteger(p.seed)||p.seed<0||p.seed>0xffffffff)fail('нужна версия 2/3 и seed от 0 до 4294967295');
  if(!p.plants||Object.keys(p.plants).some(k=>!PINE_SPECIES.includes(k)))fail('неизвестный вид растения');
@@ -96,7 +123,7 @@ function validateModernPreset(p){
   if(typeof v.name!=='string'||!v.name.trim()||v.name.length>60||names.has(v.name))fail('нужны уникальные имена пресетов до 60 символов');names.add(v.name);
   return {name:v.name,...(v.original?{original:validateAndNormalizePreset(v.original)}:{}),layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter),cycle:validateBurnCycle(v.cycle)};
  });
- return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget};
+ return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),river:anchors(p.river),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget};
 }
 export function readEffectPreset(){try{const raw=localStorage.getItem(EFFECT_STORAGE);return raw?upgradePreset(JSON.parse(raw)):null;}catch(error){console.warn('World effect preset ignored:',error.message);return null;}}
 export function saveEffectPreset(p){localStorage.setItem(EFFECT_STORAGE,JSON.stringify(p));}
