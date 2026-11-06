@@ -31,6 +31,7 @@ const LEGACY_DECK_IDS=new Set([
 const LEGACY_RIVER_IDS=DEMO_RIVER_WORLD_IDS;
 export const LIGHT_RIVER_BACKUP_STORAGE='knottyPine.worldFire.beforeLightRiver.v1';
 export const EMBER_RIBBON_BACKUP_STORAGE='knottyPine.worldFire.beforeEmberRibbon.v2';
+export const RIVER_REMOVAL_BACKUP_STORAGE='knottyPine.worldFire.beforeRemovingRiverFx.v4';
 // Exact fingerprint of the shipped v1 eight-flame preset. If an artist edited
 // its positions or sizes, keep their artwork; only untouched defaults migrate.
 const V1_DECK_FINGERPRINT=[
@@ -53,34 +54,18 @@ function isUntouchedLightV1(deck){
 }
 function migrateDemoRiverEffects(p){
  const objects={...p.objects};
- const shippedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
-  &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
- const shippedRiver=Array.isArray(p.river)&&p.river.length===LAVA_RIVER_AUTHORING.river.length
-  &&p.river.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.river[i].id);
- // The new export still has riverVisualRevision:2. Detect its exact artwork,
- // otherwise an older browser preset could erase the six new river flames.
- if(shippedDeck&&shippedRiver&&p.riverVisualRevision===2){
-  if(objects.deck?.anchors?.length===0)delete objects.deck;
-  return {...p,objects,riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision};
- }
+ // Saves made after this release are owned by the editor: user-added future
+ // effects are not silently deleted by reopening the current revision.
  if(p.riverVisualRevision===LAVA_RIVER_AUTHORING.styleRevision)
-  return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
- const previousRelease=p.riverVisualRevision===2;
- const oldDeck=Array.isArray(p.deck)&&p.deck.length===LEGACY_DECK_IDS.size
-  &&p.deck.every(a=>LEGACY_DECK_IDS.has(a.id));
- const lightV1=isUntouchedLightV1(p.deck);
- const oldRiver=Array.isArray(p.river)&&p.river.some(a=>LEGACY_RIVER_IDS.has(a.id));
+  return {...p,objects,river:p.river??[]};
  const oldWorld=p.seed===LAVA_RIVER_AUTHORING.sourceSeed
   &&Array.isArray(p.world)&&p.world.some(a=>DEMO_RIVER_WORLD_IDS.has(a.id));
- const migrating=previousRelease||oldDeck||lightV1||oldRiver||oldWorld;
- if(migrating&&objects.deck?.anchors?.length===0)delete objects.deck;
+ // Clear all old river/surface effects (including six exported Studio flames).
+ // Preserve the wooden deck, tree effects, unrelated world art, and object
+ // overrides exactly as saved. In particular, do not reset the deck.
  return {
-  ...p,objects,
-  deck:previousRelease||oldDeck||lightV1?clonePreset(LAVA_RIVER_AUTHORING.deck):p.deck,
-  // Replace the obsolete lava artwork with all six authored effects.
-  river:migrating?clonePreset(LAVA_RIVER_AUTHORING.river):p.river??clonePreset(LAVA_RIVER_AUTHORING.river),
+  ...p,objects,deck:p.deck,river:[],
   world:oldWorld?p.world.filter(a=>!DEMO_RIVER_WORLD_IDS.has(a.id)):p.world,
-  budget:migrating&&p.budget===6000?4500:p.budget,
   riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision
  };
 }
@@ -182,6 +167,12 @@ function validateModernPreset(input){
 export function readEffectPreset(){try{
  const raw=localStorage.getItem(EFFECT_STORAGE);if(!raw)return null;
  const original=JSON.parse(raw),upgraded=upgradePreset(original);
+ // Preserve the last six river effects in a separate non-destructive backup
+ // before clearing them from browser storage on this visual revision.
+ if(original.riverVisualRevision!==LAVA_RIVER_AUTHORING.styleRevision
+  &&Array.isArray(original.river)&&original.river.length){
+  try{if(!localStorage.getItem(RIVER_REMOVAL_BACKUP_STORAGE))localStorage.setItem(RIVER_REMOVAL_BACKUP_STORAGE,raw);}catch{}
+ }
  // Backup the previous artwork once, but leave every other save key alone.
  if(original.version>=2&&original.riverVisualRevision!==LAVA_RIVER_AUTHORING.styleRevision
   &&(JSON.stringify(original.deck)!==JSON.stringify(upgraded.deck)
@@ -189,6 +180,10 @@ export function readEffectPreset(){try{
    ||JSON.stringify(original.world)!==JSON.stringify(upgraded.world))){
   try{if(!localStorage.getItem(EMBER_RIBBON_BACKUP_STORAGE))localStorage.setItem(EMBER_RIBBON_BACKUP_STORAGE,raw);}catch{}
  }
+ // Commit the migration, so a reload cannot resurrect obsolete river flames.
+ try{if(JSON.stringify(original)!==JSON.stringify(upgraded))
+  localStorage.setItem(EFFECT_STORAGE,JSON.stringify(upgraded));}
+ catch(error){console.warn('World effect migration could not be persisted:',error.message);}
  return upgraded;
  }catch(error){console.warn('World effect preset ignored:',error.message);return null;}}
 export function saveEffectPreset(p){localStorage.setItem(EFFECT_STORAGE,JSON.stringify(p));}
