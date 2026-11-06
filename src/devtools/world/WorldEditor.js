@@ -242,6 +242,11 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    if(action==='add'){if(!cancelPlacement())armPreset(presetId);}
    if(action==='snap'&&a){reanchorSource=selected;snapId=a.id;startPlacement('reanchoring');}
    if(action==='delete'&&a)mutation(()=>{const items=list(true);items.splice(items.findIndex(v=>v.id===a.id),1);anchorId=null;interaction.set('idle');});
+   if(action==='delete-all-pine'&&selected?.key?.startsWith('pine:')){
+    if(!window.confirm('Удалить все очаги выбранной сосны?'))return;
+    const target=selected;stopPreview();cancelPlacement(false);
+    mutation(()=>{selected=target;runtime.anchorsFor(target,true).splice(0);anchorId=null;interaction.set('idle');});
+   }
    if(action==='duplicate'&&a){if(list().length>=MAX_ANCHORS){message('Достигнут лимит очагов — максимум 32 на объект');return;}const result=sceneTransaction(()=>{const b=copy(a);b.id=uniqueEffectId(preset);b.name=(effectLabel(a)+' — копия').slice(0,60);if(!selected.boundary)b.position[0]+=.2;list(true).push(b);return b;});if(result){anchorId=result.id;interaction.set('editing');refresh();message('Эффект создан. Эффект сохранён');}}
    if(action==='reset'&&selected)mutation(()=>{const values=selected.id==='world'?[]:selected.id==='river'?defaults.river:selected.boundary?defaults.deck:defaults.plants[selected.key];list(true).splice(0,list().length,...copy(values));anchorId=null;});
    if(action==='undo')restore(history.undo());if(action==='redo')restore(history.redo());

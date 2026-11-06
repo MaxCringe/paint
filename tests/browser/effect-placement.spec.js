@@ -6,6 +6,32 @@ async function canvasPoint(page,x=.5,y=.6){const b=await page.locator('body > ca
 async function frame(page){await page.evaluate(()=>new Promise(requestAnimationFrame));}
 test.describe('reliable effect placement',()=>{
  test.skip(process.env.WORLD_EDITOR_TESTS!=='1','Opt-in editor build');
+ test('clear all pine anchors is instance-only, confirmed, undoable and persistent',async({page})=>{
+  test.setTimeout(180000);
+  const initial=upgradePreset({version:1,seed:1337,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,[]])),deck:[]});
+  for(const species of PINE_SPECIES)initial.plants[species]=[newEffectAnchor([0,2,0]),newEffectAnchor([0,3,0])];
+  initial.world=[newEffectAnchor()];initial.deck=[newEffectAnchor()];initial.river=[newEffectAnchor()];
+  await page.addInitScript(({key,preset})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(preset));},{key:KEY,preset:initial});
+  const {e,errors}=await open(page),button=e.locator('[data-action=delete-all-pine]');
+  for(const species of PINE_SPECIES){await e.locator('[name=species]').selectOption(species);await expect(button).toBeVisible();}
+  await e.locator('[name=species]').selectOption(PINE_SPECIES[0]);
+  await e.locator('[data-action=save]').click();const before=await read(page),anchorOptions=await e.locator('[name=anchor] option').count();expect(anchorOptions).toBeGreaterThan(1);
+  page.once('dialog',async dialog=>{expect(dialog.message()).toBe('Удалить все очаги выбранной сосны?');await dialog.dismiss();});
+  await button.click();expect(await read(page)).toEqual(before);
+  page.once('dialog',dialog=>dialog.accept());await button.click();const cleared=await read(page);
+  const id=Object.keys(cleared.objects).find(key=>JSON.stringify(cleared.objects[key])!==JSON.stringify(before.objects[key]));
+  expect(id).toMatch(/^plant:/);expect(cleared.objects[id].anchors).toEqual([]);
+  expect(cleared.objects[id].binding.species).toBe(PINE_SPECIES[0]);
+  const expected=structuredClone(before);expected.objects[id]=cleared.objects[id];expect(cleared).toEqual(expected);
+  await expect(e.locator('[name=anchor] option')).toHaveCount(1);await expect(button).toBeDisabled();
+  await e.locator('[data-action=undo]').click();expect(await read(page)).toEqual(before);await expect(e.locator('[name=anchor] option')).toHaveCount(anchorOptions);
+  await e.locator('[data-action=redo]').click();expect(await read(page)).toEqual(cleared);await expect(e.locator('[name=anchor] option')).toHaveCount(1);
+  await e.locator('[data-inspector=advanced]').click();await e.locator('[data-action=next]').click();await expect(e.locator('[name=anchor] option')).toHaveCount(anchorOptions);await expect(button).toBeEnabled();
+  await page.reload({waitUntil:'domcontentloaded'});await expect(e).toBeVisible({timeout:60000});
+  expect(await read(page)).toEqual(cleared);await expect(e.locator('[name=anchor] option')).toHaveCount(1);await expect(button).toBeDisabled();
+  for(const species of ['world','deck','river']){await e.locator('[name=species]').selectOption(species);await expect(button).toBeHidden();}
+  expect(errors).toEqual([]);
+ });
  test('one-click creation, independent effects, scene list, copy/delete/history and reopen',async({page})=>{
   test.setTimeout(180000);const {e,errors}=await open(page);await e.locator('[name=species]').selectOption('world');await e.locator('[data-add-preset=calm]').click();await expect(e).toHaveAttribute('data-mode','editing');await expect(e.locator('output')).toContainText('Эффект создан');const first=(await read(page)).world[0];expect(first.position.every(v=>Number.isFinite(v)&&Math.abs(v)<=100)).toBe(true);await expect(e.locator('[name=anchor]')).toHaveValue(first.id);await expect(e.locator('[data-metrics]')).toContainText(/пламя [1-9]/);
   await e.locator('[data-add-kind=smoke]').click();expect((await read(page)).world).toHaveLength(2);const second=(await read(page)).world[1];expect(Object.keys(second.layers)).toEqual(['smoke']);expect(second.id).not.toBe(first.id);await e.locator('[data-place-preset=calm]').click();const mouse=await canvasPoint(page);await page.mouse.move(mouse.x,mouse.y);await page.keyboard.press('Delete');expect((await read(page)).world).toHaveLength(2);await page.keyboard.press('Escape');

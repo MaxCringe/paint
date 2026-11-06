@@ -34,6 +34,7 @@ export function createEffectPanel({onLayout=()=>{}}={}){
  <label class="advanced-only">Очаг<select name="anchor"></select></label>
  <label>Размещение<select name="placement"><option value="surface">На выбранном объекте</option><option value="world">Свободная точка сцены</option></select></label>
  <div class="row"><button class="primary" data-action="add">Разместить вручную</button><button data-action="delete" data-needs-anchor>Удалить</button></div>
+ <button data-action="delete-all-pine" hidden>Удалить все очаги</button>
  <div class="row"><button data-action="duplicate" data-needs-anchor>Дублировать</button><button data-action="snap" data-needs-anchor>На поверхность</button></div>
  <div class="row"><button data-mode="translate">Двигать</button><button data-mode="rotate">Повернуть</button><button data-mode="scale">Масштаб</button></div>
 
@@ -107,6 +108,7 @@ if(a&&!a.layers[selectedKind])selectedKind=Object.keys(a.layers)[0]??'flame';
   $('[name=species]').value=selected?.key??'world';$('[name=anchor]').replaceChildren(new Option('Выберите очаг',''));
   list.forEach((item,i)=>$('[name=anchor]').add(new Option('Очаг '+(i+1),item.id)));$('[name=anchor]').value=anchorId??'';
   panel.querySelectorAll('[data-needs-anchor]').forEach(el=>el.disabled=!a);
+  $('[data-action=delete-all-pine]').hidden=!selected?.key?.startsWith('pine:');$('[data-action=delete-all-pine]').disabled=!list.length;
   $('[data-action=undo]').disabled=history.index===0;$('[data-action=redo]').disabled=history.index===history.entries.length-1;
   $('[data-action=add]').dataset.active=String(armed);$('[data-action=add]').textContent=armed?'Отменить размещение':'Разместить вручную';$('[data-action=add]').disabled=false;
   $('[data-action=pause-effects]').textContent=paused?'Продолжить эффекты':'Пауза эффектов';
