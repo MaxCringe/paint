@@ -30,23 +30,43 @@ const LEGACY_DECK_IDS=new Set([
 ]);
 const LEGACY_RIVER_IDS=DEMO_RIVER_WORLD_IDS;
 export const LIGHT_RIVER_BACKUP_STORAGE='knottyPine.worldFire.beforeLightRiver.v1';
+export const EMBER_RIBBON_BACKUP_STORAGE='knottyPine.worldFire.beforeEmberRibbon.v2';
+// Exact fingerprint of the shipped v1 eight-flame preset. If an artist edited
+// its positions or sizes, keep their artwork; only untouched defaults migrate.
+const V1_DECK_FINGERPRINT=[
+ ['650e8c3d-469f-4d69-b20b-665c03d715e2',-2.997491820347495,.26],
+ ['8dab6446-5380-4c6d-a0bd-d2a468ebe180',-.9654232905479151,.23],
+ ['5b4dd78e-1ef0-4aa0-82e7-2c44b895f7f2',2.25655021270737,.30],
+ ['b1be52ef-242f-4631-8349-74e89c0ca9a5',3.6331554423924532,.34],
+ ['aad974c5-c125-4ef6-95da-f97b2e7a4da1',-3.0636389651661737,.32],
+ ['ef544c3b-bdc0-46fb-aafe-0baa2b7604ca',-1.6136925668269395,.24],
+ ['10fc99c6-53de-4743-a2d8-d76f84537270',.4204284066194668,.22],
+ ['567e945d-9868-4ee5-83e8-d8ad9c409f16',2.3626239294605327,.27]
+];
+function isUntouchedLightV1(deck){
+ return Array.isArray(deck)&&deck.length===8&&deck.every((a,i)=>{
+  const [id,x,height]=V1_DECK_FINGERPRINT[i];
+  return a.id===id&&Math.abs(a.position[0]-x)<.00001
+   &&a.layers?.flame?.shape==='legacy'&&a.layers.flame.density===1
+   &&Math.abs(a.layers.flame.height-height)<.00001;
+ });
+}
 function migrateDemoRiverEffects(p){
  const objects={...p.objects};
- // Saved presets with the current revision are user-editable and must never
- // be overwritten on future page loads, imports or editor save/undo.
  if(p.riverVisualRevision===LAVA_RIVER_AUTHORING.styleRevision)
   return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
  const oldDeck=Array.isArray(p.deck)&&p.deck.length===LEGACY_DECK_IDS.size
   &&p.deck.every(a=>LEGACY_DECK_IDS.has(a.id));
+ const lightV1=isUntouchedLightV1(p.deck);
  const oldRiver=Array.isArray(p.river)&&p.river.some(a=>LEGACY_RIVER_IDS.has(a.id));
  const oldWorld=p.seed===LAVA_RIVER_AUTHORING.sourceSeed
   &&Array.isArray(p.world)&&p.world.some(a=>DEMO_RIVER_WORLD_IDS.has(a.id));
- const migrating=oldDeck||oldRiver||oldWorld;
- if(oldDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
+ const migrating=oldDeck||lightV1||oldRiver||oldWorld;
+ if(migrating&&objects.deck?.anchors?.length===0)delete objects.deck;
  return {
   ...p,objects,
-  deck:oldDeck?clonePreset(LAVA_RIVER_AUTHORING.deck):p.deck,
-  // Old dense river FX have different coordinates; discard only known IDs.
+  deck:oldDeck||lightV1?clonePreset(LAVA_RIVER_AUTHORING.deck):p.deck,
+  // Custom river anchors (new IDs) are not touched.
   river:oldRiver?p.river.filter(a=>!LEGACY_RIVER_IDS.has(a.id)):p.river??clonePreset(LAVA_RIVER_AUTHORING.river),
   world:oldWorld?p.world.filter(a=>!DEMO_RIVER_WORLD_IDS.has(a.id)):p.world,
   budget:migrating&&p.budget===6000?4500:p.budget,
@@ -157,7 +177,7 @@ export function readEffectPreset(){try{
   &&(JSON.stringify(original.deck)!==JSON.stringify(upgraded.deck)
    ||JSON.stringify(original.river)!==JSON.stringify(upgraded.river)
    ||JSON.stringify(original.world)!==JSON.stringify(upgraded.world))){
-  try{if(!localStorage.getItem(LIGHT_RIVER_BACKUP_STORAGE))localStorage.setItem(LIGHT_RIVER_BACKUP_STORAGE,raw);}catch{}
+  try{if(!localStorage.getItem(EMBER_RIBBON_BACKUP_STORAGE))localStorage.setItem(EMBER_RIBBON_BACKUP_STORAGE,raw);}catch{}
  }
  return upgraded;
  }catch(error){console.warn('World effect preset ignored:',error.message);return null;}}
