@@ -4,19 +4,23 @@ import * as THREE from 'three';
 import {LAVA_RIVER_AUTHORING} from '../src/systems/fire/LavaRiverAuthored.js';
 import {createWorldEffectsRuntime} from '../src/devtools/world/WorldEffectsRuntime.js';
 
-test('shipped crossing artwork uses eight low flames over scorched wood and no heavy river cluster',()=>{
+test('shipped artwork uses eight ember-ribbon clusters on the wood and no heavy lava cluster',()=>{
  const {deck,river,sourceSeed,styleRevision}=LAVA_RIVER_AUTHORING;
  assert.equal(sourceSeed,2912723152);
- assert.equal(styleRevision,1);
+ assert.equal(styleRevision,2);
  assert.equal(deck.length,8);assert.equal(river.length,0);
  assert.ok(deck.some(a=>a.side===-1)&&deck.some(a=>a.side===1));
  for(const a of deck){
   assert.ok(Math.abs(a.position[0])<=4.34);
   assert.ok(a.position[2]>=.02&&a.position[2]<=.39);
   assert.ok([-1,1].includes(a.side));
-  assert.equal(a.layers.flame.density,1);
-  assert.ok(!a.layers.coals&&!a.layers.smoke&&!a.layers.embers);
+  assert.equal(a.layers.flame.density,3);
+  assert.equal(a.emitter.shape,'line');
+  assert.ok(a.emitter.length<=1.7);
+  assert.ok(a.layers.flame.height<=.65);
+  assert.ok(!a.layers.coals&&!a.layers.embers);
  }
+ assert.equal(deck.filter(a=>a.layers.smoke?.enabled).length,2);
  assert.ok(deck.reduce((sum,a)=>sum+(a.layers.sparks?.rate??0),0)<12);
 });
 
@@ -33,7 +37,7 @@ test('each active river gets only the lightweight edge flames and follows river 
   runtime.update(.016);
   const one=runtime.fire.stats().anchors;
   assert.equal(one,8);
-  assert.equal(runtime.fire.stats().flames,8);
+  assert.equal(runtime.fire.stats().flames,24);
   rivers.push(second);runtime.update(.016);
   assert.equal(runtime.fire.stats().anchors,one*2);
   rivers.splice(0,1);runtime.update(.016);
@@ -44,7 +48,7 @@ test('each active river gets only the lightweight edge flames and follows river 
 test('current saved authored layout preserves explicit user overrides',async()=>{
  const {upgradePreset,PINE_SPECIES,newEffectAnchor}=await import('../src/devtools/world/FirePreset.js');
  const {defaultBurnCycle}=await import('../src/systems/fire/ArtisticBurnCycle.js');
- const original={version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:1,
+ const original={version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:2,
   plants:Object.fromEntries(PINE_SPECIES.map(p=>[p,[]])),
   deck:structuredClone(LAVA_RIVER_AUTHORING.deck),river:[],world:[newEffectAnchor([2,1,4])],
   objects:{deck:{binding:{kind:'deck',seed:LAVA_RIVER_AUTHORING.sourceSeed},anchors:[],cycle:defaultBurnCycle()}},
