@@ -118,3 +118,22 @@ test('forest placement remains unchanged when no lava exists',()=>{
  assert.equal(p.position.z,-40);
  sys.reset();
 });
+
+test('an already burning river ignites newly recycled pines without full-forest rescans',()=>{
+ const scene=new THREE.Scene(),fire=stubFire(),plant=pine(6,-90),fern=pine(7,-90,'fern:young');
+ const sys=createLavaForestInteraction([plant,fern],fire),r=river(scene,-90);
+ sys.registerRiver(r);
+ assert.equal(fire.calls.length,0);
+ r.group.position.z=-45;
+ plant.position.z=-45;fern.position.z=-45;
+ sys.update(2.3);
+ assert.equal(fire.calls.length,1);
+ // The same river has been ignited already; only the recycled pine is tested.
+ plant.position.z=-46;
+ sys.onPlantRecycle(plant);
+ assert.equal(fire.calls.length,2);
+ assert.deepEqual(fire.calls[1].plants,[plant]);
+ sys.onPlantRecycle(fern);
+ assert.equal(fire.calls.length,2,'ferns cannot catch pine fire');
+ sys.reset();
+});

@@ -79,7 +79,7 @@ export function getPineFireProfile(species){
 }
 
 export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPerAnchor=2,sparksPerTree=6,burnSeconds=18,seed=1337}={}){
- if(!Number.isInteger(maxTrees)||maxTrees<1||maxTrees>12)throw new RangeError('maxTrees must be 1..12');
+ if(!Number.isInteger(maxTrees)||maxTrees<1||maxTrees>96)throw new RangeError('maxTrees must be 1..96');
  const maxAnchors=Math.max(...NAMES.map(n=>getPineFireProfile('pine:'+n).anchors.length));
  const maxFlames=maxTrees*maxAnchors*tonguesPerAnchor;
  const geometry=createFireTongueGeometry(quality);
@@ -99,10 +99,23 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
  sparks.name='KnottyPineFireStudioSparks';sparks.frustumCulled=false;scene.add(sparks);
  const random=seeded(seed),active=[];let time=0,disposed=false;
  function igniteTree(plant,owner=null){
-  if(disposed||!plant?.isObject3D||!plant.parent||active.length>=maxTrees)return false;
+  if(disposed||!plant?.isObject3D||!plant.parent)return false;
   const species=plant.userData?.plantSpecies;
-  if(!species?.startsWith('pine:')||active.some(item=>item.plant===plant))return false;
-  active.push({plant,owner,profile:getPineFireProfile(species),age:0,
+  if(!species?.startsWith('pine:'))return false;
+  const previous=active.findIndex(item=>item.plant===plant);
+  if(previous>=0){
+   const existing=active[previous];
+   if(plant.position.z>=existing.lastZ-25){
+    // One pine may be near two successive rivers: keep it burning until
+    // neither river owns it, without allocating another copy of its flames.
+    if(owner)existing.owners.add(owner);
+    return false;
+   }
+   // The tree has recycled ahead: discard the old burning generation.
+   active.splice(previous,1);
+  }
+  if(active.length>=maxTrees)return false;
+  active.push({plant,owners:new Set(owner?[owner]:[]),profile:getPineFireProfile(species),age:0,
    lastZ:plant.position.z,phase:random()});
   return true;
  }
@@ -112,7 +125,7 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
   for(const plant of plants){
    if(!plant?.userData?.plantSpecies?.startsWith('pine:')||!plant.parent)continue;
    const x=plant.position.x;
-   if(Math.abs(x)<4.45||Math.abs(x)>27)continue;
+   if(Math.abs(x)<4.45||Math.abs(x)>110)continue;
    const distance=Math.abs(plant.position.z-riverZ-center(x));
    if(distance<=halfWidth(x)+reach)matches.push({plant,distance});
   }
@@ -127,7 +140,7 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
   for(let i=active.length-1;i>=0;i--){
    const r=active[i];r.age+=elapsed;
    // A recycled pine jumps backwards by ~180 units: its old fire must vanish.
-   if(r.age>=burnSeconds||!r.plant.parent||(r.owner&&!r.owner.parent)||r.plant.position.z<r.lastZ-25){
+   if(r.age>=burnSeconds||!r.plant.parent||(r.owners.size&&![...r.owners].some(owner=>owner.parent))||r.plant.position.z<r.lastZ-25){
     active.splice(i,1);continue;
    }
    r.lastZ=r.plant.position.z;
@@ -187,7 +200,12 @@ export function createForestFireStudio(scene,{quality='low',maxTrees=6,tonguesPe
  function reset(){active.length=0;flames.count=0;sparkGeo.setDrawRange(0,0);}
  function releaseOwner(owner){
   if(!owner)return;
-  for(let i=active.length-1;i>=0;i--)if(active[i].owner===owner)active.splice(i,1);
+  for(let i=active.length-1;i>=0;i--){
+   const burning=active[i];
+   if(!burning.owners.has(owner))continue;
+   burning.owners.delete(owner);
+   if(!burning.owners.size)active.splice(i,1);
+  }
  }
  function dispose(){
   if(disposed)return;disposed=true;reset();scene.remove(flames,sparks);

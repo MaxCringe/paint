@@ -111,3 +111,53 @@ test('fire tracks an owner river and releases only its own tree flames',()=>{
   assert.equal(fire.getStats().flames,0);
  }finally{fire.dispose();forest.dispose();}
 });
+
+test('a dense lava crossing ignites every nearby pine, including the outer forest',()=>{
+ const scene=new THREE.Scene(),plants=[],owner=new THREE.Group();
+ scene.add(owner);
+ // Production supports more than six simultaneous tree fires. Every match
+ // receives a real active flame source, not only the closest six.
+ for(let i=0;i<48;i++){
+  const plant=new THREE.Group(),x=(i%2?-1:1)*[5.5,10,18,26,30.5,32][i%6];
+  plant.position.set(x,0,-60+(i%3===0?-1:1)*4.5);
+  plant.userData.plantSpecies='pine:'+species[i%species.length];
+  scene.add(plant);plants.push(plant);
+ }
+ for(const kind of ['fern:lush','grass:wild']){
+  const plant=new THREE.Group();plant.position.set(7,0,-56);
+  plant.userData.plantSpecies=kind;scene.add(plant);plants.push(plant);
+ }
+ const fx=createForestFireStudio(scene,{quality:'low',maxTrees:96,tonguesPerAnchor:1,sparksPerTree:3});
+ try{
+  assert.equal(fx.igniteNearRiver(plants,-60,{halfWidth:()=>2.6,reach:4.9,owner}),48);
+  assert.equal(fx.getStats().activeTrees,48,'no near-river pine was skipped');
+  assert.equal(fx.getActivePlants().length,48);
+  assert.equal(fx.igniteNearRiver(plants,-60,{halfWidth:()=>2.6,reach:4.9,owner}),0);
+  fx.update(.05);
+  assert.ok(fx.getStats().flames>48,'the shared GPU batch draws flames on all trees');
+  assert.ok(fx.getStats().flames<=fx.getStats().maxFlames);
+  assert.ok(fx.getStats().drawCalls<=2,'no extra draw call per pine');
+ }finally{fx.dispose();}
+});
+
+test('shared pine remains lit until the last nearby river is removed',()=>{
+ const scene=new THREE.Scene(),plant=new THREE.Group(),a=new THREE.Group(),b=new THREE.Group();
+ plant.userData.plantSpecies='pine:taiga_spruce';scene.add(plant,a,b);
+ const fx=createForestFireStudio(scene,{maxTrees:2});
+ try{
+  assert.equal(fx.igniteTree(plant,a),true);
+  assert.equal(fx.igniteTree(plant,b),false);
+  fx.releaseOwner(a);
+  assert.equal(fx.getStats().activeTrees,1);
+  fx.releaseOwner(b);
+  assert.equal(fx.getStats().activeTrees,0);
+  // Recycling also replaces the generation instead of leaving a stale one.
+  assert.equal(fx.igniteTree(plant,a),true);
+  plant.position.z=-180;
+  assert.equal(fx.igniteTree(plant,b),true);
+  fx.releaseOwner(a);
+  assert.equal(fx.getStats().activeTrees,1);
+  fx.releaseOwner(b);
+  assert.equal(fx.getStats().activeTrees,0);
+ }finally{fx.dispose();}
+});

@@ -58,7 +58,11 @@ const meteorEcosystem=createMeteorEcosystem(skyBackdrop,roadsideVegetation,{came
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
 // One shared, low-cost GPU fire pool for the actual six procedural pine models.
-const forestFire=createForestFireStudio(scene,{quality:'low',maxTrees:6,burnSeconds:18});
+// One instanced GPU batch can cover all near-river forest pines (not just six).
+// A single tongue per profile anchor bounds fill-rate on weaker devices.
+const forestFire=createForestFireStudio(scene,{
+ quality:'low',maxTrees:96,tonguesPerAnchor:1,sparksPerTree:3,burnSeconds:18
+});
 const lavaForest=createLavaForestInteraction(roadsideVegetation,forestFire);
 const lavaDeckFire=createLavaDeckFire(scene);
 

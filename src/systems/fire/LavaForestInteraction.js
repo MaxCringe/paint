@@ -64,7 +64,19 @@ export function createLavaForestInteraction(plants,fire,options={}){
   for(const plant of plants)keepPlantClear(plant);
   return river;
  }
- const onPlantRecycle=plant=>keepPlantClear(plant);
+ function onPlantRecycle(plant){
+  const moved=keepPlantClear(plant);
+  // A recycled pine may enter the already ignited shoreline after the first
+  // one-time scan. Check only that plant, not the entire forest each frame.
+  if(plant?.userData?.plantSpecies?.startsWith('pine:')){
+   for(const river of rivers)if(river.ignited&&river.group.parent)
+    fire.igniteNearRiver([plant],river.group.position.z,{
+     center:river.center,halfWidth:river.halfWidth,
+     reach:config.heatReach,owner:river.group
+    });
+  }
+  return moved;
+ }
  function update(runnerZ=2.3){
   for(let i=rivers.length-1;i>=0;i--){
    const river=rivers[i];
