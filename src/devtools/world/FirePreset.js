@@ -54,17 +54,23 @@ function isUntouchedLightV1(deck){
 }
 function migrateDemoRiverEffects(p){
  const objects={...p.objects};
- // Saves made after this release are owned by the editor: user-added future
- // effects are not silently deleted by reopening the current revision.
  if(p.riverVisualRevision===LAVA_RIVER_AUTHORING.styleRevision)
-  return {...p,objects,river:p.river??[]};
+  return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
+ const shippedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
+  &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
+ // Older demo imports stored an empty per-instance deck override that masks
+ // every shared wood-edge flame. Do not touch any actual authored overrides.
+ if(shippedDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
  const oldWorld=p.seed===LAVA_RIVER_AUTHORING.sourceSeed
   &&Array.isArray(p.world)&&p.world.some(a=>DEMO_RIVER_WORLD_IDS.has(a.id));
- // Clear all old river/surface effects (including six exported Studio flames).
- // Preserve the wooden deck, tree effects, unrelated world art, and object
- // overrides exactly as saved. In particular, do not reset the deck.
+ const existingRiver=Array.isArray(p.river)?p.river.filter(a=>!LEGACY_RIVER_IDS.has(a.id)):[];
+ const preserveAuthoring=p.riverVisualRevision===3||p.riverVisualRevision===4;
+ // Upgrade the accidental v4 removal. Restore personal river edits when they
+ // are present, otherwise load the six bundled user-placed originals.
  return {
-  ...p,objects,deck:p.deck,river:[],
+  ...p,objects,
+  deck:p.deck?.length?p.deck:clonePreset(LAVA_RIVER_AUTHORING.deck),
+  river:preserveAuthoring&&existingRiver.length?existingRiver:clonePreset(LAVA_RIVER_AUTHORING.river),
   world:oldWorld?p.world.filter(a=>!DEMO_RIVER_WORLD_IDS.has(a.id)):p.world,
   riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision
  };
@@ -166,7 +172,19 @@ function validateModernPreset(input){
 }
 export function readEffectPreset(){try{
  const raw=localStorage.getItem(EFFECT_STORAGE);if(!raw)return null;
- const original=JSON.parse(raw),upgraded=upgradePreset(original);
+ const original=JSON.parse(raw);
+ let candidate=original;
+ // v4 deleted the user's river fire and saved a backup before overwriting
+ // localStorage. Prefer restoring that exact edited work over baked defaults.
+ if(original.riverVisualRevision===4&&(!Array.isArray(original.river)||!original.river.length)){
+  try{
+   const backupText=localStorage.getItem(RIVER_REMOVAL_BACKUP_STORAGE);
+   const backup=backupText?JSON.parse(backupText):null;
+   if(backup?.seed===original.seed&&Array.isArray(backup.river)&&backup.river.length>0)
+    candidate={...original,river:backup.river};
+  }catch(error){console.warn('River fire backup unavailable:',error.message);}
+ }
+ const upgraded=upgradePreset(candidate);
  // Preserve the last six river effects in a separate non-destructive backup
  // before clearing them from browser storage on this visual revision.
  if(original.riverVisualRevision!==LAVA_RIVER_AUTHORING.styleRevision

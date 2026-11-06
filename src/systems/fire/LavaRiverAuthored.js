@@ -1,12 +1,11 @@
-/** User-authored KNOTTY PINE lava crossing fire (Fire Studio export).
- * Only the eight charred-deck emitters remain; river-surface effects are removed.
- * Positions and layer parameters are taken exactly from knotty-pine-world-fire (4).json.
- * Deck anchors follow the curved river boundary; river anchors use group-local XYZ.
+/** Restored user-placed crossing fire from knotty-pine-world-fire (4).json.
+ * Eight wooden-edge effects plus six manually placed lava-surface compositions.
+ * Source anchor parameters and transforms remain unchanged.
  */
 export const LAVA_RIVER_AUTHORING = {
   "sourceSeed": 2912723152,
   "demoRiverZ": -12,
-  "styleRevision": 4,
+  "styleRevision": 5,
   "deck": [
     {
       "id": "650e8c3d-469f-4d69-b20b-665c03d715e2",
@@ -761,5 +760,618 @@ export const LAVA_RIVER_AUTHORING = {
       }
     }
   ],
-  "river": []
+  "river": [
+    {
+      "id": "b1496f00-0609-413c-993a-0fc35d6128fb",
+      "position": [
+        3.3029292255930356,
+        -0.11849450710467274,
+        2.3640891937476862
+      ],
+      "rotation": [
+        -0.018707625043051165,
+        0.14146388328555204,
+        0.1056333637883589
+      ],
+      "scale": [
+        1.7,
+        1.7,
+        1.7
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.05,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности"
+    },
+    {
+      "id": "0d869197-a29b-42b9-9cfa-4b5b81d7c2a6",
+      "position": [
+        -4.655920585406667,
+        -0.4561471414043742,
+        2.348531468385712
+      ],
+      "rotation": [
+        0.008222797630859155,
+        -0.11366962627458983,
+        0.10525603162069383
+      ],
+      "scale": [
+        1.45,
+        1.45,
+        1.45
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.7,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности — копия"
+    },
+    {
+      "id": "16afd2de-ff2b-4b4c-a138-a9556c03dc05",
+      "position": [
+        -0.3751217813848709,
+        -0.1575868548866616,
+        3.13152851699304
+      ],
+      "rotation": [
+        0.008222797630859148,
+        -0.11366962627458972,
+        0.10525603162069372
+      ],
+      "scale": [
+        1.45,
+        1.45,
+        1.45
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.7,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности — копия — копия"
+    },
+    {
+      "id": "a51ecab4-76ac-466b-86a4-fbb213f98660",
+      "position": [
+        0.49450721926320884,
+        -0.25211946231462845,
+        -2.6030924234856183
+      ],
+      "rotation": [
+        0.008222797630859136,
+        -0.11366962627458964,
+        0.10525603162069362
+      ],
+      "scale": [
+        1.45,
+        1.45,
+        1.45
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.7,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности — копия — копия — копия"
+    },
+    {
+      "id": "3541c114-86fc-465f-9ba2-518364696097",
+      "position": [
+        4.801818719003613,
+        0.18075159556823955,
+        -2.1306192655799787
+      ],
+      "rotation": [
+        0.008222797630859133,
+        -0.11366962627458962,
+        0.10525603162069361
+      ],
+      "scale": [
+        1.45,
+        1.45,
+        1.45
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.7,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности — копия — копия — копия — коп"
+    },
+    {
+      "id": "137227f1-8d6e-4363-8713-49562400074f",
+      "position": [
+        -4.359869362662731,
+        -0.8058801278197899,
+        -3.2075150236816086
+      ],
+      "rotation": [
+        0.008222797630859131,
+        -0.11366962627458961,
+        0.10525603162069358
+      ],
+      "scale": [
+        1.45,
+        1.45,
+        1.45
+      ],
+      "size": 0.6,
+      "strength": 1,
+      "color": "#ff9b32",
+      "speed": 1,
+      "sparks": 4,
+      "opacity": 0.94,
+      "side": 1,
+      "emitter": {
+        "shape": "line",
+        "radius": 0.25,
+        "width": 1,
+        "depth": 1,
+        "length": 3,
+        "angle": 25
+      },
+      "layers": {
+        "flame": {
+          "enabled": true,
+          "light": 0.5,
+          "studioMode": "tree",
+          "octaves": 2,
+          "shape": "studio",
+          "forkStrength": 0.8,
+          "shellOpacity": 0.58,
+          "bend": 0,
+          "curl": 0,
+          "variation": 0.45,
+          "height": 1.7,
+          "width": 0.95,
+          "intensity": 0.4,
+          "density": 12,
+          "speed": 1.3,
+          "sway": 0.65,
+          "turbulence": 0.7,
+          "fullness": 1.5,
+          "pulse": 0.15,
+          "direction": 0,
+          "tilt": 0,
+          "opacity": 0.9,
+          "brightness": 1,
+          "colorBase": "#ff531a",
+          "colorMiddle": "#ffa125",
+          "colorTip": "#ffe6a1"
+        },
+        "embers": {
+          "enabled": true,
+          "count": 12,
+          "rate": 3,
+          "size": 0.04,
+          "sizeSpread": 0.45,
+          "life": 3,
+          "speed": 0.5,
+          "speedSpread": 0.5,
+          "direction": 0,
+          "tilt": 0,
+          "angle": 53,
+          "gravity": 0.35,
+          "windX": 0,
+          "windZ": 0,
+          "brightness": 1,
+          "opacity": 1,
+          "fade": 1,
+          "colorStart": "#ff4f15",
+          "colorEnd": "#511909",
+          "trajectory": "ballistic",
+          "mode": "continuous",
+          "period": 2,
+          "burstCount": 15
+        },
+        "coals": {
+          "enabled": true,
+          "style": "cracked",
+          "count": 1,
+          "size": 0.03,
+          "sizeSpread": 0,
+          "spread": 0,
+          "glow": 0.1,
+          "pulseSpeed": 0.1,
+          "opacity": 0,
+          "colorHot": "#ff842a",
+          "colorCool": "#211719"
+        }
+      },
+      "name": "Низкое пламя вдоль поверхности — копия — копия — копия — коп"
+    }
+  ]
 };
