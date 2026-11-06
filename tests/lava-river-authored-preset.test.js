@@ -26,7 +26,7 @@ test('the six published river-surface flames are removed from old version-3 save
  assert.deepEqual(result.objects.deck,originalOverride,'user object settings must be untouched');
  assert.deepEqual(result.world,[independent]);
  assert.deepEqual(result.plants[PINE_SPECIES[0]],[tree]);
- assert.equal(authoredAnchors(result).length,9);
+ assert.equal(authoredAnchors(result).length,10,'eight deck, one tree, one world effect');
  assert.deepEqual(upgradePreset(result),result,'migration is idempotent');
 });
 
