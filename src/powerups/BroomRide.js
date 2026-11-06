@@ -1,3 +1,4 @@
+import {nextBroomBlend} from '../systems/RunMechanics.js';
 import {pathToZ} from '../systems/RunSpace.js';
 import * as THREE from 'three';
 import {getEffectVisualProfile} from '../effects/EffectVisualProfiles.js';
@@ -151,7 +152,7 @@ export function createBroomRide(scene, runner) {
  }
  updateAppearance();
 
- function spawn(lane,z,pathS){
+ function spawn(lane,z,pathS,branchId){
   updateAppearance();
   const group = new THREE.Group();
   group.position.set((lane-1)*2.55,0,z);
@@ -164,7 +165,7 @@ export function createBroomRide(scene, runner) {
   glow.scale.set(2.65,2.2,1);
   glow.position.set(0,1.04,.02);
   group.add(glow);scene.add(group);
-  pickups.push({g:group,visual,glow,lane,pathS,phase:Math.random()*Math.PI*2,passed:false});
+  pickups.push({g:group,visual,glow,lane,pathS,branchId,phase:Math.random()*Math.PI*2,passed:false});
  }
  function activate(){
   remaining=BROOM_CONFIG.duration;
@@ -189,7 +190,7 @@ export function createBroomRide(scene, runner) {
   updateAppearance();
   time=t;
   remaining=Math.max(0,remaining-dt);
-  blend=clamp(blend+(remaining>0?1:-1)*dt*4,0,1);
+  blend=nextBroomBlend(remaining,blend,dt);
   mounted.visible=blend>.001;
   trail.update(remaining,t);
   if(mounted.visible){
@@ -242,9 +243,12 @@ export function createBroomRide(scene, runner) {
  }
  return {
   spawn,advancePickups,tick,preview,applyPose,reset,cancel,immuneTo,guardPineLog,
-  pendingPickups:()=>pickups.filter(p=>!p.passed).map(p=>({type:'broom',s:p.pathS,lane:p.lane})),
+  restoreMotion(s){remaining=s.remaining??0;blend=s.blend??0;},
+  removePickup(s,lane){const i=pickups.findIndex(p=>p.pathS===s&&p.lane===lane);if(i>=0){scene.remove(pickups[i].g);pickups.splice(i,1);}},
+  pendingPickups:()=>pickups.filter(p=>!p.passed).map(p=>({type:'broom',s:p.pathS,lane:p.lane,branchId:p.branchId})),
   get active(){return remaining>0;},
   get remaining(){return remaining;},
+  get blend(){return blend;},
   get hoverHeight(){
    return BROOM_CONFIG.hoverHeight*blend+
     (remaining>0?Math.sin(time*.003)*.045*blend:0);

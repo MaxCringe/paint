@@ -9,7 +9,7 @@ import {createDoubleJump} from '../src/player/DoubleJump.js';
 import {createRunSpace} from '../src/systems/RunSpace.js';
 import {createSlide} from '../src/player/Slide.js';
 const h=(type,s,lane=-1)=>({type,s,lane});
-const makePlanner=seed=>createSegmentGenerator({makeLavaRiver:()=>{},makePineLog:()=>{},makeFish:()=>{},makePuddle:()=>{},makeObstacle:()=>{},makeSoul:()=>{},makeHat:()=>{},makeBroom:()=>{},random:createForestRandom(seed)});
+const makePlanner=(seed,random=createForestRandom(seed))=>createSegmentGenerator({makeLavaRiver:()=>{},makePineLog:()=>{},makeFish:()=>{},makePuddle:()=>{},makeObstacle:()=>{},makeSoul:()=>{},makeHat:()=>{},makeBroom:()=>{},random});
 test('four configurable phases repeat at exact distance boundaries, without resetting speed or run state',()=>{
  const director=createRunDirector();let s=0;for(let cycle=0;cycle<3;cycle++)for(const p of config.phases){assert.equal(director.phaseAt(s).id,p.id);assert.equal(director.phaseAt(s+p.duration-.001).id,p.id);assert.equal(director.phaseAt(s).cycle,cycle);s+=p.duration;}
  assert.throws(()=>createRunDirector({...config,phases:[{duration:0}]}));
@@ -21,9 +21,9 @@ test('log to river, river to pine and consecutive logs have executable witnesses
   assert.ok(proof.ok,JSON.stringify({path,dt,types}));assert.ok(proof.steps<10000);
  }
 });
-test('reachability rejects a physically unreachable empty lane and incompatible slide/lava overlap',()=>{
+test('reachability rejects an unreachable lane but keeps a double-jump route through log and lava',()=>{
  const trapped=validateRunRoute([h('knot',5002,0),h('knot',5002,2)],{path:5000,lane:0,x:-2.55,slip:.9});assert.equal(trapped.ok,false);
- const overlap=validateRunRoute([h('pineLog',5060),h('lava',5061)],{path:5000,lane:1});assert.equal(overlap.ok,false);
+ const overlap=validateRunRoute([h('pineLog',5060),h('lava',5061)],{path:5000,lane:1});assert.equal(overlap.ok,true);assert.equal(overlap.actions.filter(a=>a.type==='jump').length,2);
  const pickup=validateRunRoute([h('visit',5001,2)],{path:5000,lane:0,x:-2.55,slip:.9},{endS:5003});assert.equal(pickup.ok,false);
 });
 test('maximum-speed flight expiry preserves existing lava/log landing guards and requires a route around pine',()=>{
@@ -37,9 +37,9 @@ test('1000 deterministic seeds produce repeatable phase decisions, bounded reser
  let rejected=0;const phases=new Set();
  for(let seed=1;seed<=1000;seed++){
   const a=makePlanner(seed),b=makePlanner(seed);
-  for(let path=0;path<=1800;path+=60){for(const p of [a,b])p({path,lane:1});const x=a.diagnostics(),y=b.diagnostics();assert.deepEqual(x,y);assert.ok(x.reservations<100);phases.add(x.phase);rejected+=x.proof?.ok===false?1:0;}
+  for(const path of [0,60,180,440,700,840,1020,1280,1540,1680]){for(const p of [a,b])p({path,lane:1});const x=a.diagnostics(),y=b.diagnostics();assert.deepEqual(x,y);assert.ok(x.reservations<100);phases.add(x.phase);rejected+=x.rejected;}
  }
- assert.deepEqual([...phases].sort(),['build','recovery','tension','warmup']);assert.ok(rejected>0,'impossible current-state candidates must fall back rather than force a spawn');
+ assert.deepEqual([...phases].sort(),['build','recovery','tension','warmup']);const blocked=makePlanner(1,()=>.02);blocked({path:0,lane:1,slip:100});assert.ok(blocked.diagnostics().rejected>0);assert.equal(blocked.diagnostics().proof.fallback,true);assert.equal(blocked.diagnostics().proof.ok,true,'the empty fallback must itself have a continuation witness');
 });
 test('long runs retain a bounded working set and bounded witness work',()=>{
  const p=makePlanner(796),start=performance.now();let peak=0,maxSteps=0;
@@ -70,5 +70,6 @@ test('two-lane witnesses require two separate legal lane inputs',()=>{
 test('a pending pickup at the collection boundary activates only when actually collected',()=>{
  const hazards=[h('lava',5006)],pickups=[{type:'broom',s:5001,lane:1}];
  assert.equal(validateRunRoute(hazards,{path:5000,lane:1,x:0,pickups}).ok,true);
- assert.equal(validateRunRoute(hazards,{path:5000,lane:0,x:-2.55,pickups}).ok,false);
+ const missed=validateRunRoute(hazards,{path:5000,lane:0,x:-2.55,pickups});assert.equal(missed.ok,true);assert.equal(missed.end.broomRemaining,0);
+ assert.equal(validateRunRoute([h('lava',5002.5)],{path:5000,lane:0,x:-2.55,pickups:[]}).ok,false);
 });

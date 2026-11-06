@@ -25,5 +25,5 @@ export function createDoubleJump({onJump=()=>{},onLand=()=>{},initialState}={}){
    if(previousHeight>0)onLand();
   }
  }
- return {reset,jump,update,snapshot:()=>({height,velocity,jumpsUsed}),get height(){return height;},get airborne(){return jumpsUsed>0;},get jumpsUsed(){return jumpsUsed;}};
+ return {reset,jump,update,restore(s){height=s.height;velocity=s.velocity;jumpsUsed=s.jumpsUsed;},snapshot:()=>({height,velocity,jumpsUsed}),get height(){return height;},get airborne(){return jumpsUsed>0;},get jumpsUsed(){return jumpsUsed;}};
 }

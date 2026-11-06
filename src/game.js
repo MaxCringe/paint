@@ -1,3 +1,5 @@
+import {advanceSoulMotion,soulCaught} from './souls/SoulMotion.js';
+import {advanceLane,flightHold} from './systems/RunMechanics.js';
 import {pathToZ} from './systems/RunSpace.js';
 import {createForestRandom} from './world/forest/PlantRegistry.js';
 import {readEffectPreset} from './devtools/world/FirePreset.js';
@@ -173,9 +175,9 @@ const makeSegment = createSegmentGenerator({
   makeFish:(lane,z,s)=>{makeFish(lane,z);obstacles.at(-1).pathS=s;},
   makePuddle:(lane,z,s)=>{makePuddle(lane,z);obstacles.at(-1).pathS=s;},
   makeObstacle:(lane,z,type,s)=>{makeObstacle(lane,z,type);obstacles.at(-1).pathS=s;},
-  makeSoul:(lane,z,y,s)=>{makeSoul(lane,z,y);coins.at(-1).pathS=s;},
-  makeHat:(lane,z,_y,s)=>{makeHat(lane,z);hats.at(-1).pathS=s;},
-  makeBroom:BROOM_ENABLED?(lane,z,_y,s)=>broom.spawn(lane,z,s):undefined,
+  makeSoul:(lane,z,y,s,r)=>{makeSoul(lane,z,y);const c=coins.at(-1);c.pathS=s;c.branchId=r?.branchId;return {phase:c.phase,z:c.z,baseY:c.baseY,rollback(){scene.remove(c.g);c.g.userData.dispose?.();coins.splice(coins.indexOf(c),1);}};},
+  makeHat:(lane,z,_y,s,r)=>{makeHat(lane,z);const h=hats.at(-1);h.pathS=s;h.branchId=r?.branchId;return {rollback(){scene.remove(h.g);hats.splice(hats.indexOf(h),1);}};},
+  makeBroom:BROOM_ENABLED?(lane,z,_y,s,r)=>{broom.spawn(lane,z,s,r?.branchId);return {rollback:()=>broom.removePickup(s,lane)};}:undefined,
   random:createForestRandom(forest.seed^0x72a9b341),
   broomChance:BROOM_CONFIG.pickupChance
 });
@@ -322,7 +324,11 @@ function togglePause(){
   menu.hide();
  }
 }
-function frame(t){requestAnimationFrame(frame);
+let fixtureMode=false,fixtureGeneration=false;
+function frame(t,manual=false){
+ const testStep=import.meta.env.MODE==='test'&&manual;
+ if(!testStep)requestAnimationFrame(frame);
+ if(import.meta.env.MODE==='test'&&fixtureMode&&!testStep)return;
  if(worldEditor?.active){const dt=Math.min((t-last)/1000||0,.04);last=t;worldEditor.update(dt);return;}
   // The 3D broom workshop renders separately; pause the hidden WebGL scene.
   if(document.body.classList.contains('broom-lab-open')){last=t;fpsSampleStart=null;fpsFrames=0;return;}
@@ -353,13 +359,7 @@ function frame(t){requestAnimationFrame(frame);
    const ultimateSpeed=speed*BROOM_CONFIG.ultimateSpeedMultiplier;
    for(const o of obstacles){
     const gap=o.g.position.z-runner.position.z;
-    if(o.type==='pineLog'){
-     const crossing=pineLogFlightGuardDuration(gap,ultimateSpeed);
-     if(crossing>0)ultTimer=Math.max(ultTimer,crossing+ULTIMATE_LAND_SECONDS);
-    }else if(o.type==='lava'){
-     const half=o.g.userData.halfDepth||.88;
-     ultTimer=Math.max(ultTimer,ultimateLavaGuardDuration(gap,half,ultimateSpeed));
-    }
+    ultTimer=Math.max(ultTimer,flightHold('ultimate',o.type,gap,o.g.userData.halfDepth||2.95,ultimateSpeed,o.passed));
    }
    ultTimer=Math.max(0,ultTimer-dt);
   }
@@ -367,25 +367,10 @@ function frame(t){requestAnimationFrame(frame);
   ultimateFlight.update(dt,ultTimer>0);
   // A descending Fiona is still protected and cannot jump or slide until grounded.
   const ultActive=ultTimer>0||ultimateFlight.active;
-  // Finish flying over a suspended log if the broom's timer is about to expire.
+  // Runtime and route validation share the same flight-expiry guard windows.
   if(broom.active){
    const broomSpeed=speed*BROOM_CONFIG.speedMultiplier;
-   for(const o of obstacles){
-    if(o.type!=='pineLog')continue;
-    const gap=o.g.position.z-runner.position.z;
-    if(gap>=-16&&gap<9)broom.guardPineLog((9-gap)/broomSpeed+.03);
-   }
-  }
-  // Guard broom duration through the entire lava crossing, including landing margin.
-  if(broom.active){
-   const broomSpeed=speed*BROOM_CONFIG.speedMultiplier;
-   for(const o of obstacles){
-    if(o.type!=='lava'||o.passed)continue;
-    const half=o.g.userData.halfDepth||2.95;
-    const gap=o.g.position.z-runner.position.z;
-    const guard=broomLavaGuardDuration(gap,half,broomSpeed);
-    if(guard>0)broom.guardPineLog(guard);
-   }
+   for(const o of obstacles)broom.guardPineLog(flightHold('broom',o.type,o.g.position.z-runner.position.z,o.g.userData.halfDepth||2.95,broomSpeed,o.passed));
   }
   broom.tick(dt,t);
   const travelSpeed=speed*travelSpeedMultiplier(ultActive,broom.active,BROOM_CONFIG.speedMultiplier,BROOM_CONFIG.ultimateSpeedMultiplier);
@@ -407,16 +392,13 @@ function frame(t){requestAnimationFrame(frame);
    // Lower Fiona and her mounted broom slightly, leaving genuine clearance below the wood.
    const broomHover=broom.hoverHeight*(1-broomDuck)+.20*broomDuck;
    const jumpY=ultActive?ultimateFlight.height(t):(broom.active||broom.hoverHeight>0?broomHover:doubleJump.height);
-  runner.position.x+=( (lane-1)*2.55-runner.position.x)*Math.min(1,dt*12);runner.position.y=jumpY;
+  runner.position.x=advanceLane(runner.position.x,lane,dt);runner.position.y=jumpY;
   runner.position.z=2.3;
   const slipRoll=0;
   runner.rotation.z=Math.sin(t*.0016)*.012*ultimateFlight.lift+slipRoll*(1-ultimateFlight.lift);
   runner.rotation.x=-.055*ultimateFlight.lift;
   ultimateAura.update(t,ultActive,ultimateFlight.lift);
   avatar.update(dt,{jumping,sliding,crouch:slideAction.crouch,broom:broom.active,broomDuck,ultimate:ultTimer>0,ultimateLift:ultimateFlight.lift,slip:slipT>0,speed:travelSpeed});
-  makeSegment({path:runPath,lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),
-   slip:slipT,shield:revivalShield,getBroomPickups:broom.pendingPickups,broomRemaining:broom.remaining,ultimateRemaining:ultTimer,ultimateProgress:ultimateFlight.progress});
-  scarfPickup.offer(distance,()=>makeSegment.reservePickup('scarf',{path:runPath}));
   for(const o of obstacles){
    const previousZ=o.g.position.z;
    o.g.position.z=pathToZ(o.pathS,runPath);
@@ -530,27 +512,7 @@ function frame(t){requestAnimationFrame(frame);
   makeSoul.updateVisuals?.();
   for(const c of coins){
    const phase=c.phase||c.z*.2;
-   // While the hat is worn, attract souls from ALL three lanes.
-   // Once a soul begins flying it completes its journey even if the timer runs out.
-   const ahead=runner.position.z-c.g.position.z;
-   if(magnetTime>0&&!c.magnetFlight&&ahead>-.9&&ahead<11.5){
-    c.magnetFlight=true;
-    c.magnetProgress=0;
-   }
-   if(c.magnetFlight){
-    // Detach the collected flame from the scrolling road so it can glide inward
-    // rather than rushing past Fiona before completing its sideways flight.
-    c.magnetProgress=Math.min(1,(c.magnetProgress||0)+dt*1.55);
-    const arc=Math.sin(Math.PI*c.magnetProgress);
-    const easing=1-Math.exp(-dt*(3.4+c.magnetProgress*3.5));
-    const sway=Math.sin(t*.006+phase)*.23*arc;
-    c.g.position.x+=(runner.position.x+sway-c.g.position.x)*easing;
-    c.g.position.z+=(runner.position.z+.08-c.g.position.z)*easing;
-    c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.11+arc*.85;
-   }else{
-    c.g.position.z=pathToZ(c.pathS,runPath);
-    c.g.position.y=c.baseY+Math.sin(t*.004+phase)*.14;
-   }
+   advanceSoulMotion(c,c.g.position,runner.position,dt,t,magnetTime,pathToZ(c.pathS,runPath));
    c.g.rotation.y=Math.sin(t*.0018+phase)*.62;
    c.g.rotation.z=Math.sin(t*.003+phase)*.07;
    const soulPulse=1+Math.sin(t*.006+phase)*.045;
@@ -571,11 +533,7 @@ function frame(t){requestAnimationFrame(frame);
     spark.mesh.rotation.y+=dt*1.7;
    });
    }
-   const closeToFiona=Math.hypot(c.g.position.x-runner.position.x,c.g.position.z-runner.position.z);
-   const magnetCaught=c.magnetFlight&&c.magnetProgress>.25&&closeToFiona<.65;
-   const normalCaught=!c.magnetFlight&&c.g.position.z>1.0&&c.g.position.z<3.7&&
-    c.lane===lane&&Math.abs(runner.position.x-(c.lane-1)*2.55)<1.1;
-   if(!c.g.userData.got&&(magnetCaught||normalCaught)){
+   if(!c.g.userData.got&&soulCaught(c,c.g.position,runner.position,lane)){
     c.g.userData.got=true;audio.play('soul');haptics.play('soul');coinCount++;if(coinCount>bestSouls){bestSouls=coinCount;localStorage.setItem('knottyPineBestSouls',bestSouls);hud.setRecords(best,bestSouls)}soulCharge=Math.min(SOULS_PER_ULT,soulCharge+1);scene.remove(c.g);if(soulCharge>=SOULS_PER_ULT)activateUltimate();else popToast('+ 1 ДУША');updateHud(true)
    }
   }
@@ -589,6 +547,19 @@ function frame(t){requestAnimationFrame(frame);
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
   airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
+  // Plan from an end-of-frame snapshot: collisions and item activation are resolved.
+  if(state==='playing'&&!(import.meta.env.MODE==='test'&&fixtureMode&&!fixtureGeneration)){
+   makeSegment({path:runPath,seed:forest.seed,lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),
+    slip:slipT,invuln,shield:revivalShield,timeMs:t,getBroomPickups:broom.pendingPickups,
+    broomRemaining:broom.remaining,broomBlend:broom.blend,ultimateRemaining:ultTimer,ultimateProgress:ultimateFlight.progress,
+    soulCharge,magnetRemaining:magnetTime,
+    getLivePickups:()=>[
+     ...broom.pendingPickups(),...scarfPickup.pendingPickups(),
+     ...hats.filter(h=>!h.passed).map(h=>({type:'hat',s:h.pathS,lane:h.lane,branchId:h.branchId})),
+     ...coins.filter(c=>!c.g.userData.got).map(c=>({type:'soul',s:c.pathS,lane:c.lane,branchId:c.branchId,phase:c.phase,z:c.z,baseY:c.baseY,position:{x:c.g.position.x,y:c.g.position.y,z:c.g.position.z},magnetFlight:c.magnetFlight,magnetProgress:c.magnetProgress}))],
+    getPassedHazards:()=>obstacles.filter(o=>o.passed).map(o=>[o.type,o.pathS,o.lane])});
+   scarfPickup.offer(distance,()=>makeSegment.reservePickup('scarf',{path:runPath}));
+  }
   updateHud();
  }
  // Camera follows gently; maintain forward view
@@ -598,7 +569,7 @@ function frame(t){requestAnimationFrame(frame);
  // Sync grouped pine instances after recycling and wind movement.
  updateForestPines();
  if(authoredEffects)authoredEffects.update(dt);
- renderer.render(scene,camera);
+ if(!testStep)renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.2))});
@@ -640,6 +611,22 @@ if(savedEffectPreset)ensureAuthoredEffects().catch(error=>console.error('Saved w
 // Read-only diagnostics and real input commands for browser integration tests.
 // Vite removes this branch from ordinary production builds; no gameplay bypass.
 if(import.meta.env.MODE==='test')window.__knottyRunTest={
- snapshot:()=>({state,seed:forest.seed,fps:fpsDisplay.textContent,path:runPath,speed,travelSpeed:speed*travelSpeedMultiplier(ultTimer>0||ultimateFlight.active,broom.active),lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),broomRemaining:broom.remaining,ultimateRemaining:ultTimer,scarfCount:scarfPickup.count,obstacles:obstacles.map(o=>({s:o.pathS,z:o.g.position.z,lane:o.lane,type:o.type,passed:o.passed})),coins:coins.length,hats:hats.length,director:makeSegment.diagnostics()}),
+ snapshot:()=>({state,soulCharge,magnetRemaining:magnetTime,invuln,slip:slipT,shield:revivalShield,ultimateProgress:ultimateFlight.progress,broomBlend:broom.blend,timeMs:last,seed:forest.seed,fps:fpsDisplay.textContent,path:runPath,speed,travelSpeed:speed*travelSpeedMultiplier(ultTimer>0||ultimateFlight.active,broom.active),lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),broomRemaining:broom.remaining,ultimateRemaining:ultTimer,scarfCount:scarfPickup.count,obstacles:obstacles.map(o=>({s:o.pathS,z:o.g.position.z,lane:o.lane,type:o.type,passed:o.passed})),coins:coins.length,hats:hats.length,director:makeSegment.diagnostics()}),
+ fixture(context={},hazards=[],pickups=[],generate=false){
+  fixtureMode=true;fixtureGeneration=generate;gameOver.hide();menu.hide();
+  for(const o of obstacles){scene.remove(o.g);o.g.userData.dispose?.();}obstacles.length=0;
+  for(const c of coins){scene.remove(c.g);c.g.userData.dispose?.();}coins.length=0;
+  for(const h of hats)scene.remove(h.g);hats.length=0;broom.reset();scarfPickup.reset();forestFire.reset();lavaForest.reset();lavaDeckFire.reset();
+  makeSegment.reset();runPath=context.path??0;distance=runPath*.72;speed=Math.min(29,15+distance*.009);lane=context.lane??1;
+  doubleJump.restore(context.jump??{height:0,velocity:0,jumpsUsed:0});slideAction.restore(context.slide??{remaining:0,crouch:0,queuedJump:0});
+  slipT=context.slip??0;invuln=context.invuln??0;revivalShield=context.shield??0;ultTimer=context.ultimateRemaining??0;
+  ultimateFlight.restore({progress:context.ultimateProgress??0});broom.restoreMotion({remaining:context.broomRemaining??0,blend:context.broomBlend??(context.broomRemaining?1:0)});
+  magnetTime=context.magnetRemaining??0;soulCharge=context.soulCharge??0;last=context.timeMs??0;
+  runner.position.set(context.x??(lane-1)*2.55,context.jump?.height??0,2.3);state='playing';
+  for(const h of hazards){if(h.type==='visit')continue;const z=pathToZ(h.s,runPath);if(h.type==='lava')makeLavaRiver(z);else if(h.type==='pineLog')makePineLog(z);else if(h.type==='fish')makeFish(h.lane,z);else if(h.type==='pee')makePuddle(h.lane,z);else makeObstacle(h.lane,z);Object.assign(obstacles.at(-1),{pathS:h.s,passed:Boolean(h.passed)});}
+  for(const p of pickups){const z=pathToZ(p.s,runPath);if(p.type==='broom')broom.spawn(p.lane,z,p.s);else if(p.type==='hat'){makeHat(p.lane,z);hats.at(-1).pathS=p.s;}else if(p.type==='soul'){makeSoul(p.lane,z,1.2);const c=coins.at(-1);c.pathS=p.s;c.phase=p.phase??c.phase;if(p.position)Object.assign(c.g.position,p.position);c.magnetFlight=p.magnetFlight;c.magnetProgress=p.magnetProgress;}}
+ },
+ step(dt){if(!fixtureMode)throw Error('Fixture required');frame(last+dt*1000,true);return this.snapshot();},
+ draw(){renderer.render(scene,camera);},
  command(type,direction){if(type==='move')move(direction);else if(type==='jump')jump();else if(type==='slide')slide();}
 };

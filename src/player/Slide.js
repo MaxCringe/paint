@@ -19,6 +19,7 @@ export function createSlide({duration=SLIDE_DURATION,initialState}={}) {
  }
  function reset(){cancel();}
  return {press,update,reset,cancel,queueJump,consumeJump,
+  restore(s){remaining=s.remaining;crouch=s.crouch;queuedJump=s.queuedJump;},
   snapshot:()=>({remaining,crouch,queuedJump}),
   get active(){return remaining>0;},
   get remaining(){return remaining;},

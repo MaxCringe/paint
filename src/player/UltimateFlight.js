@@ -46,6 +46,7 @@ export function createUltimateFlight(){
  }
  function reset(){progress=0;launchHeight=0;landing=false;}
  return {activate,update,height,reset,
+  restore(s){progress=s.progress??0;launchHeight=s.launchHeight??0;landing=Boolean(s.landing);},
   get active(){return progress>0;},
   get lift(){return smoothstep(progress);},
   get landing(){return landing;},

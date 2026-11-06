@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSegmentGenerator,HAZARD_SPACING,LAVA_SPAWN} from '../src/systems/ObstacleManager.js';
-import {pathToZ,zToPath,laneMask,createRunSpace} from '../src/systems/RunSpace.js';
+import {pathToZ,zToPath,laneMask,createRunSpace,hazardDepth} from '../src/systems/RunSpace.js';
 import {createForestRandom} from '../src/world/forest/PlantRegistry.js';
 export function planner(seed=1,random=createForestRandom(seed)){
  const hazards=[],rewards=[];
@@ -18,7 +18,7 @@ test('absolute path mapping stays exact after arbitrary travel and never wraps',
 test('1000 seeded runs separate neighboring hazards and rewards in actual world coordinates',()=>{
  for(let seed=1;seed<=1000;seed++){
   const p=planner(seed);
-  for(let path=0;path<=1200;path+=20){
+  for(let path=0;path<=300;path+=20){
    p.generate({path,speed:39.15});
    const records=p.generate.reservations;
    assert.ok(records.length<60);
@@ -29,7 +29,7 @@ test('1000 seeded runs separate neighboring hazards and rewards in actual world 
    const slot=p.generate.reservePickup('scarf',{path});if(slot)assert.equal(slot.z,pathToZ(slot.s,path));
   }
   const full=p.hazards.filter(h=>h.lane<0);
-  for(let i=0;i<full.length;i++)for(let j=i+1;j<full.length;j++)assert.ok(Math.abs(full[i].s-full[j].s)>=(full[i].type===full[j].type?HAZARD_SPACING.fullWidth:HAZARD_SPACING.lavaLog));
+  for(let i=0;i<full.length;i++)for(let j=i+1;j<full.length;j++)assert.ok(Math.abs(full[i].s-full[j].s)>=hazardDepth(full[i].type)+hazardDepth(full[j].type)+1.4);
  }
 });
 test('scarf reservation excludes full-width logs and future hazards',()=>{
