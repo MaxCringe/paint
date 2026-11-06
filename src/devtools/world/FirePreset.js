@@ -116,7 +116,7 @@ function validateModernPreset(input){
   if(b.seed!==p.seed||(id==='deck'?b.kind!=='deck':b.kind!=='plant'||!PINE_SPECIES.includes(b.species)||!Number.isInteger(b.template)||b.template<0||b.id!==Number(id.slice(6))))fail('привязка не соответствует seed/виду/шаблону');
   objects[id]={binding:copy(b),anchors:anchors(entry.anchors,id==='deck'),cycle:validateBurnCycle(entry.cycle)};
  }
- if(!Array.isArray(p.group)||p.group.length>128||p.group.some(id=>typeof id!=='string'||!/^(plant:\d+|deck)$/.test(id)))fail('неверная группа');
+ if(!Array.isArray(p.group)||p.group.length>128||p.group.some(id=>typeof id!=='string'||!/^(plant:\d+|deck|river)$/.test(id)))fail('неверная группа');
  if(!Number.isInteger(p.budget)||p.budget<128||p.budget>16384)fail('бюджет частиц: 128…16384');
  if(!Array.isArray(p.customPresets)||p.customPresets.length>32)fail('не более 32 пользовательских пресетов');
  const names=new Set(),customPresets=p.customPresets.map(v=>{
