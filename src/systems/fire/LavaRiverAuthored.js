@@ -5,7 +5,7 @@
 export const LAVA_RIVER_AUTHORING = {
   "sourceSeed": 2912723152,
   "demoRiverZ": -12,
-  "styleRevision": 5,
+  "styleRevision": 6,
   "deck": [
     {
       "id": "650e8c3d-469f-4d69-b20b-665c03d715e2",
@@ -769,9 +769,9 @@ export const LAVA_RIVER_AUTHORING = {
         2.3640891937476862
       ],
       "rotation": [
-        -0.018707625043051165,
-        0.14146388328555204,
-        0.1056333637883589
+        -0.018707625043051172,
+        0.1414638832855521,
+        0.10563336378835897
       ],
       "scale": [
         1.7,
@@ -817,7 +817,7 @@ export const LAVA_RIVER_AUTHORING = {
           "direction": 0,
           "tilt": 0,
           "opacity": 0.9,
-          "brightness": 1,
+          "brightness": 2.3,
           "colorBase": "#ff531a",
           "colorMiddle": "#ffa125",
           "colorTip": "#ffe6a1"
@@ -1274,14 +1274,14 @@ export const LAVA_RIVER_AUTHORING = {
     {
       "id": "137227f1-8d6e-4363-8713-49562400074f",
       "position": [
-        -4.359869362662731,
-        -0.8058801278197899,
-        -3.2075150236816086
+        -4.292833860456927,
+        -0.7753001598477711,
+        -3.2310344066615855
       ],
       "rotation": [
-        0.008222797630859131,
-        -0.11366962627458961,
-        0.10525603162069358
+        0.008222797630859126,
+        -0.11366962627458958,
+        0.10525603162069352
       ],
       "scale": [
         1.45,

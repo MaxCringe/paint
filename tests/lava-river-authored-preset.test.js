@@ -19,7 +19,7 @@ test('revision 4 accidentally deleted hand-authored lava flames: restore six wit
  old.objects.deck={binding:{kind:'deck',seed:old.seed},anchors:[],cycle:defaultBurnCycle()};
  const originalDeck=structuredClone(old.deck);
  const result=upgradePreset(old);
- assert.equal(result.riverVisualRevision,5);
+ assert.equal(result.riverVisualRevision,6);
  assert.deepEqual(result.river,LAVA_RIVER_AUTHORING.river);
  assert.deepEqual(result.deck,originalDeck);
  assert.equal(result.objects.deck,undefined,'empty override must no longer hide wooden fire');
@@ -34,7 +34,7 @@ test('v3 user-customized river effects are preserved and wood remains unchanged'
  old.river=[custom];
  old.deck[0].layers.flame.height=.36;
  const result=upgradePreset(old);
- assert.equal(result.riverVisualRevision,5);
+ assert.equal(result.riverVisualRevision,6);
  assert.deepEqual(result.river,[custom]);
  assert.deepEqual(result.deck,old.deck);
 });
@@ -75,4 +75,39 @@ test('no-backup rev4 case still restores all six handwritten exported effects',(
  const result=upgradePreset(old);
  assert.deepEqual(result.river,LAVA_RIVER_AUTHORING.river);
  assert.deepEqual(result.deck,old.deck);
+});
+
+test('v5 exported settings update just the two adjusted flames without losing other edits',()=>{
+ const old=seeded(5);
+ old.river=structuredClone(LAVA_RIVER_AUTHORING.river);
+ old.river[0].layers.flame.brightness=1;
+ old.river[0].rotation=[-0.018707625043051165,0.14146388328555204,0.1056333637883589];
+ old.river[5].position=[-4.359869362662731,-0.8058801278197899,-3.2075150236816086];
+ old.river[5].rotation=[0.008222797630859131,-0.11366962627458961,0.10525603162069358];
+ old.river[1].layers.flame.intensity=.71;
+ const manual=newEffectAnchor([1,.4,-3]);
+ old.river.push(manual);
+ old.deck[0].layers.flame.height=.37;
+ old.objects.deck={binding:{kind:'deck',seed:old.seed},anchors:[],cycle:defaultBurnCycle()};
+ const previousDeck=structuredClone(old.deck);
+ const result=upgradePreset(old);
+ assert.equal(result.riverVisualRevision,6);
+ assert.equal(result.river.length,7,'six original flames plus an unrelated manual effect');
+ assert.equal(result.river[0].layers.flame.brightness,2.3);
+ assert.deepEqual(result.river[5].position,LAVA_RIVER_AUTHORING.river[5].position);
+ assert.equal(result.river[1].layers.flame.intensity,.71,'other changes survive');
+ assert.deepEqual(result.river[6],manual,'custom effects survive');
+ assert.deepEqual(result.deck,previousDeck,'wooden-edge settings remain unchanged');
+ assert.equal(result.objects.deck,undefined,'empty imported demo override must not hide the wood flames');
+ assert.deepEqual(upgradePreset(result),result,'one-time update');
+});
+
+test('v6 custom scenes do not have their authored river flames overwritten',()=>{
+ const p=seeded(6);
+ const personal=newEffectAnchor([0,.2,-1]);
+ p.river=[personal];
+ p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:[],cycle:defaultBurnCycle()};
+ const result=upgradePreset(p);
+ assert.deepEqual(result.river,[personal]);
+ assert.ok(result.objects.deck,'explicit current-revision changes remain untouched');
 });

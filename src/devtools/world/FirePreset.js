@@ -58,19 +58,32 @@ function migrateDemoRiverEffects(p){
   return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
  const shippedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
   &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
- // Older demo imports stored an empty per-instance deck override that masks
- // every shared wood-edge flame. Do not touch any actual authored overrides.
+ // The imported Fire Studio demo carries an empty object-level deck override;
+ // it would hide all eight shared wooden-edge flames. Leave nonempty overrides alone.
  if(shippedDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
  const oldWorld=p.seed===LAVA_RIVER_AUTHORING.sourceSeed
   &&Array.isArray(p.world)&&p.world.some(a=>DEMO_RIVER_WORLD_IDS.has(a.id));
  const existingRiver=Array.isArray(p.river)?p.river.filter(a=>!LEGACY_RIVER_IDS.has(a.id)):[];
  const preserveAuthoring=p.riverVisualRevision===3||p.riverVisualRevision===4;
- // Upgrade the accidental v4 removal. Restore personal river edits when they
- // are present, otherwise load the six bundled user-placed originals.
+ // The v5 -> v6 release changes ONLY the brightness of the first authored
+ // flame and the position of the sixth. Merge by ID without erasing unrelated
+ // manual compositions, custom flames, or editor edits to other parameters.
+ let river;
+ if(p.riverVisualRevision===5&&existingRiver.length){
+  const updates=new Map(LAVA_RIVER_AUTHORING.river.map(a=>[a.id,a]));
+  river=existingRiver.map(a=>{
+   const next=updates.get(a.id);
+   if(!next)return a;
+   if(a.id==='b1496f00-0609-413c-993a-0fc35d6128fb')return {...a,rotation:clonePreset(next.rotation),
+     layers:{...a.layers,flame:{...a.layers.flame,brightness:next.layers.flame.brightness}}};
+   if(a.id==='137227f1-8d6e-4363-8713-49562400074f')return {...a,position:clonePreset(next.position),rotation:clonePreset(next.rotation)};
+   return a;
+  });
+ }else river=preserveAuthoring&&existingRiver.length?existingRiver:clonePreset(LAVA_RIVER_AUTHORING.river);
  return {
   ...p,objects,
   deck:p.deck?.length?p.deck:clonePreset(LAVA_RIVER_AUTHORING.deck),
-  river:preserveAuthoring&&existingRiver.length?existingRiver:clonePreset(LAVA_RIVER_AUTHORING.river),
+  river,
   world:oldWorld?p.world.filter(a=>!DEMO_RIVER_WORLD_IDS.has(a.id)):p.world,
   riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision
  };

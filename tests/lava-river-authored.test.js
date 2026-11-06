@@ -7,7 +7,7 @@ import {createWorldEffectsRuntime} from '../src/devtools/world/WorldEffectsRunti
 test('the manually placed fire from the previous export is back on each crossing',()=>{
  const {deck,river,sourceSeed,styleRevision}=LAVA_RIVER_AUTHORING;
  assert.equal(sourceSeed,2912723152);
- assert.equal(styleRevision,5);
+ assert.equal(styleRevision,6);
  assert.equal(deck.length,8);
  assert.equal(river.length,6);
  assert.ok(deck.some(a=>a.side===-1)&&deck.some(a=>a.side===1));
@@ -16,6 +16,8 @@ test('the manually placed fire from the previous export is back on each crossing
  assert.ok(river.every(a=>a.layers.flame?.enabled&&a.layers.flame.shape==='studio'));
  const distinct=new Set([...deck,...river].map(a=>a.id));
  assert.equal(distinct.size,14);
+ assert.equal(river[0].layers.flame.brightness,2.3);
+ assert.deepEqual(river[5].position,[-4.292833860456927,-0.7753001598477711,-3.2310344066615855]);
 });
 test('eight wooden-edge and six hand-placed river effects render for every crossing',()=>{
  const scene=new THREE.Scene();
@@ -39,7 +41,7 @@ test('eight wooden-edge and six hand-placed river effects render for every cross
 test('future edits in current revision remain independent of the restored artwork',async()=>{
  const {upgradePreset,PINE_SPECIES,newEffectAnchor}=await import('../src/devtools/world/FirePreset.js');
  const {defaultBurnCycle}=await import('../src/systems/fire/ArtisticBurnCycle.js');
- const current={version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:5,
+ const current={version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:6,
   plants:Object.fromEntries(PINE_SPECIES.map(p=>[p,[]])),
   deck:structuredClone(LAVA_RIVER_AUTHORING.deck),river:[newEffectAnchor([0,.4,-2])],
   world:[newEffectAnchor([2,1,4])],
