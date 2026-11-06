@@ -606,7 +606,8 @@ function ensureAuthoredEffects(){
  }).finally(()=>effectsLoading=null);
  return effectsLoading;
 }
-if(savedEffectPreset)ensureAuthoredEffects().catch(error=>console.error('Saved world effects unavailable:',error));
+// Load the bundled river effects for every run, including fresh browsers.
+ensureAuthoredEffects().catch(error=>console.error('World effects unavailable:',error));
 
 // Read-only diagnostics and real input commands for browser integration tests.
 // Vite removes this branch from ordinary production builds; no gameplay bypass.

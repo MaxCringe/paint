@@ -29,7 +29,7 @@ export function createEffectPanel({onLayout=()=>{}}={}){
  <h3>1. Что добавить</h3><div class="quick-add"><button data-add-kind="fire">Добавить огонь</button><button data-add-kind="smoke">Добавить дым</button><button data-add-kind="sparks">Добавить искры</button><button data-add-kind="smolder">Добавить тление</button></div>
  <h3>2. Внешний вид</h3><div data-gallery class="composition-gallery"></div>
  <label>Композиция / пресет<select name="effect-preset"></select></label><p>Форма пламени, состав слоёв и источник настраиваются отдельно.</p>
- <h3>3. Поставить в сцене</h3><label>Объект<select name="species">${PINE_SPECIES.map((id,i)=>`<option value="${id}">${LABELS[i]}</option>`).join('')}<option value="deck">Деревянная переправа</option><option value="world">Свободные эффекты сцены</option></select></label>
+ <h3>3. Поставить в сцене</h3><label>Объект<select name="species">${PINE_SPECIES.map((id,i)=>`<option value="${id}">${LABELS[i]}</option>`).join('')}<option value="deck">Переправа · деревянные кромки</option><option value="river">Переправа · огонь на лаве и поверхности</option><option value="world">Свободные эффекты сцены</option></select></label>
  <div class="row"><button data-action="focus">К очагу · F</button><button data-action="next">Другой экземпляр</button></div>
  <label class="advanced-only">Очаг<select name="anchor"></select></label>
  <label>Размещение<select name="placement"><option value="surface">На выбранном объекте</option><option value="world">Свободная точка сцены</option></select></label>

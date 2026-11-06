@@ -33,13 +33,23 @@ test('actual lava river puts only small FireStudio anchors on charred wooden pla
    const delta=Math.abs(a.z-shoreline.center(a.x));
    const bank=shoreline.halfWidth(a.x);
    assert.ok(Math.abs(a.x)<=4.2,'flames remain within wooden road, not forest');
-   assert.ok(delta>=bank+.18&&delta<=bank+.35,
+   assert.ok(delta>=bank+.30&&delta<=bank+.73,
     'fire must be on the charred deck OUTSIDE the lava, not in molten channel');
-   assert.ok(a.size>=.16&&a.size<=.28,'subtle flames, not big torches');
+   assert.ok(a.size>=.27&&a.size<=.41,'readable low flames, not big torches');
    assert.equal(a.y,.022);
    assert.ok(a.phase>=0&&a.phase<1);
   }
-  assert.equal(group.userData.bankFlames,undefined);
+  const charred=group.getObjectByName('LavaCharredPineDeck');
+   assert.ok(charred?.userData.fireDeckSurface,'editor can still select burnt planks');
+   const verts=charred.geometry.getAttribute('position');
+   assert.equal(verts.count,2*65*6,'one low-cost vertex-color mesh for both burnt edges');
+   for(const side of [-1,1]){
+    const start=side===-1?0:65*6;
+    const x=verts.getX(start),z=verts.getZ(start+5);
+    assert.ok(Math.abs(z-shoreline.center(x))>=shoreline.halfWidth(x)+1.05,
+     'charred pine extends visibly beyond the molten basalt edge');
+   }
+   assert.equal(group.userData.bankFlames,undefined);
   const fx=createLavaDeckFire(scene);
   try{
    assert.equal(fx.registerRiver(group),true);

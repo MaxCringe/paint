@@ -23,7 +23,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null;
  const keys=new Set(),point=new THREE.Vector3(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);
- const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo)]:[]),runtime.world];
+ const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo),runtime.riverSourceFor(demo)]:[]),runtime.world];
  const defaults=runtime.defaults;
  let preset=runtime.preset,hasSavedPreset=!!readEffectPreset(),view,presetId='calm',addKind='fire',storageWarning='';
  let preview=null,clipboardEffect=null;
@@ -45,16 +45,16 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(demo){scene.add(demo);return;}
   const records=[];createLavaRiverFactory(scene,records,{random:createForestRandom(seed)})(-12);
   demo=records[0].g;
-  defaults.deck=demo.userData.deckFireAnchors.map(a=>Object.assign(newEffectAnchor([0,0,0],a.size),localToDeck(new THREE.Vector3(a.x,a.y,a.z),demo.userData.fireBoundary)));
+  if(!defaults.deck.length)defaults.deck=demo.userData.deckFireAnchors.map(a=>Object.assign(newEffectAnchor([0,0,0],a.size),localToDeck(new THREE.Vector3(a.x,a.y,a.z),demo.userData.fireBoundary)));
   if(!hasSavedPreset&&!preset.deck.length){preset.deck=clonePreset(defaults.deck);history=new PresetHistory(preset);}
  }
  function choose(target,{focus=true,preservePlacement=true}={}){
   const keep=preservePlacement&&placing(),mode=interaction.mode;if(!keep)cancelPlacement(false);
   stopPreview();
-  selected=target?.id==='world'?runtime.world:target?runtime.sourceFor(target.root):null;anchorId=null;if(!keep){snapId=null;reanchorSource=null;interaction.set('idle');}else interaction.set(mode);placementDirty=true;if(panel)panel.querySelector('[name=placement]').value=selected?.id==='world'?'world':'surface';fire.invalidate();
+  selected=target?.id==='world'?runtime.world:target?.id==='river'?runtime.riverSourceFor(target.root):target?runtime.sourceFor(target.root):null;anchorId=null;if(!keep){snapId=null;reanchorSource=null;interaction.set('idle');}else interaction.set(mode);placementDirty=true;if(panel)panel.querySelector('[name=placement]').value=selected?.id==='world'?'world':'surface';fire.invalidate();
   if(target&&focus){
    target.root.getWorldPosition(point);
-   const height=target.boundary||target.key==='world'?2:getPineFireProfile(target.key).height*target.root.scale.y;
+   const height=target.boundary||target.key==='world'||target.key==='river'?2:getPineFireProfile(target.key).height*target.root.scale.y;
    orbit.target.copy(point).add(new THREE.Vector3(0,height*.45,0));
    camera.position.copy(orbit.target).add(new THREE.Vector3(Math.max(6,height*.6),Math.max(3,height*.3),Math.max(9,height*.9)));orbit.update();
   }
@@ -64,6 +64,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(key==='world'){choose(runtime.world);panel.querySelector('[name=placement]').value='world';return;}
   panel.querySelector('[name=placement]').value='surface';
   if(key==='deck'){choose({root:demo,key:'deck',boundary:demo.userData.fireBoundary});return;}
+  if(key==='river'){choose(runtime.riverSourceFor(demo));return;}
   const root=forest.plants.filter(p=>p.userData.plantSpecies===key).sort((a,b)=>Math.abs(a.position.z+8)-Math.abs(b.position.z+8))[0];
   if(root)choose({root,key});
  }
@@ -98,8 +99,8 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  }
  function sceneEntries(){
   const all=sources(),rows=[];
-  const add=(sourceId,items)=>{const source=all.find(v=>v.id===sourceId),available=!!source&&(sourceId==='world'||runtime.anchorsFor(source)===items);const label=sourceId==='world'?'Сцена':source?.boundary?'Переправа':source?LABELS[PINE_SPECIES.indexOf(source.key)]+' №'+source.binding.id:'Объект недоступен';items.forEach((a,i)=>rows.push({key:JSON.stringify([sourceId,a.id]),sourceId,id:a.id,label:effectLabel(a)+' · '+label+' · '+(i+1),available}));};
-  add('world',preset.world);for(const [id,entry] of Object.entries(preset.objects))add(id,entry.anchors);return rows;
+  const add=(sourceId,items)=>{const source=all.find(v=>v.id===sourceId),available=!!source&&(sourceId==='world'||runtime.anchorsFor(source)===items);const label=sourceId==='world'?'Сцена':sourceId==='river'?'Переправа · лава и поверхность':source?.boundary?'Переправа · деревянная кромка':source?LABELS[PINE_SPECIES.indexOf(source.key)]+' №'+source.binding.id:'Объект недоступен';items.forEach((a,i)=>rows.push({key:JSON.stringify([sourceId,a.id]),sourceId,id:a.id,label:effectLabel(a)+' · '+label+' · '+(i+1),available}));};
+  add('river',preset.river);add('world',preset.world);for(const [id,entry] of Object.entries(preset.objects))add(id,entry.anchors);return rows;
  }
  function clearGhost(){ghostRoot.visible=false;scene.remove(ghostRoot);ghost=null;lastPointer=null;placementDirty=false;if(panel){delete panel.dataset.placementTarget;delete panel.dataset.placementPreview;}}
  function cancelPlacement(notify=true){
@@ -122,7 +123,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(!free)for(const hit of hits){
    const plant=forest.resolveInstance(hit.object,hit.instanceId);let source;
    if(plant?.species.startsWith('pine:'))source=runtime.sourceFor(plant.root);
-   else{let root=hit.object;while(root&&!root.userData.fireBoundary)root=root.parent;if(root&&hit.object.userData.fireDeckSurface)source=runtime.sourceFor(root);}
+   else{let root=hit.object;while(root&&!root.userData.fireBoundary)root=root.parent;if(root)source=hit.object.userData.fireDeckSurface?runtime.sourceFor(root):runtime.riverSourceFor(root);}
    if(source&&(!immediate||source.id===selected?.id)&&validCandidate(source,hit.point))return {source,point:hit.point.clone()};
   }
   const worldPoint=new THREE.Vector3();let hit;
@@ -136,7 +137,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  }
  function updateGhost(){
   placementDirty=false;if(!ghost||!lastPointer)return;
-  const candidate=placementAt(lastPointer);ghostRoot.visible=!!candidate;panel.dataset.placementTarget=candidate?.source.id??'';panel.dataset.placementPreview=String(!!candidate);panel.querySelector('[data-scene-tip]').textContent=candidate?'Выберите поверхность · '+(candidate.source.id==='world'?'Свободная точка':candidate.source.boundary?'Деревянная переправа':'Сосна'):'Невозможно разместить здесь';if(!candidate)return;
+  const candidate=placementAt(lastPointer);ghostRoot.visible=!!candidate;panel.dataset.placementTarget=candidate?.source.id??'';panel.dataset.placementPreview=String(!!candidate);panel.querySelector('[data-scene-tip]').textContent=candidate?'Выберите поверхность · '+(candidate.source.id==='world'?'Свободная точка':candidate.source.boundary?'Деревянная переправа':candidate.source.id==='river'?'Лавовая переправа':'Сосна'):'Невозможно разместить здесь';if(!candidate)return;
   ghostRoot.position.copy(candidate.point);candidate.source.root.getWorldQuaternion(ghostRoot.quaternion);candidate.source.root.getWorldScale(ghostRoot.scale);ghostRoot.updateWorldMatrix(true,false);
  }
  function sceneTransaction(edit){
@@ -173,7 +174,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(placing()){placeEffect(placementAt(event));return;}
   surfaceHit(event);const marker=ray.intersectObjects(markers.children)[0];
   if(marker){stopPreview();anchorId=marker.object.userData.anchorId;interaction.set('editing');refresh();return;}
-  const hits=surfaceHit(event);for(const hit of hits){const plant=forest.resolveInstance(hit.object,hit.instanceId);if(plant?.species.startsWith('pine:')){choose(runtime.sourceFor(plant.root),{focus:false});return;}let root=hit.object;while(root&&!root.userData.fireBoundary)root=root.parent;if(root&&hit.object.userData.fireDeckSurface){choose(runtime.sourceFor(root),{focus:false});return;}}
+  const hits=surfaceHit(event);for(const hit of hits){const plant=forest.resolveInstance(hit.object,hit.instanceId);if(plant?.species.startsWith('pine:')){choose(runtime.sourceFor(plant.root),{focus:false});return;}let root=hit.object;while(root&&!root.userData.fireBoundary)root=root.parent;if(root){choose(hit.object.userData.fireDeckSurface?runtime.sourceFor(root):runtime.riverSourceFor(root),{focus:false});return;}}
  }
  function focusAnchor(){
   const a=anchor();if(!a){if(selected)choose(selected);return;}
@@ -244,7 +245,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    if(action==='snap'&&a){reanchorSource=selected;snapId=a.id;startPlacement('reanchoring');}
    if(action==='delete'&&a)mutation(()=>{const items=list(true);items.splice(items.findIndex(v=>v.id===a.id),1);anchorId=null;interaction.set('idle');});
    if(action==='duplicate'&&a){if(list().length>=MAX_ANCHORS){message('Достигнут лимит очагов — максимум 32 на объект');return;}const result=sceneTransaction(()=>{const b=copy(a);b.id=uniqueEffectId(preset);b.name=(effectLabel(a)+' — копия').slice(0,60);if(!selected.boundary)b.position[0]+=.2;list(true).push(b);return b;});if(result){anchorId=result.id;interaction.set('editing');refresh();message('Эффект создан. Эффект сохранён');}}
-   if(action==='reset'&&selected)mutation(()=>{const values=selected.id==='world'?[]:selected.boundary?defaults.deck:defaults.plants[selected.key];list(true).splice(0,list().length,...copy(values));anchorId=null;});
+   if(action==='reset'&&selected)mutation(()=>{const values=selected.id==='world'?[]:selected.id==='river'?defaults.river:selected.boundary?defaults.deck:defaults.plants[selected.key];list(true).splice(0,list().length,...copy(values));anchorId=null;});
    if(action==='undo')restore(history.undo());if(action==='redo')restore(history.redo());
    if(action==='export')download();if(action==='copy')void copyToClipboard();if(action==='import')$('file').click();
    if(action==='pause-effects'){fire.setPaused(!fire.paused);refresh();}
@@ -255,7 +256,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
    if(action==='delete-layer'&&a)mutation(()=>{delete anchor(true).layers[view.layer];});
    if(action==='reset-layer'&&a?.layers[view.layer])mutation(()=>{anchor(true).layers[view.layer]=defaultLayer(view.layer);});
    if((action==='apply-object'||action==='apply-group')&&a){
-    const targets=action==='apply-object'?[selected]:preset.group.map(id=>sources().find(s=>s.id===id)).filter(Boolean);if(!targets.length){message('Сначала добавьте объекты в группу.');return;}if(!window.confirm('Применить настройки ко всем очагам объектов: '+targets.map(v=>v.key==='world'?'Свободные эффекты сцены':v.boundary?'Деревянная переправа':(LABELS[PINE_SPECIES.indexOf(v.key)]??'Дерево')+' №'+v.binding.id).join(', ')+'? Позиции сохранятся.'))return;
+    const targets=action==='apply-object'?[selected]:preset.group.map(id=>sources().find(s=>s.id===id)).filter(Boolean);if(!targets.length){message('Сначала добавьте объекты в группу.');return;}if(!window.confirm('Применить настройки ко всем очагам объектов: '+targets.map(v=>v.key==='world'?'Свободные эффекты сцены':v.key==='river'?'Лавовая переправа':v.boundary?'Деревянная переправа':(LABELS[PINE_SPECIES.indexOf(v.key)]??'Дерево')+' №'+v.binding.id).join(', ')+'? Позиции сохранятся.'))return;
     const settings={...(a.original?{original:copy(a.original)}:{}),layers:copy(a.layers),emitter:copy(a.emitter),cycle:copy(runtime.cycleFor(selected))};
     mutation(()=>{const targets=action==='apply-object'?[selected]:preset.group.map(id=>sources().find(s=>s.id===id)).filter(Boolean);for(const source of targets){for(const item of runtime.anchorsFor(source,true))applyEffectPreset(item,settings);if(source.id!=='world')Object.assign(runtime.cycleFor(source,true),settings.cycle);}});
     message(action==='apply-group'?'Настройки явно применены к группе.':'Настройки применены к очагам объекта.');
