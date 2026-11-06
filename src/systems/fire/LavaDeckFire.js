@@ -6,8 +6,8 @@ import {createFireTongueGeometry,createFireTongueMaterial} from './FireStudioFla
 export const DECK_FIRE_BUDGET=Object.freeze({
  maxRivers:6,
  maxAnchorsPerRiver:32,
- minHeight:.17,
- maxHeight:.37
+ minHeight:.27,
+ maxHeight:.41
 });
 
 export function createLavaDeckFire(scene,{

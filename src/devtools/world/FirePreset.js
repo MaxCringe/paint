@@ -9,6 +9,7 @@ export const MAX_SCENE_ANCHORS=2048;
 // IDs of the exported demo-river scene effects. Only these legacy anchors are
 // migrated, leaving unrelated freely placed effects exactly where they are.
 const DEMO_RIVER_WORLD_IDS=new Set([
+ 'a0f98b2e-aeba-49a2-88b2-2e884f5535c7',
  'bef26812-fdf5-4cbc-a850-5ecf0da7dd1b','ec925d96-5187-4736-9b58-958bb88c2795',
  '0f20d881-9473-4f69-8a41-0d720133a2d5','772355da-6298-4345-9492-bc6e13348751',
  '56da0f28-1a06-427a-89c9-68a3fba4a543','396d00c4-adec-4b5b-910f-10cc7d24ceee',
@@ -27,7 +28,7 @@ function migrateDemoRiverEffects(p){
  const objects={...p.objects};
  // The exported demo has an empty per-instance deck override that shadows
  // its 12 valid shared wooden-edge anchors. Discard only this empty override.
- if(moved.length&&p.deck?.length&&objects.deck?.anchors?.length===0)delete objects.deck;
+ if(p.deck?.length&&objects.deck?.anchors?.length===0)delete objects.deck;
  return {...p,world,objects,river:moved.length?moved:clonePreset(LAVA_RIVER_AUTHORING.river)};
 }
 

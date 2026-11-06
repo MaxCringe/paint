@@ -176,25 +176,25 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null,random
    });
    const basaltBank=new THREE.Mesh(basaltGeo,basaltMat);
    basaltBank.renderOrder=5.4;g.add(basaltBank);
-   // The hot lava scorches the pine decking only where each riverbank touches it.
+   // The lava burns a broad, irregular area of pine beyond its basalt bank.
    // The charred strips and small flames are attached to the river, not the road's long outer edges.
-   const burnPos=[],burnCol=[],burnIdx=[],burnColors=[0xff4b10,0xc43a12,0x74301d,0x3b211a,0x241714],burnSteps=64,burnRows=burnColors.length;
+   const burnPos=[],burnCol=[],burnIdx=[],burnColors=[0xff6428,0xa9431d,0x2a1712,0x171413,0x36261e,0x70503a],burnSteps=64,burnRows=burnColors.length;
    for(const side of [-1,1]){
     for(let i=0;i<=burnSteps;i++){
      const x=-4.34+8.68*i/burnSteps,mid=center(x)+noise(x),edge=mid+side*half(x);
      const jag=.035*Math.sin(x*5.7+phase*1.3)+.018*Math.sin(x*11.4-phase);
-     const offsets=[.018,.075,.16+jag,.29+jag*1.2,.39+jag*1.4];
+     const offsets=[.025,.14,.30+jag,.55+jag*1.2,.84+jag*1.4,1.10+jag*.7];
      for(let j=0;j<burnRows;j++){
       const col=new THREE.Color(burnColors[j]);
-      burnPos.push(x,-.012,edge+side*offsets[j]);burnCol.push(col.r,col.g,col.b);
+      burnPos.push(x,.013,edge+side*offsets[j]);burnCol.push(col.r,col.g,col.b);
      }
      if(i<burnSteps)for(let j=0;j<burnRows-1;j++){
       const a=i*burnRows+j,b=a+burnRows;burnIdx.push(a,b,a+1,b,b+1,a+1);
      }
     }
    }
-   const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.renderOrder=6;charMesh.userData.fireDeckSurface=true;g.add(charMesh);
-   // A handful of low flames burn only where the pine deck was scorched.
+   const burnGeo=new THREE.BufferGeometry();burnGeo.setAttribute('position',new THREE.Float32BufferAttribute(burnPos,3));burnGeo.setAttribute('color',new THREE.Float32BufferAttribute(burnCol,3));burnGeo.setIndex(burnIdx);burnGeo.computeVertexNormals();burnGeo.computeBoundingSphere();const charMesh=new THREE.Mesh(burnGeo,lavaCharredWoodMat);charMesh.name='LavaCharredPineDeck';charMesh.renderOrder=6;charMesh.userData.fireDeckSurface=true;g.add(charMesh);
+   // Sparse, GPU-batched flames sit on the widened charred pine strip.
    // Moving toward +side is OUT of the lava, onto the existing .16..39 strip.
    // No new flames are created along forest-side lava banks.
    g.userData.deckFireAnchors=[];
@@ -203,10 +203,10 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null,random
      if(i%4!==1&&random()>.38)continue; // irregular gaps
      const x=-4.02+(i+.5)*8.04/12+(random()-.5)*.18;
      const mid=center(x)+noise(x);
-     const offset=.19+random()*.15;
+     const offset=.31+random()*.41;
      g.userData.deckFireAnchors.push({
       x,y:.022,z:mid+side*(half(x)+offset),
-      size:.16+random()*.11,
+      size:.27+random()*.14,
       phase:random()
      });
     }
