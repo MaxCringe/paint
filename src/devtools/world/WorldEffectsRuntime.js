@@ -10,6 +10,7 @@ import {PINE_SPECIES,newAnchor,upgradePreset,clonePreset,readEffectPreset} from 
 export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,getRivers,getBurningPlants,defaultFireObjects,preset:initial,getWorldOffset=()=>0}){
  const defaults=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(key=>[key,getPineFireProfile(key).anchors.map(a=>newAnchor([a.x,a.y,a.z],a.size))])),deck:[]});
  defaults.deck=clonePreset(LAVA_RIVER_AUTHORING.deck);
+ defaults.river=clonePreset(LAVA_RIVER_AUTHORING.river);
  let preset=initial??readEffectPreset()??clonePreset(defaults);
  const lavaWorldIds=new Set(LAVA_RIVER_AUTHORING.river.map(a=>a.id));
  const fire=createEditableFire(scene),worldRoot=new THREE.Group();worldRoot.name='AuthoredWorldEffects';scene.add(worldRoot);
@@ -21,24 +22,27 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   cache.set(root,source);return source;
  }
  const world={root:worldRoot,key:'world',id:'world',world:true};
+ // Unlike deck edge anchors, river effects are stored in the river group's
+ // local XYZ space, so their full shape remains unchanged on every crossing.
+ const riverSourceFor=root=>({root,key:'river',id:'river',height:1});
  function matches(entry,source){return entry&&entry.binding.seed===seed&&(source.boundary||entry.binding.species===source.key&&entry.binding.template===source.binding.template);}
  function anchorsFor(source,mutable=false){
   if(source.id==='world')return preset.world;
+  if(source.id==='river')return preset.river;
   const entry=preset.objects[source.id];
   if(matches(entry,source))return entry.anchors;
   const inherited=source.boundary?preset.deck:preset.plants[source.key]??[];
   if(mutable){preset.objects[source.id]={binding:clonePreset(source.binding),anchors:clonePreset(inherited),cycle:defaultBurnCycle()};return preset.objects[source.id].anchors;}
   return inherited;
  }
- function cycleFor(source,mutable=false){if(source.id==='world')return defaultBurnCycle();if(mutable)anchorsFor(source,true);const entry=preset.objects[source.id];return matches(entry,source)?(entry.cycle??(mutable?(entry.cycle=defaultBurnCycle()):defaultBurnCycle())):defaultBurnCycle();}
+ function cycleFor(source,mutable=false){if(source.id==='world'||source.id==='river')return defaultBurnCycle();if(mutable)anchorsFor(source,true);const entry=preset.objects[source.id];return matches(entry,source)?(entry.cycle??(mutable?(entry.cycle=defaultBurnCycle()):defaultBurnCycle())):defaultBurnCycle();}
  function renderSources(list){
   const rendered=[];
   for(const s of list){
    rendered.push({...s,anchors:s.anchors??anchorsFor(s),cycle:s.cycle??cycleFor(s)});
    // Exported world effects are attached to every procedural lava crossing,
    // including the editor demonstration, rather than fixed world coordinates.
-   if(s.boundary)rendered.push({root:s.root,key:'lava:river',id:'lava:river',height:1,
-    anchors:LAVA_RIVER_AUTHORING.river,cycle:defaultBurnCycle()});
+   if(s.boundary&&!list.some(other=>other.id==='river'&&other.root===s.root))rendered.push({...riverSourceFor(s.root),anchors:preset.river,cycle:defaultBurnCycle()});
   }
   return rendered;
  }
@@ -59,9 +63,9 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   const resolved=renderSources(sources??runtimeSources());if(placementPreview)resolved.push(placementPreview);
   fire.update(dt,resolved,preset,{camera:previewCamera??camera,pixelRatio:renderer.getPixelRatio()});
  }
- return {fire,defaults,world,sourceFor,anchorsFor,cycleFor,update,
+ return {fire,defaults,world,sourceFor,riverSourceFor,anchorsFor,cycleFor,update,
   get preset(){return preset;},setPreset(value){preset=value;},
-  sourceById(id){if(id==='world')return world;if(id==='deck'){const root=getRivers()[0];return root?sourceFor(root):null;}const root=forest.plants.find(p=>'plant:'+p.userData.plantId===id);return root?sourceFor(root):null;},
+  sourceById(id){if(id==='world')return world;if(id==='river'){const root=getRivers()[0];return root?riverSourceFor(root):null;}if(id==='deck'){const root=getRivers()[0];return root?sourceFor(root):null;}const root=forest.plants.find(p=>'plant:'+p.userData.plantId===id);return root?sourceFor(root):null;},
   dispose(){fire.dispose();scene.remove(worldRoot);for(const obj of defaultFireObjects)obj.visible=true;}
  };
 }
