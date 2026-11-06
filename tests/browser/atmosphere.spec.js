@@ -1,0 +1,23 @@
+import {test,expect} from '@playwright/test';
+import {readFile} from 'node:fs/promises';
+const KEY='knottyPine.worldFire.v1';
+const read=page=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
+test('atmosphere live editing, presets, history, JSON, quality, reload and editor lifecycle',async({page})=>{
+ test.skip(process.env.WORLD_EDITOR_TESTS!=='1','Opt-in editor build');test.setTimeout(120000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/shader|WebGL|World editor/i.test(m.text()))errors.push(m.text());});
+ await page.goto('/?worldEditor=1&seed=1337',{waitUntil:'domcontentloaded'});const e=page.locator('.world-editor'),a=e.locator('.studio-atmosphere'),stats=a.locator('[data-atmosphere-stats]');await expect(e).toBeVisible({timeout:60000});
+ await e.locator('[data-layout=atmosphere]').click();await expect(a).toBeVisible();await expect(stats).toHaveAttribute('data-fog','on');
+ await a.locator('[name=atmosphere-preset]').selectOption('forest');const preset=await read(page);expect(preset.atmosphere.fog.edge).toBe(.8);
+ await page.screenshot({path:test.info().outputPath('foggy-forest.png')});
+ await a.locator('[name="atmosphere.fog.edge.number"]').fill('0.4');expect((await read(page)).atmosphere.fog.edge).toBe(.4);
+ await e.locator('[data-action=undo]').click();expect((await read(page)).atmosphere).toEqual(preset.atmosphere);await e.locator('[data-action=redo]').click();expect((await read(page)).atmosphere.fog.edge).toBe(.4);
+ await a.locator('[name=atmosphere-quality]').selectOption('low');await expect.poll(async()=>Number(await stats.getAttribute('data-particles'))).toBeGreaterThan(0);const low=Number(await stats.getAttribute('data-particles'));
+ await a.locator('[name=atmosphere-quality]').selectOption('high');await expect.poll(async()=>Number(await stats.getAttribute('data-particles'))).toBeGreaterThan(low);
+ const saved=await read(page);await e.locator('[name=hide-atmosphere-fog]').check();await expect(stats).toHaveAttribute('data-fog','off');expect(await read(page)).toEqual(saved);await e.locator('[name=hide-atmosphere-fog]').uncheck();
+ const download=page.waitForEvent('download');await a.locator('[data-action=atmosphere-export]').click();const file=await download;const exported=JSON.parse(await readFile(await file.path(),'utf8'));expect(exported.format).toBe('knottyPine.atmosphere');expect(exported.fog.edge).toBe(.4);
+ exported.fog.edge=.6;await a.locator('[name=atmosphere-file]').setInputFiles({name:'atmosphere.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});await expect(a.locator('[name="atmosphere.fog.edge.number"]')).toHaveValue('0.6');
+ const final=await read(page);expect(final.plants).toEqual(saved.plants);expect(final.objects).toEqual(saved.objects);expect(final.world).toEqual(saved.world);
+ await e.locator('[data-action=close]').click();await expect(e).toHaveCount(0);await expect(page.locator('#world-editor-reopen')).toBeVisible();
+ await page.reload({waitUntil:'domcontentloaded'});await expect(e).toBeVisible({timeout:60000});await e.locator('[data-layout=atmosphere]').click();await expect(stats).toHaveAttribute('data-fog','on');expect((await read(page)).atmosphere).toEqual(final.atmosphere);
+ await e.locator('[data-layout=library]').click();await expect(a).toBeHidden();await e.locator('[data-action=close]').click();await page.locator('#world-editor-reopen').click();await expect(e).toBeVisible();expect(errors).toEqual([]);
+});

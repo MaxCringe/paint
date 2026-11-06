@@ -1,3 +1,4 @@
+import {normalizeAtmosphere} from '../../systems/AtmosphereSettings.js';
 import {validateAndNormalizePreset} from '../../systems/fire/OriginalPreset.js';
 import {LAVA_RIVER_AUTHORING} from '../../systems/fire/LavaRiverAuthored.js';
 import {validateBurnCycle,defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
@@ -179,7 +180,7 @@ function validateModernPreset(input){
   if(typeof v.name!=='string'||!v.name.trim()||v.name.length>60||names.has(v.name))fail('нужны уникальные имена пресетов до 60 символов');names.add(v.name);
   return {name:v.name,...(v.original?{original:validateAndNormalizePreset(v.original)}:{}),layers:validateLayers(v.layers),emitter:validateEmitter(v.emitter),cycle:validateBurnCycle(v.cycle)};
  });
- return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),river:anchors(p.river),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget,riverVisualRevision:p.riverVisualRevision};
+ return {version:3,seed:p.seed,plants,deck:anchors(p.deck,true),river:anchors(p.river),world:anchors(p.world),objects,group:[...new Set(p.group)],customPresets,budget:p.budget,riverVisualRevision:p.riverVisualRevision,...(p.atmosphere?{atmosphere:normalizeAtmosphere(p.atmosphere)}:{})};
 }
 export function readEffectPreset(){try{
  const raw=localStorage.getItem(EFFECT_STORAGE);if(!raw)return null;

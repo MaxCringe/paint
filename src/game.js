@@ -1,3 +1,4 @@
+import {createAtmosphereRuntime} from './systems/AtmosphereRuntime.js';
 import {advanceSoulMotion,soulCaught} from './souls/SoulMotion.js';
 import {advanceLane,flightHold} from './systems/RunMechanics.js';
 import {pathToZ} from './systems/RunSpace.js';
@@ -57,6 +58,7 @@ const ratEcosystem=createRatEcosystem(scene,{onFlee:({x})=>audio.play('rat',{pan
 const meteorEcosystem=createMeteorEcosystem(skyBackdrop,roadsideVegetation,{camera});
 const airLite=createAirLite(scene);
 const windSystem=createWindSystem(roadsideVegetation);
+const atmosphere=createAtmosphereRuntime({scene,air:airLite,wind:windSystem,backdrop:skyBackdrop,settings:savedEffectPreset?.atmosphere});
 // One shared, low-cost GPU fire pool for the actual six procedural pine models.
 // One instanced GPU batch can cover all near-river forest pines (not just six).
 // A single tongue per profile anchor bounds fill-rate on weaker devices.
@@ -349,7 +351,7 @@ function frame(t,manual=false){
  }
  const dt=Math.min((t-last)/1000||0,.04);last=t;
  // Wind is visible on the start and game-over screens; pause still freezes the scene.
- windSystem.update(dt);
+ // The existing wind is updated together with AirLite below.
  batEcosystem.update(dt,{playing:state==='playing',ultimate:ultTimer>0||ultimateFlight.active,speed:speed*((ultTimer>0||ultimateFlight.active)?BROOM_CONFIG.ultimateSpeedMultiplier:broom.active?BROOM_CONFIG.speedMultiplier:1),runnerX:runner.position.x,runnerZ:runner.position.z});
  // Animate molten streaks from the summit down the volcano's face, looping continuously.
  for(const flow of movingLava){const p=(t*.000085+flow.phase)%1;const y=19-p*19;const x=flow.xStart+(flow.xEnd-flow.xStart)*p+Math.sin(p*17+flow.phase*9)*.22;flow.mesh.position.set(x,y-1,-71.85);}
@@ -550,7 +552,7 @@ function frame(t,manual=false){
   lavaDeckFire.update(dt);
   // Meteors remain decorative and follow the scrolling ground and recycling pines.
   meteorEcosystem.update(dt,{playing:state==='playing',speed:travelSpeed});
-  airLite.update(dt,{playing:state==='playing',speed:travelSpeed,wind:windSystem.current});
+  atmosphere.update(dt,{playing:state==='playing',speed:travelSpeed});
   // Plan from an end-of-frame snapshot: collisions and item activation are resolved.
   if(state==='playing'&&!(import.meta.env.MODE==='test'&&fixtureMode&&!fixtureGeneration)){
    makeSegment({path:runPath,seed:forest.seed,lane,x:runner.position.x,jump:doubleJump.snapshot(),slide:slideAction.snapshot(),
@@ -586,7 +588,7 @@ async function openWorldEditor(){
  if(worldEditorLoading)return worldEditorLoading;
  let previousState;
  worldEditorLoading=Promise.all([import('./devtools/world/WorldEditor.js'),ensureAuthoredEffects()]).then(([{createWorldEditor},runtime])=>{
-  worldEditor=createWorldEditor({scene,renderer,forest,lavaForest,seed:editorSeed??forest.seed,runtime,
+  worldEditor=createWorldEditor({scene,renderer,forest,lavaForest,atmosphere,seed:editorSeed??forest.seed,runtime,
    getRivers:()=>obstacles.filter(o=>o.type==='lava').map(o=>o.g),
    getBurningPlants:forestFire.getActivePlants,
    defaultFireObjects:[...Object.values(forestFire.previewObjects),lavaDeckFire.previewObject],

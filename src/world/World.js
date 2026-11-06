@@ -150,6 +150,7 @@ export function createWorld({forestSeed}={}) {
    blending:THREE.AdditiveBlending,fog:false
   }));
   ventPoints.frustumCulled=false;
+  ventPoints.name='VolcanoAtmosphericParticles';
   ventPoints.renderOrder=4;
   ventPoints.onBeforeRender=()=>{
    const now=performance.now()*.001;

@@ -70,7 +70,8 @@ export function createWindSystem(roadsideVegetation){
  for(const material of fernMaterials)attachWindShader(material,'fern',uniforms);
  for(const material of grassMaterials)attachWindShader(material,'grass',uniforms);
  let time=0;
- const p=WIND_PERCENT;
+ let p={...WIND_PERCENT};
+ function configure(settings){p={...WIND_PERCENT,steady:settings.enabled?settings.strength:0,gusts:settings.enabled?settings.gusts:0};const angle=settings.direction*Math.PI/180;direction.set(Math.cos(angle),Math.sin(angle));if(!settings.enabled)reset();}
  function reset(){
   time=0;
   current.x=current.z=current.strength=0;
@@ -111,5 +112,5 @@ export function createWindSystem(roadsideVegetation){
    plant.rotation.z+=pine.velocityZ*dt;
   }
  }
- return {current,reset,update};
+ return {current,reset,update,configure};
 }

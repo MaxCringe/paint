@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {normalizeAtmosphere} from './AtmosphereSettings.js';
 
 // Air V1 Lite. All sliders are percentages, 0..100, so changes are easy to request.
 // This module only handles visual air: no collisions, no postprocessing, no heat distortion.
@@ -16,6 +17,7 @@ export const AIR_LITE_PERCENT=Object.freeze({
 export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
  if(!AIR_LITE_ENABLED)return {update(){},reset(){},dispose(){}};
  const p=AIR_LITE_PERCENT;
+ let settings=normalizeAtmosphere(),fogHidden=false;
  const pct=n=>Math.min(100,Math.max(0,n))/100;
  const rand=(a,b)=>a+Math.random()*(b-a);
  const previousFog=scene.fog;
@@ -49,7 +51,7 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    zMin:-125,zMax:-65,xSpread:32,yMin:2.2,yMax:12.5,size:.76,rate:.48}
  ];
  const particles=bands.map((band,j)=>{
-  const count=Math.round((mobile?band.mobileCount:band.desktopCount)*pct(p.ashAmount)/.28);
+  const count=Math.ceil(band.desktopCount/.28*1.3);
   const geometry=new THREE.BufferGeometry();
   const positions=new Float32Array(count*3);
   const seeds=Array.from({length:count},()=>({
@@ -74,7 +76,7 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   });
   const mesh=new THREE.Points(geometry,material);
   mesh.frustumCulled=false;scene.add(mesh);
-  return {band,seeds,positions,geometry,material,mesh};
+  return {band,seeds,positions,geometry,material,mesh,count:0};
  });
 
  // Small *raymarched 3D volumes*, not sprites facing the camera.
@@ -105,6 +107,8 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
  uniform vec3 uTint;
  uniform float uDensity;
  uniform float uTime;
+ uniform float uSoftness;
+ uniform float uBoundary;
  varying vec3 vWorld;
  void main(){
   vec3 ray=normalize(vWorld-cameraPosition);
@@ -127,7 +131,9 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    float whorl=sin(marchPoint.x*8.1+marchPoint.z*4.4+uTime*.17)
               *cos(marchPoint.y*6.7-marchPoint.z*5.2-uTime*.10);
    float pockets=clamp(.76+.24*whorl,0.15,1.0);
-   sum+=core*core*pockets;
+   vec3 worldPoint=uCenter+marchPoint*uRadius;
+   float roadClear=1.0-(1.0-smoothstep(5.0,10.0,abs(worldPoint.x)))*(1.0-smoothstep(25.0,45.0,-worldPoint.z));
+   sum+=pow(core,2.0/uSoftness)*pockets*mix(1.0,roadClear,uBoundary);
   }
   float thickness=(leave-enter)*.14;
   float alpha=clamp(1.0-exp(-sum/float(STEPS)*thickness*uDensity),0.0,.25);
@@ -136,7 +142,8 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
  }`;
- const volumes=volumeData.map(([x,y,z,rx,ry,rz],i)=>{
+ const boundaryData=[[-48,5,-78,32,5,100],[48,5,-78,32,5,100],[0,5,-166,115,5,48]];
+ const volumes=[...volumeData,...boundaryData].map(([x,y,z,rx,ry,rz],i)=>{
   const color=new THREE.Color(i%2?0x794a42:0x66505a);
   const warm=new THREE.Color(0xa65e37);
   color.lerp(warm,pct(p.airGlow)*.28);
@@ -145,7 +152,7 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    uRadius:{value:new THREE.Vector3(rx,ry,rz)},
    uTint:{value:color},
    uDensity:{value:pct(p.localMist)*(.8+pct(p.airDensity)*1.2)},
-   uTime:{value:0}
+   uTime:{value:0},uSoftness:{value:1},uBoundary:{value:i>=volumeData.length?1:0}
   };
   const material=new THREE.ShaderMaterial({
    uniforms,vertexShader,fragmentShader,
@@ -157,8 +164,32 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   mesh.position.set(x,y,z);mesh.scale.set(rx,ry,rz);
   mesh.frustumCulled=false;mesh.castShadow=false;
   scene.add(mesh);
-  return {mesh,uniforms,material,homeZ:z,x,phase:i*1.7};
+  return {mesh,uniforms,material,homeZ:z,x,y,ry,boundary:i>=volumeData.length,boundaryIndex:i-volumeData.length,phase:i*1.7};
  });
+ function visibility(){for(const v of volumes)v.mesh.visible=!fogHidden&&settings.fog.enabled&&v.active&&v.uniforms.uDensity.value>0;}
+ function configure(value){
+  const oldDistance=settings.ash.distance;settings=normalizeAtmosphere(value);
+  const {ash,fog,quality}=settings;
+  for(const [index,item] of particles.entries()){
+   const depthWeight=1+(index-1)*ash.depth*.65;
+   item.count=Math.min(item.seeds.length,Math.round((mobile?item.band.mobileCount:item.band.desktopCount)*ash.amount/28*{low:.5,medium:1,high:1.3}[quality]*depthWeight));
+   item.geometry.setDrawRange(0,item.count);item.mesh.visible=ash.enabled&&item.count>0;
+   item.material.size=item.band.size*ash.size;item.material.opacity=ash.opacity*1.1;item.material.color.set(ash.color==='#cfa79f'?[0xffcba1,0xcfa79f,0xa47f85][index]:ash.color);
+   for(let i=0;i<item.seeds.length;i++){item.seeds[i].z*=ash.distance/oldDistance;item.positions[i*3+2]=item.seeds[i].z;}
+   item.geometry.attributes.position.needsUpdate=true;
+  }
+  const borders=fog.edge>0||fog.distant>0,localCap={low:borders?0:1,medium:borders?2:5,high:5}[quality];
+  for(const [i,v] of volumes.entries()){
+   v.active=v.boundary?borders:i<localCap;
+   v.mesh.scale.y=v.ry*fog.height/5;v.mesh.position.y=v.y*fog.height/5;
+   v.uniforms.uRadius.value.copy(v.mesh.scale);v.uniforms.uCenter.value.copy(v.mesh.position);
+   v.uniforms.uDensity.value=v.boundary?(v.boundaryIndex===2?fog.distant:fog.edge)*.7:fog.mist*(.8+pct(p.airDensity)*1.2);
+   if(v.boundary||borders)v.uniforms.uTint.value.set(fog.color);
+   else v.uniforms.uTint.value.set(i%2?0x794a42:0x66505a).lerp(new THREE.Color(0xa65e37),pct(p.airGlow)*.28);
+   v.uniforms.uSoftness.value=fog.softness;
+  }
+  visibility();
+ }
  let time=0;
  function reset(){
   time=0;
@@ -180,16 +211,19 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   if(!playing||dt<=0)return;
   dt=Math.min(dt,.04);time+=dt;
   for(const item of particles){
+   if(!item.mesh.visible)continue;
    const {band,seeds,positions,geometry}=item;
-   for(let i=0;i<seeds.length;i++){
+   const angle=settings.ash.direction*Math.PI/180,range=settings.ash.distance/125;
+   for(let i=0;i<item.count;i++){
     const s=seeds[i];
     // Existing ash follows the same lateral breeze as the plants.
-    s.x+=(wind?.x||0)*dt;
+    const velocity=(speed*(.76+.24*pct(p.motionParallax))*settings.ash.runner*band.rate+s.rate*.3)*settings.ash.speed;
+    s.x+=((wind?.x||0)*settings.wind.particles+Math.sin(angle)*velocity)*dt;
     if(s.x>band.xSpread)s.x-=2*band.xSpread;
     else if(s.x< -band.xSpread)s.x+=2*band.xSpread;
-    s.z+=dt*(speed*(.76+.24*pct(p.motionParallax))*band.rate+s.rate*.3);
-    if(s.z>9){
-     s.z=rand(band.zMin,band.zMin+10);
+    s.z+=dt*(Math.cos(angle)*velocity+(wind?.z||0)*settings.wind.particles);
+    if(s.z>9||s.z<band.zMin*range){
+     s.z=Math.cos(angle)>=0?rand(band.zMin*range,band.zMin*range+10):8;
      s.x=rand(-band.xSpread,band.xSpread);
      s.y=rand(band.yMin,band.yMax);
     }
@@ -201,12 +235,12 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    geometry.attributes.position.needsUpdate=true;
   }
   for(const volume of volumes){
+   if(!volume.mesh.visible)continue;
    const mesh=volume.mesh;
-   mesh.position.z+=speed*dt*(.91+.09*pct(p.motionParallax));
-   if(mesh.position.z>7)mesh.position.z-=125;
-   mesh.position.x=volume.x+Math.sin(time*.17+volume.phase)*.48;
+   if(!volume.boundary){mesh.position.z+=speed*dt*(.91+.09*pct(p.motionParallax));if(mesh.position.z>7)mesh.position.z-=125;}
+   mesh.position.x=volume.x+Math.sin(time*.17*settings.fog.motion+volume.phase)*(.48+(wind?.x||0)*settings.wind.mist);
    volume.uniforms.uCenter.value.copy(mesh.position);
-   volume.uniforms.uTime.value=time;
+   volume.uniforms.uTime.value=time*settings.fog.motion;
   }
  }
  function dispose(){
@@ -221,5 +255,6 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
   volumeGeometry.dispose();ashTexture.dispose();
   scene.fog=previousFog;
  }
- return {update,reset,dispose};
+ configure(settings);
+ return {update,reset,dispose,configure,setFogPreviewHidden(value){fogHidden=value;visibility();},stats(){return {particles:particles.reduce((n,p)=>n+(p.mesh.visible?p.count:0),0),drawCalls:particles.filter(p=>p.mesh.visible).length+volumes.filter(v=>v.mesh.visible).length};}};
 }

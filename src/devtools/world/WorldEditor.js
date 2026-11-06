@@ -1,3 +1,4 @@
+import {normalizeAtmosphere} from '../../systems/AtmosphereSettings.js';
 import {createPlacementState,validLocalPosition,uniqueEffectId,effectLabel,authoredAnchors} from './EffectPlacement.js';
 import {originalComposition,updateOriginalSettings,ORIGINAL_FIELDS,validateAndNormalizePreset} from '../../systems/fire/OriginalPreset.js';
 import {parseEffect,effectDocument,validateComposition,uniquePresetName,IMPORT_BACKUP,integrationExample} from './StudioStorage.js';
@@ -17,14 +18,15 @@ import './WorldEditor.css';
 
 const LABELS=['Сосновая группа','Ель бегуна','Таёжная ель','Сухая сосна','Секвойя','Сосна обыкновенная'];
 const editableTarget=e=>e.target instanceof HTMLElement&&!!e.target.closest('input,select,textarea,button,summary');
-export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
+export function createWorldEditor({scene,renderer,forest,atmosphere,lavaForest,seed,getRivers,getBurningPlants,setSuspended,defaultFireObjects,runtime}){
  const canvas=renderer.domElement,pineMeshes=forest.pickMeshes('pine');
  const camera=new THREE.PerspectiveCamera(55,1,.05,800);
  let active=false,selected=null,anchorId=null,dragged=false,pointerStart=null,orbit,gizmo,abort,panel,markers,demo=null,demoRiver=null,originalPlantZ=null;
  const keys=new Set(),point=new THREE.Vector3(),ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);
  const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo),runtime.riverSourceFor(demo)]:[]),runtime.world];
- const defaults=runtime.defaults;
+ const defaults=runtime.defaults,initialAtmosphere=atmosphere?.settings;
+ const applyAtmosphere=()=>atmosphere?.configure(preset.atmosphere??initialAtmosphere);
  let preset=runtime.preset,view,presetId='calm',addKind='fire',storageWarning='';
  let preview=null,clipboardEffect=null;
  const interaction=createPlacementState(),ghostRoot=new THREE.Group();ghostRoot.name='FireStudioPlacementPreview';
@@ -38,9 +40,9 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
  const effect=()=>presetId.startsWith('user:')?preset.customPresets[Number(presetId.slice(5))]??EFFECT_PRESETS.calm:EFFECT_PRESETS[presetId]??EFFECT_PRESETS.calm;
  function message(text){if(panel)panel.querySelector('output').textContent=storageWarning?storageWarning+' '+text:text;}
  function persist(){try{saveEffectPreset(preset);storageWarning='';return true;}catch{storageWarning='Не удалось сохранить в браузере. Экспортируйте JSON перед закрытием.';message('');return false;}}
- function commit(refreshView=true){history.push(preset);persist();if(refreshView)refresh();else{panel.querySelector('[data-action=undo]').disabled=history.index===0;panel.querySelector('[data-action=redo]').disabled=history.index===history.entries.length-1;panel.querySelector('[data-preset-changes]').textContent='Эффект изменён относительно пресета. Изменения сцены сохранены в браузере.';}}
+ function commit(refreshView=true){applyAtmosphere();history.push(preset);persist();if(refreshView)refresh();else{panel.querySelector('[data-action=undo]').disabled=history.index===0;panel.querySelector('[data-action=redo]').disabled=history.index===history.entries.length-1;panel.querySelector('[data-preset-changes]').textContent='Эффект изменён относительно пресета. Изменения сцены сохранены в браузере.';}}
  function mutation(fn){if(preset.seed!==seed){message('Примените seed импортированного леса в разделе сцены перед редактированием.');return;}fn();fire.invalidate();commit();}
- function restore(value){stopPreview();cancelPlacement(false);const previousId=anchorId;preset=value;runtime.setPreset(preset);anchorId=list().some(a=>a.id===previousId)?previousId:null;interaction.set(anchorId?'editing':'idle');fire.invalidate();persist();refresh();}
+ function restore(value){stopPreview();cancelPlacement(false);const previousId=anchorId;preset=value;runtime.setPreset(preset);applyAtmosphere();anchorId=list().some(a=>a.id===previousId)?previousId:null;interaction.set(anchorId?'editing':'idle');fire.invalidate();persist();refresh();}
  function makeDemo(){
   // The live game moves all forest plants outside each real winding river.
   // Apply those same clearance rules to the editor demo only temporarily.
@@ -98,7 +100,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
    marker.position.fromArray(selected.boundary?deckToLocal(item,selected.boundary):item.position).applyMatrix4(selected.root.matrixWorld);
    marker.userData.anchorId=item.id;markers.add(marker);
   }
-  view.refresh({preset,selected,anchor:a,list:list(),anchorId,history,armed:placing(),mode:interaction.mode,sceneEntries:sceneEntries(),sceneLimit:MAX_SCENE_ANCHORS,sceneTotal:authoredAnchors(preset).length,paused:fire.paused,presetId,addKind,cycle:selected?runtime.cycleFor(selected):undefined});
+  view.refresh({preset,atmosphere:preset.atmosphere??initialAtmosphere,selected,anchor:a,list:list(),anchorId,history,armed:placing(),mode:interaction.mode,sceneEntries:sceneEntries(),sceneLimit:MAX_SCENE_ANCHORS,sceneTotal:authoredAnchors(preset).length,paused:fire.paused,presetId,addKind,cycle:selected?runtime.cycleFor(selected):undefined});
   panel.querySelector('[data-scene-tip]').textContent=preview?'Предпросмотр: '+effect().name+'. Выберите «Создать сразу» или «Разместить вручную».':placing()?(interaction.mode==='reanchoring'?'Выберите новую поверхность · Esc — отмена':'Выберите поверхность · Esc — отмена'):a?'Эффект выбран. Измените размер и цвет справа.':'Выберите эффект слева, затем нажмите на дерево или поверхность.';
   message(placing()?(snapId?'Щёлкните по поверхности для привязки очага.':'Щёлкните по поверхности или свободной точке сцены.'):a?'Изменяется только выбранный очаг. Массовые действия находятся в отдельном разделе.':'Выберите очаг или добавьте новый эффект.');
  }
@@ -179,6 +181,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
   stopPreview();cancelPlacement(false);presetId=id;refresh();const rect=canvas.getBoundingClientRect();return placeEffect(placementAt({clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2},{immediate:true}),{immediate:true});
  }
  function pick(event){
+  if(panel?.classList.contains('atmosphere-open'))return;
   const start=pointerStart;pointerStart=null;
   if(event.button!==0||dragged||!start||Math.hypot(event.clientX-start.x,event.clientY-start.y)>5)return;
   if(placing()){placeEffect(placementAt(event));return;}
@@ -219,7 +222,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
 
  function applySeed(value){const url=new URL(location.href);url.searchParams.set('seed',String(value>>>0));persist();location.href=url.href;}
  function ui(){
-  view=createEffectPanel({onLayout:resize});panel=view.element;document.body.append(panel);
+  view=createEffectPanel({onLayout:resize,onAtmosphereChange:value=>mutation(()=>{preset.atmosphere=value;}),onAtmosphereTab:open=>{if(open){stopPreview();cancelPlacement(false);atmosphere?.setFogHidden(false);scene.remove(workLight);panel.querySelector('[name=work-light]').checked=false;panel.querySelector('[name=hide-atmosphere-fog]').checked=false;}if(gizmo)gizmo.visible=!open;if(markers)markers.visible=!open;}});panel=view.element;document.body.append(panel);
   const $=name=>panel.querySelector('[name="'+name+'"]');
   panel.addEventListener('focusin',()=>keys.clear());
   panel.addEventListener('click',e=>{
@@ -234,6 +237,8 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
    if(button.dataset.chooseLayer){view.chooseLayer(button.dataset.chooseLayer);refresh();return;}
    if(button.dataset.resetKind){const kind=button.dataset.resetKind,key=button.dataset.resetParam;mutation(()=>{const a=anchor(true);if(kind==='overall'){a.scale.fill(1);}else if(kind==='original'){const value=effect().original??validateAndNormalizePreset({});updateOriginalSettings(a,{[key]:value[key]},defaultLayer,defaultEmitter);}else if(kind==='cycle')runtime.cycleFor(selected,true)[key]=cycleFields[key].value;else if(a){const value=(kind==='emitter'?effect().emitter:effect().layers[kind])?.[key]??(kind==='emitter'?EMITTER_FIELDS:LAYER_FIELDS[kind])[key].value;(kind==='emitter'?a.emitter:a.layers[kind])[key]=value;if(kind==='flame'&&key==='shape')applyFlameForm(a.layers.flame,value);}});return;}
    const action=({'scene-focus':'focus','scene-duplicate':'duplicate','scene-delete':'delete'})[button.dataset.action]??button.dataset.action,a=anchor();
+   if(action==='atmosphere-export'){downloadValue({format:'knottyPine.atmosphere',...normalizeAtmosphere(preset.atmosphere??initialAtmosphere)},'knotty-pine-atmosphere.json');return;}
+   if(action==='atmosphere-import'){$('atmosphere-file').click();return;}
    if(action==='save'){if(persist())message('Эффект сохранён. Для файла используйте «Экспорт».');return;}
    if(action==='stop-preview'){stopPreview();refresh();return;}
    if(action==='import-effect'){$('library-file').click();return;}
@@ -245,7 +250,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
    if(action==='close'){close();return;}
    if(action==='reset-all-effects'){
     if(!window.confirm('Сбросить все сохранённые эффекты огня, дыма, искр и тления, включая пользовательские пресеты?\nРекорды и настройки игры сохранятся. Отменить сброс после подтверждения нельзя.'))return;
-    try{localStorage.removeItem(EFFECT_STORAGE);localStorage.removeItem(IMPORT_BACKUP);}catch{message('Не удалось очистить сохранённые эффекты. Проверьте настройки хранения браузера.');return;}
+    try{if(preset.atmosphere){const clean=clonePreset(defaults);clean.atmosphere=preset.atmosphere;saveEffectPreset(clean);}else localStorage.removeItem(EFFECT_STORAGE);localStorage.removeItem(IMPORT_BACKUP);}catch{message('Не удалось очистить сохранённые эффекты. Проверьте настройки хранения браузера.');return;}
     location.reload();
     return;
    }
@@ -298,7 +303,9 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
   $('cycle-mode').onchange=e=>mutation(()=>{runtime.cycleFor(selected,true).mode=e.target.value;});
   $('cycle-curve').onchange=e=>mutation(()=>{runtime.cycleFor(selected,true).curve=e.target.value;});
   $('cycle-repeat').onchange=e=>mutation(()=>{runtime.cycleFor(selected,true).repeat=e.target.checked;});
-  $('work-light').onchange=e=>{if(e.target.checked){scene.add(workLight);scene.fog=null;}else{scene.remove(workLight);scene.fog=previousFog;}};
+  $('work-light').onchange=e=>{if(e.target.checked)scene.add(workLight);else scene.remove(workLight);};
+  $('hide-atmosphere-fog').onchange=e=>atmosphere?.setFogHidden(e.target.checked);
+  $('atmosphere-file').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;if(file.size>128*1024)throw Error('Файл атмосферы больше 128 КБ');const raw=JSON.parse(await file.text());if(raw.format!=='knottyPine.atmosphere')throw Error('Нужен JSON атмосферы KNOTTY PINE');const value=normalizeAtmosphere(raw);mutation(()=>{preset.atmosphere=value;});message('Атмосфера импортирована.');}catch(error){message(error.message);}finally{e.target.value='';}};
   $('emitter-shape').onchange=e=>{if(anchor())mutation(()=>anchor(true).emitter.shape=e.target.value);};
   $('group-member').onchange=e=>mutation(()=>{if(e.target.checked){if(preset.group.length<128&&!preset.group.includes(selected.id))preset.group.push(selected.id);}else preset.group=preset.group.filter(id=>id!==selected.id);});
   $('budget').onchange=e=>{const v=Number(e.target.value);if(Number.isInteger(v)&&v>=128&&v<=16384)mutation(()=>preset.budget=v);else{refresh();message('Бюджет: целое число 128…16384.');}};
@@ -351,7 +358,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
  }
  function open(){
   if(active)return;active=true;setSuspended(true);reopen.hidden=true;document.body.classList.add('world-editor-open');abort=new AbortController();
-  previousFog=scene.fog;scene.fog=null;scene.add(workLight);
+  previousFog=scene.fog;if(atmosphere)atmosphere.setFogHidden(true);else scene.fog=null;scene.add(workLight);
   makeDemo();markers=new THREE.Group();scene.add(markers);
   orbit=new OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.dampingFactor=.12;
   gizmo=new TransformControls(camera,canvas);gizmo.setSpace('local');gizmo.setSize(.85);scene.add(gizmo);
@@ -379,7 +386,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
    originalPlantZ=null;
    forest.update();
   }
-  scene.fog=previousFog;scene.remove(workLight);
+  if(atmosphere)atmosphere.setFogHidden(false);else scene.fog=previousFog;scene.remove(workLight);
   document.body.classList.remove('world-editor-open');canvas.style.position='';canvas.style.left='';canvas.style.top='';renderer.setSize(innerWidth,innerHeight);fire.invalidate();update(0);fire.releaseUnused();setSuspended(false);reopen.hidden=false;
  }
  function update(dt){
@@ -392,7 +399,7 @@ export function createWorldEditor({scene,renderer,forest,lavaForest,seed,getRive
   const ids=new Set([selected?.id,...preset.group]);
   const visibleSources=sources().filter(s=>ids.has(s.id)||s.id==='world'&&preset.world.length);
   if(active){if(preview)fire.update(dt,[preview],preset,{camera,pixelRatio:renderer.getPixelRatio()});else runtime.update(dt,{sources:visibleSources,camera,placementPreview:ghostRoot.visible?ghost:null});}else runtime.update(dt);
-  if(active){const stats=fire.stats();for(const name of ['timeline-time','timeline-number']){const field=panel.querySelector('[name='+name+']');if(document.activeElement!==field)field.value=Math.min(120,stats.time).toFixed(2);}panel.querySelector('[data-metrics]').textContent=stats.anchors+' очагов · '+stats.particles+'/'+stats.budget+' частиц · пламя '+stats.flames+' · дым '+stats.smoke+' · искры '+stats.sparks+' · летящие угольки '+stats.embers+' · тление '+stats.coals+(stats.truncated?' · лимит':'');const state=selected?fire.cycleProgress(selected.id):null;const cycleText=panel.querySelector('[data-cycle-state]');if(state)cycleText.textContent=state.label+' · '+Math.round(state.progress*100)+'%';renderer.render(scene,camera);}
+  if(active){atmosphere?.update(dt,{playing:true,speed:0});if(atmosphere)forest.update();const atmosphereStats=atmosphere?.stats();if(atmosphereStats){const output=panel.querySelector('[data-atmosphere-stats]');output.textContent=atmosphereStats.particles+' частиц · '+atmosphereStats.drawCalls+' draw calls (до) · CPU '+atmosphereStats.cpuMs.toFixed(2)+' мс';output.dataset.fog=scene.fog?'on':'off';output.dataset.particles=atmosphereStats.particles;}const stats=fire.stats();for(const name of ['timeline-time','timeline-number']){const field=panel.querySelector('[name='+name+']');if(document.activeElement!==field)field.value=Math.min(120,stats.time).toFixed(2);}panel.querySelector('[data-metrics]').textContent=stats.anchors+' очагов · '+stats.particles+'/'+stats.budget+' частиц · пламя '+stats.flames+' · дым '+stats.smoke+' · искры '+stats.sparks+' · летящие угольки '+stats.embers+' · тление '+stats.coals+(stats.truncated?' · лимит':'');const state=selected?fire.cycleProgress(selected.id):null;const cycleText=panel.querySelector('[data-cycle-state]');if(state)cycleText.textContent=state.label+' · '+Math.round(state.progress*100)+'%';renderer.render(scene,camera);}
  }
  open();
  return {get active(){return active;},get mode(){return interaction.mode;},update,open,close,getPreset:()=>clonePreset(preset),stats:fire.stats,dispose(){close();if(demo){demo.userData.dispose?.();demo=null;}reopen.remove();scene.remove(handle);markerGeometry.dispose();markerMaterial.dispose();selectedMaterial.dispose();}};
