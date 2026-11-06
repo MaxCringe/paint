@@ -188,7 +188,7 @@ export function createLavaRiverFactory(scene, obstacles, {onTreeFire=null,random
      const jag=.055*Math.sin(x*5.7+phase*1.3)+.028*Math.sin(x*11.4-phase);
      const offsets=[.025,.14,.30+jag*.55,.55+jag, .84+jag*1.3,1.10+jag*.7];
      const pocket=scorchHotspots.reduce((strength,h)=>Math.max(strength,
-       Math.exp(-((x-h)/.38)**2)),0);
+       Math.exp(-Math.pow((x-h)/.38,2))),0);
      // Dark charcoal carries the effect. Only tiny broken patches glow.
      const flickerMask=.45+.55*Math.sin(x*13.3+phase*2.8+side*.9)**2;
      for(let j=0;j<burnRows;j++){
