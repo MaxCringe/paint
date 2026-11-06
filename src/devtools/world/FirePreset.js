@@ -24,7 +24,10 @@ function migrateDemoRiverEffects(p){
  const objects={...p.objects};
  const exportedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
   &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
- if(exportedDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
+ // Respect a deliberately empty river in a user's own saved layout.
+ const importedRiver=Array.isArray(p.river)&&p.river.length===LAVA_RIVER_AUTHORING.river.length
+  &&p.river.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.river[i].id);
+ if(exportedDeck&&(p.river===undefined||importedRiver)&&objects.deck?.anchors?.length===0)delete objects.deck;
  if(p.river!==undefined||p.seed!==LAVA_RIVER_AUTHORING.sourceSeed)
   return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
  const moved=[],world=[];
