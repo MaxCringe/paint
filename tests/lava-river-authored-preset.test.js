@@ -34,14 +34,15 @@ function legacyDemo(){
  p.world=[old,another,independent];
  return {p,old,another,independent};
 }
-test('default authored river fire is sparse, entirely on the charred wood and valid',()=>{
- assert.equal(LAVA_RIVER_AUTHORING.styleRevision,1);
+test('v2 authored river fire has low ember ribbons on the charred deck',()=>{
+ assert.equal(LAVA_RIVER_AUTHORING.styleRevision,2);
  assert.equal(LAVA_RIVER_AUTHORING.deck.length,8);
  assert.equal(LAVA_RIVER_AUTHORING.river.length,0);
  const sides=LAVA_RIVER_AUTHORING.deck.map(a=>a.side);
  assert.ok(sides.includes(-1)&&sides.includes(1));
- assert.ok(LAVA_RIVER_AUTHORING.deck.every(a=>a.layers.flame?.density===1));
- assert.ok(LAVA_RIVER_AUTHORING.deck.every(a=>!a.layers.smoke&&!a.layers.coals&&!a.layers.embers));
+ assert.ok(LAVA_RIVER_AUTHORING.deck.every(a=>a.layers.flame?.density===3&&a.emitter.shape==='line'));
+ assert.equal(LAVA_RIVER_AUTHORING.deck.filter(a=>a.layers.smoke?.enabled).length,2);
+ assert.ok(LAVA_RIVER_AUTHORING.deck.every(a=>!a.layers.coals&&!a.layers.embers));
  assert.ok(LAVA_RIVER_AUTHORING.deck.every(a=>a.position[2]>=.02&&a.position[2]<=.39));
  assert.ok(LAVA_RIVER_AUTHORING.deck.reduce((sum,a)=>sum+(a.layers.sparks?.rate??0),0)<12);
  const preset=upgradePreset({version:1,seed:31,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:[]});
@@ -50,7 +51,7 @@ test('default authored river fire is sparse, entirely on the charred wood and va
 });
 test('old heavy crossing changes to eight sparse edge flames without losing unrelated scene effects',()=>{
  const {p,independent}=legacyDemo(),m=upgradePreset(p);
- assert.equal(m.riverVisualRevision,1);
+ assert.equal(m.riverVisualRevision,2);
  assert.equal(m.river.length,0);
  assert.equal(m.world.length,1);
  assert.equal(m.world[0].id,independent.id);
@@ -59,6 +60,33 @@ test('old heavy crossing changes to eight sparse edge flames without losing unre
  assert.equal(m.objects.deck,undefined,'empty override must not hide edge flames');
  assert.equal(authoredAnchors(m).length,9);
  assert.deepEqual(upgradePreset(m),m,'the replacement is one-time and idempotent');
+});
+test('untouched v1 deck migrates to v2 once, preserving user-owned tree and free effects',()=>{
+ const seed=1337;
+ const p=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:[]});
+ const x=[-2.997491820347495,-.9654232905479151,2.25655021270737,3.6331554423924532,
+          -3.0636389651661737,-1.6136925668269395,.4204284066194668,2.3626239294605327];
+ const heights=[.26,.23,.30,.34,.32,.24,.22,.27];
+ p.deck.forEach((a,i)=>{a.position[0]=x[i];a.layers.flame.shape='legacy';a.layers.flame.density=1;a.layers.flame.height=heights[i];});
+ p.riverVisualRevision=1;
+ const customWorld=newEffectAnchor([2,1,6]);
+ const customTree=newEffectAnchor([.2,2,0]);
+ p.world=[customWorld];p.plants[PINE_SPECIES[0]]=[customTree];
+ const result=upgradePreset(p);
+ assert.equal(result.riverVisualRevision,2);
+ assert.equal(result.deck.length,8);
+ assert.ok(result.deck.every(a=>a.emitter.shape==='line'&&a.layers.flame.density===3));
+ assert.deepEqual(result.world,[customWorld]);
+ assert.deepEqual(result.plants[PINE_SPECIES[0]],[customTree]);
+ assert.deepEqual(upgradePreset(result),result);
+});
+test('custom-edited v1 flame positions do not get overwritten during migration',()=>{
+ const seed=1337,p=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:[]});
+ p.riverVisualRevision=1;
+ p.deck[0].position[0]=.12345;
+ const custom=structuredClone(p.deck);
+ const result=upgradePreset(p);
+ assert.deepEqual(result.deck,custom);
 });
 test('user changes to the lightweight crossing are not overwritten after saving',()=>{
  const {p}=legacyDemo(),m=upgradePreset(p);
