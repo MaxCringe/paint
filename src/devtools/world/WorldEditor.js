@@ -45,7 +45,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(demo){scene.add(demo);return;}
   const records=[];createLavaRiverFactory(scene,records,{random:createForestRandom(seed)})(-12);
   demo=records[0].g;
-  defaults.deck=demo.userData.deckFireAnchors.map(a=>Object.assign(newEffectAnchor([0,0,0],a.size),localToDeck(new THREE.Vector3(a.x,a.y,a.z),demo.userData.fireBoundary)));
+  if(!defaults.deck.length)defaults.deck=demo.userData.deckFireAnchors.map(a=>Object.assign(newEffectAnchor([0,0,0],a.size),localToDeck(new THREE.Vector3(a.x,a.y,a.z),demo.userData.fireBoundary)));
   if(!hasSavedPreset&&!preset.deck.length){preset.deck=clonePreset(defaults.deck);history=new PresetHistory(preset);}
  }
  function choose(target,{focus=true,preservePlacement=true}={}){

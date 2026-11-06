@@ -1,4 +1,5 @@
 import {defaultBurnCycle} from '../../systems/fire/ArtisticBurnCycle.js';
+import {LAVA_RIVER_AUTHORING} from '../../systems/fire/LavaRiverAuthored.js';
 import * as THREE from 'three';
 import {createEditableFire} from './EditableFire.js';
 import {getPineFireProfile} from '../../systems/fire/ForestFireStudio.js';
@@ -8,7 +9,9 @@ import {PINE_SPECIES,newAnchor,upgradePreset,clonePreset,readEffectPreset} from 
 // It owns the only effect batches; opening the UI never creates a second engine.
 export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,getRivers,getBurningPlants,defaultFireObjects,preset:initial,getWorldOffset=()=>0}){
  const defaults=upgradePreset({version:1,seed,plants:Object.fromEntries(PINE_SPECIES.map(key=>[key,getPineFireProfile(key).anchors.map(a=>newAnchor([a.x,a.y,a.z],a.size))])),deck:[]});
+ defaults.deck=clonePreset(LAVA_RIVER_AUTHORING.deck);
  let preset=initial??readEffectPreset()??clonePreset(defaults);
+ const lavaWorldIds=new Set(LAVA_RIVER_AUTHORING.river.map(a=>a.id));
  const fire=createEditableFire(scene),worldRoot=new THREE.Group();worldRoot.name='AuthoredWorldEffects';scene.add(worldRoot);
  const cache=new WeakMap();
  function sourceFor(root,key=root.userData.plantSpecies,boundary=root.userData.fireBoundary){
@@ -28,14 +31,27 @@ export function createWorldEffectsRuntime({scene,forest,seed,camera,renderer,get
   return inherited;
  }
  function cycleFor(source,mutable=false){if(source.id==='world')return defaultBurnCycle();if(mutable)anchorsFor(source,true);const entry=preset.objects[source.id];return matches(entry,source)?(entry.cycle??(mutable?(entry.cycle=defaultBurnCycle()):defaultBurnCycle())):defaultBurnCycle();}
- function renderSources(list){return list.map(s=>({...s,anchors:anchorsFor(s),cycle:cycleFor(s)}));}
+ function renderSources(list){
+  const rendered=[];
+  for(const s of list){
+   rendered.push({...s,anchors:s.anchors??anchorsFor(s),cycle:s.cycle??cycleFor(s)});
+   // Exported world effects are attached to every procedural lava crossing,
+   // including the editor demonstration, rather than fixed world coordinates.
+   if(s.boundary)rendered.push({root:s.root,key:'lava:river',id:'lava:river',height:1,
+    anchors:LAVA_RIVER_AUTHORING.river,cycle:defaultBurnCycle()});
+  }
+  return rendered;
+ }
  function runtimeSources(){
   const burning=new Set(getBurningPlants()),list=[];
   for(const root of forest.plants)if(root.userData.plantSpecies.startsWith('pine:')){
    const source=sourceFor(root);if(matches(preset.objects[source.id],source)||burning.has(root))list.push(source);
   }
   for(const root of getRivers())list.push(sourceFor(root));
-  if(preset.world.length)list.push(world);return list;
+  // Avoid drawing an imported copy of the exported lava effects twice.
+  const freeWorld=preset.world.filter(a=>!lavaWorldIds.has(a.id));
+  if(freeWorld.length)list.push({...world,anchors:freeWorld});
+  return list;
  }
  function update(dt,{sources,camera:previewCamera,placementPreview}={}){
   worldRoot.position.z=getWorldOffset();
