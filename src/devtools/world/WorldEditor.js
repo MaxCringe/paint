@@ -12,7 +12,7 @@ import {createLavaRiverFactory} from '../../obstacles/LavaRiver.js';
 import {createForestRandom} from '../../world/forest/PlantRegistry.js';
 import {createEffectPanel} from './EffectPanel.js';
 import {EFFECT_PRESETS,LAYER_FIELDS,EMITTER_FIELDS,defaultLayer,defaultEmitter,copy,applyEffectPreset,COMPOSITION_PLACEMENT} from './EffectLayers.js';
-import {PINE_SPECIES,MAX_ANCHORS,MAX_SCENE_ANCHORS,newEffectAnchor,upgradePreset,readEffectPreset,saveEffectPreset,EFFECT_STORAGE,clonePreset,PresetHistory,deckToLocal,localToDeck,distributeAnchors} from './FirePreset.js';
+import {PINE_SPECIES,MAX_ANCHORS,MAX_SCENE_ANCHORS,newEffectAnchor,upgradePreset,saveEffectPreset,EFFECT_STORAGE,clonePreset,PresetHistory,deckToLocal,localToDeck,distributeAnchors} from './FirePreset.js';
 import './WorldEditor.css';
 
 const LABELS=['Сосновая группа','Ель бегуна','Таёжная ель','Сухая сосна','Секвойя','Сосна обыкновенная'];
@@ -25,7 +25,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  const fire=runtime.fire,handle=new THREE.Object3D();scene.add(handle);
  const sources=()=>[...forest.plants.filter(p=>p.userData.plantSpecies.startsWith('pine:')).map(root=>runtime.sourceFor(root)),...getRivers().map(root=>runtime.sourceFor(root)),...(demo?.parent?[runtime.sourceFor(demo),runtime.riverSourceFor(demo)]:[]),runtime.world];
  const defaults=runtime.defaults;
- let preset=runtime.preset,hasSavedPreset=!!readEffectPreset(),view,presetId='calm',addKind='fire',storageWarning='';
+ let preset=runtime.preset,view,presetId='calm',addKind='fire',storageWarning='';
  let preview=null,clipboardEffect=null;
  const interaction=createPlacementState(),ghostRoot=new THREE.Group();ghostRoot.name='FireStudioPlacementPreview';
  let ghost=null,placementOrigin=null,reanchorSource=null,lastPointer=null,placementDirty=false;
@@ -45,8 +45,6 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
   if(demo){scene.add(demo);return;}
   const records=[];createLavaRiverFactory(scene,records,{random:createForestRandom(seed)})(-12);
   demo=records[0].g;
-  if(!defaults.deck.length)defaults.deck=demo.userData.deckFireAnchors.map(a=>Object.assign(newEffectAnchor([0,0,0],a.size),localToDeck(new THREE.Vector3(a.x,a.y,a.z),demo.userData.fireBoundary)));
-  if(!hasSavedPreset&&!preset.deck.length){preset.deck=clonePreset(defaults.deck);history=new PresetHistory(preset);}
  }
  function choose(target,{focus=true,preservePlacement=true}={}){
   const keep=preservePlacement&&placing(),mode=interaction.mode;if(!keep)cancelPlacement(false);

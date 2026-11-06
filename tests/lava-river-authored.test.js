@@ -3,52 +3,26 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {LAVA_RIVER_AUTHORING} from '../src/systems/fire/LavaRiverAuthored.js';
 import {createWorldEffectsRuntime} from '../src/devtools/world/WorldEffectsRuntime.js';
-
-test('the manually placed fire from the previous export is back on each crossing',()=>{
- const {deck,river,sourceSeed,styleRevision}=LAVA_RIVER_AUTHORING;
- assert.equal(sourceSeed,2912723152);
- assert.equal(styleRevision,6);
- assert.equal(deck.length,8);
- assert.equal(river.length,6);
- assert.ok(deck.some(a=>a.side===-1)&&deck.some(a=>a.side===1));
- assert.ok(deck.every(a=>a.layers.flame?.enabled&&a.layers.flame.density===3));
- assert.ok(deck.every(a=>a.position[2]>=.02&&a.position[2]<=.39));
+test('all eight deleted deck flames are gone; the six manual lava flames survive',()=>{
+ const {deck,river,styleRevision}=LAVA_RIVER_AUTHORING;
+ assert.equal(styleRevision,7);assert.deepEqual(deck,[]);assert.equal(river.length,6);
  assert.ok(river.every(a=>a.layers.flame?.enabled&&a.layers.flame.shape==='studio'));
- const distinct=new Set([...deck,...river].map(a=>a.id));
- assert.equal(distinct.size,14);
  assert.equal(river[0].layers.flame.brightness,2.3);
  assert.deepEqual(river[5].position,[-4.292833860456927,-0.7753001598477711,-3.2310344066615855]);
 });
-test('eight wooden-edge and six hand-placed river effects render for every crossing',()=>{
- const scene=new THREE.Scene();
- const make=()=>{const g=new THREE.Group();g.position.set(0,.045,-35);g.userData.fireBoundary={center:()=>0,halfWidth:()=>2.5};scene.add(g);return g;};
- const first=make(),second=make(),rivers=[first];
- const runtime=createWorldEffectsRuntime({scene,forest:{plants:[]},seed:1337,camera:new THREE.PerspectiveCamera(),
-  renderer:{getPixelRatio:()=>1},getRivers:()=>rivers,getBurningPlants:()=>[],defaultFireObjects:[]});
+test('every crossing renders exactly six river effects and no bundled deck effects',()=>{
+ const scene=new THREE.Scene(),rivers=[];
+ const make=()=>{const root=new THREE.Group();root.position.z=-35;
+  root.userData.fireBoundary={center:()=>0,halfWidth:()=>2.5};scene.add(root);return root;};
+ rivers.push(make());
+ const r=createWorldEffectsRuntime({scene,forest:{plants:[]},seed:1337,
+  camera:new THREE.PerspectiveCamera(),renderer:{getPixelRatio:()=>1},
+  getRivers:()=>rivers,getBurningPlants:()=>[],defaultFireObjects:[]});
  try{
-  assert.equal(runtime.preset.deck.length,8);
-  assert.equal(runtime.preset.river.length,6);
-  runtime.update(.016);
-  assert.equal(runtime.fire.stats().anchors,14);
-  assert.ok(runtime.fire.stats().originalFlames>=72,'6 custom volumetric flames');
-  assert.ok(scene.getObjectByName('FireStudioOriginalFlames')?.visible);
-  rivers.push(second);runtime.update(.016);
-  assert.equal(runtime.fire.stats().anchors,28);
-  rivers.splice(0,1);runtime.update(.016);
-  assert.equal(runtime.fire.stats().anchors,14);
- }finally{runtime.dispose();}
-});
-test('future edits in current revision remain independent of the restored artwork',async()=>{
- const {upgradePreset,PINE_SPECIES,newEffectAnchor}=await import('../src/devtools/world/FirePreset.js');
- const {defaultBurnCycle}=await import('../src/systems/fire/ArtisticBurnCycle.js');
- const current={version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:6,
-  plants:Object.fromEntries(PINE_SPECIES.map(p=>[p,[]])),
-  deck:structuredClone(LAVA_RIVER_AUTHORING.deck),river:[newEffectAnchor([0,.4,-2])],
-  world:[newEffectAnchor([2,1,4])],
-  objects:{deck:{binding:{kind:'deck',seed:LAVA_RIVER_AUTHORING.sourceSeed},anchors:[],cycle:defaultBurnCycle()}},
-  group:[],customPresets:[],budget:4500};
- const actual=upgradePreset(current);
- assert.equal(actual.river.length,1);
- assert.ok(actual.objects.deck);
- assert.deepEqual(upgradePreset(actual),actual);
+  assert.deepEqual(r.defaults.deck,[]);assert.deepEqual(r.preset.deck,[]);
+  r.update(.016);assert.equal(r.fire.stats().anchors,6);
+  assert.ok(r.fire.stats().originalFlames>=72);
+  rivers.push(make());r.update(.016);assert.equal(r.fire.stats().anchors,12);
+  rivers.shift();r.update(.016);assert.equal(r.fire.stats().anchors,6);
+ }finally{r.dispose();}
 });

@@ -29,6 +29,10 @@ const LEGACY_DECK_IDS=new Set([
  '10fc99c6-53de-4743-a2d8-d76f84537270','567e945d-9868-4ee5-83e8-d8ad9c409f16'
 ]);
 const LEGACY_RIVER_IDS=DEMO_RIVER_WORLD_IDS;
+// Eight retired Fire Studio wooden-edge anchors. Strip on every import and
+// save revision, including if the current revision was exported previously.
+export const RETIRED_DECK_IDS=new Set(["650e8c3d-469f-4d69-b20b-665c03d715e2","8dab6446-5380-4c6d-a0bd-d2a468ebe180","5b4dd78e-1ef0-4aa0-82e7-2c44b895f7f2","b1be52ef-242f-4631-8349-74e89c0ca9a5","aad974c5-c125-4ef6-95da-f97b2e7a4da1","ef544c3b-bdc0-46fb-aafe-0baa2b7604ca","10fc99c6-53de-4743-a2d8-d76f84537270","567e945d-9868-4ee5-83e8-d8ad9c409f16"]);
+const stripRetiredDeck=items=>Array.isArray(items)?items.filter(a=>!RETIRED_DECK_IDS.has(a.id)):items;
 export const LIGHT_RIVER_BACKUP_STORAGE='knottyPine.worldFire.beforeLightRiver.v1';
 export const EMBER_RIBBON_BACKUP_STORAGE='knottyPine.worldFire.beforeEmberRibbon.v2';
 export const RIVER_REMOVAL_BACKUP_STORAGE='knottyPine.worldFire.beforeRemovingRiverFx.v4';
@@ -54,39 +58,33 @@ function isUntouchedLightV1(deck){
 }
 function migrateDemoRiverEffects(p){
  const objects={...p.objects};
+ // Empty objects.deck is an intentional user override. Do NOT remove it:
+ // previously this revealed all eight deleted wooden flames again.
+ if(objects.deck?.anchors)objects.deck={...objects.deck,anchors:stripRetiredDeck(objects.deck.anchors)};
+ const deck=stripRetiredDeck(p.deck)??[];
  if(p.riverVisualRevision===LAVA_RIVER_AUTHORING.styleRevision)
-  return {...p,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
- const shippedDeck=Array.isArray(p.deck)&&p.deck.length===LAVA_RIVER_AUTHORING.deck.length
-  &&p.deck.every((a,i)=>a.id===LAVA_RIVER_AUTHORING.deck[i].id);
- // The imported Fire Studio demo carries an empty object-level deck override;
- // it would hide all eight shared wooden-edge flames. Leave nonempty overrides alone.
- if(shippedDeck&&objects.deck?.anchors?.length===0)delete objects.deck;
+  return {...p,deck,objects,river:p.river??clonePreset(LAVA_RIVER_AUTHORING.river)};
  const oldWorld=p.seed===LAVA_RIVER_AUTHORING.sourceSeed
   &&Array.isArray(p.world)&&p.world.some(a=>DEMO_RIVER_WORLD_IDS.has(a.id));
- const existingRiver=Array.isArray(p.river)?p.river.filter(a=>!LEGACY_RIVER_IDS.has(a.id)):[];
- const preserveAuthoring=p.riverVisualRevision===3||p.riverVisualRevision===4;
- // The v5 -> v6 release changes ONLY the brightness of the first authored
- // flame and the position of the sixth. Merge by ID without erasing unrelated
- // manual compositions, custom flames, or editor edits to other parameters.
+ const previousRiver=Array.isArray(p.river)?p.river.filter(a=>!LEGACY_RIVER_IDS.has(a.id)):[];
+ // User's manual river artwork must survive a deck-only cleanup. The v5
+ // visual migration still upgrades only its two previously changed anchors.
  let river;
- if(p.riverVisualRevision===5&&existingRiver.length){
+ if(p.riverVisualRevision===5&&previousRiver.length){
   const updates=new Map(LAVA_RIVER_AUTHORING.river.map(a=>[a.id,a]));
-  river=existingRiver.map(a=>{
+  river=previousRiver.map(a=>{
    const next=updates.get(a.id);
    if(!next)return a;
    if(a.id==='b1496f00-0609-413c-993a-0fc35d6128fb')return {...a,rotation:clonePreset(next.rotation),
-     layers:{...a.layers,flame:{...a.layers.flame,brightness:next.layers.flame.brightness}}};
+    layers:{...a.layers,flame:{...a.layers.flame,brightness:next.layers.flame.brightness}}};
    if(a.id==='137227f1-8d6e-4363-8713-49562400074f')return {...a,position:clonePreset(next.position),rotation:clonePreset(next.rotation)};
    return a;
   });
- }else river=preserveAuthoring&&existingRiver.length?existingRiver:clonePreset(LAVA_RIVER_AUTHORING.river);
- return {
-  ...p,objects,
-  deck:p.deck?.length?p.deck:clonePreset(LAVA_RIVER_AUTHORING.deck),
-  river,
+ }else if(p.riverVisualRevision===6)river=previousRiver;
+ else river=previousRiver.length?previousRiver:clonePreset(LAVA_RIVER_AUTHORING.river);
+ return {...p,objects,deck,river,
   world:oldWorld?p.world.filter(a=>!DEMO_RIVER_WORLD_IDS.has(a.id)):p.world,
-  riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision
- };
+  riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision};
 }
 
 export function newAnchor(position=[0,1,0],size=.6){
@@ -142,7 +140,7 @@ export function upgradePreset(input){
  if(!input||typeof input!=='object')throw Error('Некорректный JSON: ожидался объект пресета.');
  if(input.version===2||input.version===3)return validateModernPreset(input);
  const legacy=validateLegacyPreset(input),convert=a=>({...a,emitter:defaultEmitter(),layers:legacyLayers(a)});
- return {version:3,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:legacy.deck.map(convert),river:clonePreset(LAVA_RIVER_AUTHORING.river),world:[],objects:{},group:[],customPresets:[],budget:4500,riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision};
+ return {version:3,seed:legacy.seed,plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,legacy.plants[k].map(convert)])),deck:stripRetiredDeck(legacy.deck).map(convert),river:clonePreset(LAVA_RIVER_AUTHORING.river),world:[],objects:{},group:[],customPresets:[],budget:4500,riverVisualRevision:LAVA_RIVER_AUTHORING.styleRevision};
 }
 export function validatePreset(input){return (input?.version===2||input?.version===3)?validateModernPreset(input):validateLegacyPreset(input);}
 function validateModernPreset(input){

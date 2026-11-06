@@ -43,8 +43,9 @@ test.describe('world fire authoring',()=>{
   const stream=await file.createReadStream();let json='';for await(const chunk of stream)json+=chunk;
   const preset=JSON.parse(json);expect(preset.version).toBe(3);expect(Object.values(preset.objects).some(o=>o.anchors.some(a=>a.position[0]===.35&&a.layers.flame?.height===1.2))).toBe(true);
   await editor.locator('[name=file]').setInputFiles({name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(json)});await expect(editor.locator('output')).toContainText('Пресет импортирован');
-  await editor.locator('[name=species]').selectOption('deck');await editor.locator('[name=anchor]').selectOption({index:1});await editor.locator('[name=effect-preset]').selectOption('lava');
-  await expect(editor.locator('[name=anchor]')).not.toHaveValue('');
+  await editor.locator('[name=species]').selectOption('deck');
+  await expect(editor.locator('[name=anchor] option')).toHaveCount(1);
+  expect((await page.evaluate(()=>JSON.parse(localStorage.getItem('knottyPine.worldFire.v1')))).deck).toEqual([]);
   await editor.getByRole('button',{name:'Закрыть редактор',exact:true}).click();await expect(editor).toHaveCount(0);
   await page.keyboard.press('Escape');await expect(page.locator('#center')).toBeVisible();
   await expect(page.locator('#start')).toBeEnabled({timeout:90000});await page.locator('#start').click();await expect(page.locator('#center')).toHaveClass(/hidden/);

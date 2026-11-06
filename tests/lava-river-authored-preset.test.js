@@ -1,113 +1,63 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {LAVA_RIVER_AUTHORING} from '../src/systems/fire/LavaRiverAuthored.js';
-import {PINE_SPECIES,newEffectAnchor,upgradePreset,readEffectPreset,EFFECT_STORAGE,RIVER_REMOVAL_BACKUP_STORAGE} from '../src/devtools/world/FirePreset.js';
-import {authoredAnchors} from '../src/devtools/world/EffectPlacement.js';
+import {PINE_SPECIES,newEffectAnchor,upgradePreset,readEffectPreset,EFFECT_STORAGE,RETIRED_DECK_IDS,RIVER_REMOVAL_BACKUP_STORAGE} from '../src/devtools/world/FirePreset.js';
 import {defaultBurnCycle} from '../src/systems/fire/ArtisticBurnCycle.js';
-
-function seeded(revision=4){
- return {version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:revision,
-  plants:Object.fromEntries(PINE_SPECIES.map(k=>[k,[]])),
-  deck:structuredClone(LAVA_RIVER_AUTHORING.deck),river:[],world:[],
+function preset(rev=6){
+ return {version:3,seed:LAVA_RIVER_AUTHORING.sourceSeed,riverVisualRevision:rev,
+  plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),
+  deck:[],river:structuredClone(LAVA_RIVER_AUTHORING.river),world:[],
   objects:{},group:[],customPresets:[],budget:4500};
 }
-test('revision 4 accidentally deleted hand-authored lava flames: restore six without changing wood',()=>{
- const old=seeded();
- old.deck[0].layers.flame.height=.35;
- const unrelated=newEffectAnchor([1,2,3]),tree=newEffectAnchor([.2,2,0]);
- old.world.push(unrelated);old.plants[PINE_SPECIES[0]].push(tree);
- old.objects.deck={binding:{kind:'deck',seed:old.seed},anchors:[],cycle:defaultBurnCycle()};
- const originalDeck=structuredClone(old.deck);
- const result=upgradePreset(old);
- assert.equal(result.riverVisualRevision,6);
- assert.deepEqual(result.river,LAVA_RIVER_AUTHORING.river);
- assert.deepEqual(result.deck,originalDeck);
- assert.equal(result.objects.deck,undefined,'empty override must no longer hide wooden fire');
- assert.deepEqual(result.world,[unrelated]);
- assert.deepEqual(result.plants[PINE_SPECIES[0]],[tree]);
- assert.equal(authoredAnchors(result).length,16);
- assert.deepEqual(upgradePreset(result),result);
+function oldEight(){return [...RETIRED_DECK_IDS].map((id,i)=>{
+ const a=newEffectAnchor([-.9+i*.2,.023,.2]);a.id=id;return a;});}
+test('all saved revisions, including latest, remove the retired eight and keep manual work',()=>{
+ assert.equal(RETIRED_DECK_IDS.size,8);
+ for(const rev of [2,3,4,5,6,7]){
+  const p=preset(rev),custom=newEffectAnchor([0,.023,.25]);
+  p.deck=[...oldEight(),custom];
+  p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:[],cycle:defaultBurnCycle()};
+  const tree=newEffectAnchor([0,1,0]),free=newEffectAnchor([2,1,-10]);
+  p.plants[PINE_SPECIES[0]]=[tree];p.world=[free];
+  const next=upgradePreset(p);
+  assert.deepEqual(next.deck,[custom]);assert.deepEqual(next.objects.deck.anchors,[]);
+  assert.deepEqual(next.plants[PINE_SPECIES[0]],[tree]);assert.deepEqual(next.world,[free]);
+  assert.equal(next.river.length,6);assert.deepEqual(upgradePreset(next),next);
+ }
 });
-test('v3 user-customized river effects are preserved and wood remains unchanged',()=>{
- const old=seeded(3);
- const custom=newEffectAnchor([0,.4,-2]);
- old.river=[custom];
- old.deck[0].layers.flame.height=.36;
- const result=upgradePreset(old);
- assert.equal(result.riverVisualRevision,6);
- assert.deepEqual(result.river,[custom]);
- assert.deepEqual(result.deck,old.deck);
+test('same-revision JSON and object overrides cannot resurrect the 8 anchors',()=>{
+ const p=preset(7);p.deck=oldEight();
+ p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:oldEight(),cycle:defaultBurnCycle()};
+ const next=upgradePreset(p);
+ assert.deepEqual(next.deck,[]);assert.deepEqual(next.objects.deck.anchors,[]);
+ assert.equal(next.river.length,6);
 });
-test('free-standing custom scene fire is retained while obsolete demo fire is removed',()=>{
- const old=seeded(1);
- const original=newEffectAnchor([5.76,.07,-14.94]);
- original.id='bef26812-fdf5-4cbc-a850-5ecf0da7dd1b';
- const independent=newEffectAnchor([1,2,3]);
- old.world=[original,independent];
- const result=upgradePreset(old);
- assert.deepEqual(result.river,LAVA_RIVER_AUTHORING.river);
- assert.deepEqual(result.world,[independent]);
+test('custom deck and custom lava-surface effects survive cleanup',()=>{
+ const p=preset(6),custom=newEffectAnchor([0,.023,.2]);
+ p.deck=[...oldEight(),custom];
+ p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:[...oldEight(),custom],cycle:defaultBurnCycle()};
+ p.river[0].position=[2,.1,3];p.river[0].layers.flame.brightness=.77;
+ const next=upgradePreset(p);
+ assert.deepEqual(next.deck,[custom]);assert.deepEqual(next.objects.deck.anchors,[custom]);
+ assert.deepEqual(next.river,p.river);
 });
-test('browser migration recovers the original edited river from the v4 safety backup',()=>{
- const original=globalThis.localStorage;
- const entries=new Map();
- globalThis.localStorage={getItem:k=>entries.get(k)??null,setItem:(k,v)=>{entries.set(k,String(v));}};
+test('browser storage migration persists the deletion and retains backups',()=>{
+ const original=globalThis.localStorage,store=new Map();
+ globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v))};
  try{
-  const accidentallyCleared=seeded(4);
-  accidentallyCleared.objects.deck={binding:{kind:'deck',seed:accidentallyCleared.seed},anchors:[],cycle:defaultBurnCycle()};
-  const backup=seeded(3);
-  const custom=structuredClone(LAVA_RIVER_AUTHORING.river[0]);
-  custom.position[0]=1.321;
-  backup.river=[custom];
-  entries.set(EFFECT_STORAGE,JSON.stringify(accidentallyCleared));
-  entries.set(RIVER_REMOVAL_BACKUP_STORAGE,JSON.stringify(backup));
-  const restored=readEffectPreset();
-  assert.equal(restored.river.length,1);
-  assert.deepEqual(restored.river[0].position,custom.position);
-  assert.equal(restored.objects.deck,undefined);
-  assert.deepEqual(JSON.parse(entries.get(EFFECT_STORAGE)).river,restored.river);
-  assert.deepEqual(readEffectPreset(),restored,'restoration must be persistent');
-  assert.deepEqual(JSON.parse(entries.get(RIVER_REMOVAL_BACKUP_STORAGE)),backup,'do not overwrite saved work');
+  const p=preset(6);p.deck=oldEight();
+  p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:[],cycle:defaultBurnCycle()};
+  const backup=preset(4);
+  store.set(RIVER_REMOVAL_BACKUP_STORAGE,JSON.stringify(backup));
+  store.set(EFFECT_STORAGE,JSON.stringify(p));
+  const next=readEffectPreset();
+  assert.deepEqual(next.deck,[]);assert.deepEqual(next.objects.deck.anchors,[]);
+  assert.deepEqual(JSON.parse(store.get(EFFECT_STORAGE)).deck,[]);
+  assert.deepEqual(readEffectPreset(),next);
+  assert.deepEqual(JSON.parse(store.get(RIVER_REMOVAL_BACKUP_STORAGE)),backup);
  }finally{if(original===undefined)delete globalThis.localStorage;else globalThis.localStorage=original;}
 });
-test('no-backup rev4 case still restores all six handwritten exported effects',()=>{
- const old=seeded(4);
- const result=upgradePreset(old);
- assert.deepEqual(result.river,LAVA_RIVER_AUTHORING.river);
- assert.deepEqual(result.deck,old.deck);
-});
-
-test('v5 exported settings update just the two adjusted flames without losing other edits',()=>{
- const old=seeded(5);
- old.river=structuredClone(LAVA_RIVER_AUTHORING.river);
- old.river[0].layers.flame.brightness=1;
- old.river[0].rotation=[-0.018707625043051165,0.14146388328555204,0.1056333637883589];
- old.river[5].position=[-4.359869362662731,-0.8058801278197899,-3.2075150236816086];
- old.river[5].rotation=[0.008222797630859131,-0.11366962627458961,0.10525603162069358];
- old.river[1].layers.flame.intensity=.71;
- const manual=newEffectAnchor([1,.4,-3]);
- old.river.push(manual);
- old.deck[0].layers.flame.height=.37;
- old.objects.deck={binding:{kind:'deck',seed:old.seed},anchors:[],cycle:defaultBurnCycle()};
- const previousDeck=structuredClone(old.deck);
- const result=upgradePreset(old);
- assert.equal(result.riverVisualRevision,6);
- assert.equal(result.river.length,7,'six original flames plus an unrelated manual effect');
- assert.equal(result.river[0].layers.flame.brightness,2.3);
- assert.deepEqual(result.river[5].position,LAVA_RIVER_AUTHORING.river[5].position);
- assert.equal(result.river[1].layers.flame.intensity,.71,'other changes survive');
- assert.deepEqual(result.river[6],manual,'custom effects survive');
- assert.deepEqual(result.deck,previousDeck,'wooden-edge settings remain unchanged');
- assert.equal(result.objects.deck,undefined,'empty imported demo override must not hide the wood flames');
- assert.deepEqual(upgradePreset(result),result,'one-time update');
-});
-
-test('v6 custom scenes do not have their authored river flames overwritten',()=>{
- const p=seeded(6);
- const personal=newEffectAnchor([0,.2,-1]);
- p.river=[personal];
- p.objects.deck={binding:{kind:'deck',seed:p.seed},anchors:[],cycle:defaultBurnCycle()};
- const result=upgradePreset(p);
- assert.deepEqual(result.river,[personal]);
- assert.ok(result.objects.deck,'explicit current-revision changes remain untouched');
+test('legacy JSON imports do not restore the deleted eight',()=>{
+ const p={version:1,seed:42,plants:Object.fromEntries(PINE_SPECIES.map(s=>[s,[]])),deck:oldEight()};
+ assert.deepEqual(upgradePreset(p).deck,[]);
 });
