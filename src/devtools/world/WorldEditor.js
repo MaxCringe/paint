@@ -51,7 +51,7 @@ export function createWorldEditor({scene,renderer,forest,seed,getRivers,getBurni
  function choose(target,{focus=true,preservePlacement=true}={}){
   const keep=preservePlacement&&placing(),mode=interaction.mode;if(!keep)cancelPlacement(false);
   stopPreview();
-  selected=target?.id==='world'?runtime.world:target?runtime.sourceFor(target.root):null;anchorId=null;if(!keep){snapId=null;reanchorSource=null;interaction.set('idle');}else interaction.set(mode);placementDirty=true;if(panel)panel.querySelector('[name=placement]').value=selected?.id==='world'?'world':'surface';fire.invalidate();
+  selected=target?.id==='world'?runtime.world:target?.id==='river'?runtime.riverSourceFor(target.root):target?runtime.sourceFor(target.root):null;anchorId=null;if(!keep){snapId=null;reanchorSource=null;interaction.set('idle');}else interaction.set(mode);placementDirty=true;if(panel)panel.querySelector('[name=placement]').value=selected?.id==='world'?'world':'surface';fire.invalidate();
   if(target&&focus){
    target.root.getWorldPosition(point);
    const height=target.boundary||target.key==='world'||target.key==='river'?2:getPineFireProfile(target.key).height*target.root.scale.y;
