@@ -91,6 +91,13 @@ test('lava retains soft shoreline fire and ignites safely placed pines before Fi
   const g=obstacles[0].g;
   assert.ok(Math.abs(pine.position.z-g.position.z)>g.userData.halfDepth,
    'pine has been relocated outside lava before render');
+  for(const plant of forest.plants){
+   const bank=g.userData.fireBoundary,x=plant.position.x;
+   assert.ok(Math.abs(plant.position.z-g.position.z-bank.center(x))>bank.halfWidth(x),
+    plant.userData.plantSpecies+' cannot grow inside lava');
+   assert.ok(plant.userData.lavaFootprint,'one cached footprint per plant');
+  }
+
   assert.equal(g.userData.bankFlames,undefined,
    'old plane flames are removed from the river');
   assert.equal(g.children.filter(c=>c.isPoints).length,1,

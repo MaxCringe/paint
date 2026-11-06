@@ -32,7 +32,7 @@ test('procedural pines are moved onto solid banks before a lava river appears',(
   assert.ok(delta>=r.halfWidth(t.position.x)+LAVA_FOREST_RULES.bankClearance,
    'a pine trunk cannot stand in or on the molten bank');
  }
- assert.equal(fern.position.z,fernZ,'no surprise shifts to other plant families');
+ assert.notEqual(fern.position.z,fernZ,'fern foliage also belongs outside the river');
  assert.equal(fire.calls.length,0,'lava far ahead should not ignite instantly');
  interaction.reset();
 });
@@ -76,4 +76,42 @@ test('recycling and successive rivers maintain safe shore clearance',()=>{
  sys.update(2.3);
  assert.equal(sys.getStats().rivers,1,'old rivers are dropped when removed');
  sys.reset();assert.equal(sys.getStats().rivers,0);
+});
+
+test('all families avoid lava during creation and after recycling',()=>{
+ const scene=new THREE.Scene(),plants=['pine:taiga_spruce','fern:lush','grass:wild'].map((species,i)=>{
+  const p=pine(6,-40,species);p.rotation.y=i*.35;p.scale.set(1.1,1,1.3);
+  const radius=species.startsWith('pine')?.42:species.startsWith('fern')?1.45:.9;
+  p.userData.lavaFootprint={x:radius,z:radius};
+  return p;
+ }),sys=createLavaForestInteraction(plants,stubFire()),r=river(scene,-40);
+ sys.registerRiver(r);
+ for(const p of plants){
+  assert.ok(Math.abs(p.position.z-r.group.position.z-r.center(p.position.x))>r.halfWidth(p.position.x));
+  p.position.z=-40;
+  assert.equal(sys.onPlantRecycle(p),true);
+  assert.notEqual(p.position.z,-40);
+ }
+ sys.reset();
+});
+test('overlapping river banks select a land position outside both rivers',()=>{
+ const scene=new THREE.Scene(),p=pine(-7,-56,'fern:lush');
+ p.userData.lavaFootprint={x:1.5,z:1.4};p.rotation.y=.9;
+ const sys=createLavaForestInteraction([p],stubFire());
+ const a=river(scene,-57),b=river(scene,-55);
+ sys.registerRiver(a);sys.registerRiver(b);
+ for(const r of [a,b]){
+  for(let i=0;i<5;i++){
+   const x=p.position.x+(i-2)*.5;
+   const dz=p.position.z-r.group.position.z;
+   assert.ok(Math.abs(dz-r.center(x))>r.halfWidth(x)+1);
+  }
+ }
+ sys.reset();
+});
+test('forest placement remains unchanged when no lava exists',()=>{
+ const p=pine(7,-40,'grass:forest'),sys=createLavaForestInteraction([p],stubFire());
+ assert.equal(sys.onPlantRecycle(p),false);
+ assert.equal(p.position.z,-40);
+ sys.reset();
 });

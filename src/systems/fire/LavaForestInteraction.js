@@ -1,68 +1,74 @@
-// Keep the recycled procedural forest out of the molten river channel.
-// Rivers are generated after the trees; placement and fire must therefore
-// share the actual shoreline function, not an approximate obstacle rectangle.
+// Solid-bank placement for the procedural forest. Uses the actual winding
+// lava shoreline, not a rectangular exclusion around an obstacle.
 export const LAVA_FOREST_RULES=Object.freeze({
- ignitionLead:49,      // ignite roughly 3 seconds before a 15 m/s approach
- bankClearance:1.55,   // trunks stand on solid ground outside the black banks
- heatReach:4.9,       // radiant heat ignites trees before direct contact
- maxAdjustments:6
+ ignitionLead:49,
+ bankClearance:1.55,
+ fernClearance:.18,
+ grassClearance:.12,
+ heatReach:4.9,
+ maxAdjustments:6 // retained for callers; interval merge is not iterative
 });
-
-const isPine=plant=>plant?.userData?.plantSpecies?.startsWith('pine:');
-
+const FAMILY=new Set(['pine','fern','grass']);
+const FALLBACK={pine:{x:.45,z:.45},fern:{x:.9,z:.9},grass:{x:.45,z:.45}};
 export function createLavaForestInteraction(plants,fire,options={}){
- const config={...LAVA_FOREST_RULES,...options};
- const rivers=[];
- function safeRiverDistance(plant,river){
-  const x=plant.position.x;
-  return plant.position.z-river.group.position.z-river.center(x);
+ const config={...LAVA_FOREST_RULES,...options},rivers=[];
+ function interval(plant,river,family){
+  if(!river.group.parent)return null;
+  const extent=plant.userData.lavaFootprint??FALLBACK[family];
+  const c=Math.abs(Math.cos(plant.rotation.y)),s=Math.abs(Math.sin(plant.rotation.y));
+  const bx=extent.x*Math.abs(plant.scale.x),bz=extent.z*Math.abs(plant.scale.z);
+  const rx=c*bx+s*bz,rz=s*bx+c*bz;
+  const px=plant.position.x-river.group.position.x;
+  if(px+rx< -110||px-rx>110)return null;
+  let lo=Infinity,hi=-Infinity;
+  // Sample the winding shore under both ends and the middle of the footprint.
+  // This runs only at river registration/recycle, never once per animation frame.
+  for(let i=0;i<=4;i++){
+   const x=Math.max(-110,Math.min(110,px+rx*(i-2)/2));
+   const center=river.center(x),half=river.halfWidth(x);
+   lo=Math.min(lo,center-half);hi=Math.max(hi,center+half);
+  }
+  const clearance=family==='pine'?config.bankClearance:
+   family==='fern'?config.fernClearance:config.grassClearance;
+  return {lo:river.group.position.z+lo-rz-clearance,
+          hi:river.group.position.z+hi+rz+clearance};
  }
- function adjustTree(plant,river){
-  if(!isPine(plant)||!river.group.parent)return false;
-  // Rivers extend across the entire forest; check the actual winding bank
-  // instead of only the road width. Allow narrow overhanging crowns.
-  const x=plant.position.x;
-  if(Math.abs(x)>105)return false;
-  const half=river.halfWidth(x)+config.bankClearance+
-   Math.min(.65,Math.max(.1,plant.scale.x)*.65);
-  const delta=safeRiverDistance(plant,river);
-  if(Math.abs(delta)>=half)return false;
-  // Move once in the direction of the nearest bank. For a tree centred in
-  // the channel choose the far-side bank to avoid popping towards the runner.
-  const sign=delta<=0?-1:1;
-  plant.position.z+=sign*(half-Math.abs(delta)+.08);
+ function keepPlantClear(plant){
+  const family=plant?.userData?.plantSpecies?.split(':')[0];
+  if(!FAMILY.has(family))return false;
+  const forbidden=[];
+  for(const river of rivers){
+   const region=interval(plant,river,family);
+   if(region)forbidden.push(region);
+  }
+  if(!forbidden.length)return false;
+  forbidden.sort((a,b)=>a.lo-b.lo);
+  const merged=[];
+  for(const region of forbidden){
+   const last=merged[merged.length-1];
+   if(last&&region.lo<=last.hi+.08)last.hi=Math.max(last.hi,region.hi);
+   else merged.push({...region});
+  }
+  const z=plant.position.z,hit=merged.find(r=>z>=r.lo&&z<=r.hi);
+  if(!hit)return false;
+  const back=hit.lo-.08,forward=hit.hi+.08;
+  plant.position.z=Math.abs(z-back)<=Math.abs(z-forward)?back:forward;
   return true;
  }
- function keepTreeClear(plant){
-  if(!isPine(plant))return false;
-  let moved=false;
-  // Several rivers can coexist; resolve against all, including after recycle.
-  for(let n=0;n<config.maxAdjustments;n++){
-   let changed=false;
-   for(const river of rivers)if(adjustTree(plant,river))changed=true;
-   moved ||=changed;
-   if(!changed)break;
-  }
-  return moved;
- }
- function registerRiver({group,z,center,halfWidth}){
+ function registerRiver({group,center,halfWidth}){
   if(!group?.isObject3D||typeof center!=='function'||typeof halfWidth!=='function')
    throw new TypeError('Lava river must supply its group and real shore functions');
-  const river={group,center,halfWidth,ignited:false};
-  rivers.push(river);
-  // Everything happens before the river is visible at the runner, and before
-  // the shared forest InstancedMesh matrices are updated for this frame.
-  for(const plant of plants)keepTreeClear(plant);
+  const river={group,center,halfWidth,ignited:false};rivers.push(river);
+  // Correct placement before this frame's InstancedMesh matrix upload.
+  for(const plant of plants)keepPlantClear(plant);
   return river;
  }
- function onPlantRecycle(plant){return keepTreeClear(plant)}
+ const onPlantRecycle=plant=>keepPlantClear(plant);
  function update(runnerZ=2.3){
   for(let i=rivers.length-1;i>=0;i--){
    const river=rivers[i];
    if(!river.group.parent){
-    fire.releaseOwner?.(river.group);
-    rivers.splice(i,1);
-    continue;
+    fire.releaseOwner?.(river.group);rivers.splice(i,1);continue;
    }
    if(!river.ignited&&river.group.position.z>=runnerZ-config.ignitionLead){
     river.ignited=true;
@@ -82,6 +88,7 @@ export function createLavaForestInteraction(plants,fire,options={}){
   for(const river of rivers)fire.releaseOwner?.(river.group);
   rivers.length=0;
  }
- return {registerRiver,onPlantRecycle,keepTreeClear,update,releaseRiver,reset,
+ return {registerRiver,onPlantRecycle,keepTreeClear:keepPlantClear,keepPlantClear,
+  update,releaseRiver,reset,
   getStats:()=>({rivers:rivers.length,ignited:rivers.filter(r=>r.ignited).length})};
 }

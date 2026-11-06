@@ -42,6 +42,13 @@ test('the same renderer instances pine, fern and grass without individual mesh d
  assert.equal(fern.userData.windKind,'fern-static');
  assert.equal(grass.userData.windKind,'grass');
  assert.ok(grass.userData.windMaterials.length>0);
+ assert.ok(pine.userData.lavaFootprint.x>0);
+ assert.ok(fern.userData.lavaFootprint.z>0);
+ assert.ok(grass.userData.lavaFootprint.x>0);
+ const cached=grass.userData.lavaFootprint;
+ grass.userData.onForestRecycle();
+ assert.equal(grass.userData.lavaFootprint,cached,'bounds cached across recycling');
+
  forest.finish();
  assert.equal(forest.getStats().plants,3);
  assert.ok(forest.getStats().drawCalls>0);

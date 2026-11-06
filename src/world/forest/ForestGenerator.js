@@ -9,6 +9,18 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
  const registry=new PlantRegistry();
  configure(registry);
  const prototypes=new Map(),batches=new Map(),plants=[],instanceMeshes=[],meshBatches=new Map();
+ const lavaFootprints=new WeakMap();
+ function lavaFootprintFor(prototype,family){
+  if(lavaFootprints.has(prototype))return lavaFootprints.get(prototype);
+  const object=family==='pine'?prototype.children.find(n=>n.isMesh)??prototype:prototype;
+  const bounds=new THREE.Box3().setFromObject(object,true);
+  const reach=Number.isFinite(bounds.min.x)?{
+   x:Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x)),
+   z:Math.max(Math.abs(bounds.min.z),Math.abs(bounds.max.z))
+  }:{x:.35,z:.35};
+  lavaFootprints.set(prototype,reach);
+  return reach;
+ }
  const rand=(a,b)=>a+(b-a)*rng();
  function prototypeFor(spec,index){
   const key=spec.id+'@'+index;
@@ -60,6 +72,8 @@ export function createForestGenerator(scene,{seed=Math.floor(Math.random()*0xfff
   group.userData.plantSpecies=spec.id;
   group.userData.plantTemplate=template;
   group.userData.plantId=plants.length;
+  // Cache prototype-space horizontal bounds; recycling changes only scale/yaw.
+  group.userData.lavaFootprint=lavaFootprintFor(prototype,family);
   keepFernClear(group,prototype);
   const materials=new Set();
   // Prototype matrices become the local (unchanging) transform of each
