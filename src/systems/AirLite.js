@@ -183,7 +183,7 @@ export function createAirLite(scene,{mobile=window.innerWidth<720}={}){
    v.active=v.boundary?borders:i<localCap;
    v.mesh.scale.y=v.ry*fog.height/5;v.mesh.position.y=v.y*fog.height/5;
    v.uniforms.uRadius.value.copy(v.mesh.scale);v.uniforms.uCenter.value.copy(v.mesh.position);
-   v.uniforms.uDensity.value=v.boundary?(v.boundaryIndex===2?fog.distant:fog.edge)*.7:fog.mist*(.8+pct(p.airDensity)*1.2);
+   v.uniforms.uDensity.value=v.boundary?(v.boundaryIndex===2?fog.distant*fog.depth*fog.distantDensity:fog.edge)*.7:fog.mist*(.8+pct(p.airDensity)*1.2);
    if(v.boundary||borders)v.uniforms.uTint.value.set(fog.color);
    else v.uniforms.uTint.value.set(i%2?0x794a42:0x66505a).lerp(new THREE.Color(0xa65e37),pct(p.airGlow)*.28);
    v.uniforms.uSoftness.value=fog.softness;

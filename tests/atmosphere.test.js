@@ -13,6 +13,17 @@ test('atmosphere schema bounds imports, keeps a soft reaction zone and rejects f
  assert.throws(()=>normalizeAtmosphere({version:99}),/версия/);
  for(const value of Object.values(ATMOSPHERE_PRESETS))assert.deepEqual(normalizeAtmosphere(value.settings),value.settings);
 });
+test('far optical depth extinguishes mountain silhouettes and distant trees without moving the near zone',()=>{
+ const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x3b101b,14.7,65.9);scene.background=new THREE.Color(0x1b050b);const originalSky=scene.background.clone();const backdrop=new THREE.Group();const mountain=new THREE.Mesh(new THREE.PlaneGeometry(),new THREE.MeshBasicMaterial({fog:false}));backdrop.add(mountain);
+ const runtime=createAtmosphereRuntime({scene,backdrop,mobile:false,air:{configure(){},setFogPreviewHidden(){}},wind:{configure(){}}});
+ const shader={uniforms:{},fragmentShader:'#include <fog_fragment>'};mountain.material.onBeforeCompile(shader);
+ const fog={...ATMOSPHERE_PRESETS.forest.settings.fog,depth:.3,mountains:.7};runtime.configure({fog});const weakFar=scene.fog.far,weak=shader.uniforms.kpHorizonFog.value;
+ runtime.configure({fog:{...fog,depth:3}});assert.ok(scene.fog.far<weakFar);assert.ok(shader.uniforms.kpHorizonFog.value>weak);assert.equal(scene.fog.near,30);assert.ok(scene.fog.far>=60);
+ runtime.configure(ATMOSPHERE_PRESETS.forest.settings);assert.ok(shader.uniforms.kpHorizonFog.value>.99);assert.equal(shader.uniforms.kpFogSoftness.value,1.8);
+ assert.ok(Math.max(...scene.background.toArray().map((v,i)=>Math.abs(v-scene.fog.color.toArray()[i])))<.002);runtime.setFogHidden(true);assert.deepEqual(scene.background,originalSky);runtime.setFogHidden(false);
+ const legacy=normalizeAtmosphere();assert.equal(legacy.fog.depth,1);assert.equal(legacy.fog.distantDensity,1);
+ mountain.geometry.dispose();mountain.material.dispose();
+});
 test('atmosphere round-trips in existing fire JSON, storage and Undo/Redo without changing fire data',()=>{
  const previous=globalThis.localStorage,store=new Map([['record','100']]);globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)};
  try{

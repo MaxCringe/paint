@@ -3,8 +3,8 @@ export const ATMOSPHERE_VERSION=1;
 const field=(label,value,min,max,step=.01,advanced=false)=>({label,value,min,max,step,advanced});
 export const ATMOSPHERE_FIELDS={
  fog:{
-  enabled:field('Туман',true),density:field('Плотность',1,.2,2),near:field('Начало тумана',14.7,14,120,1),far:field('Конец тумана',65.9,44,250,1),color:field('Цвет тумана','#3b101b'),
-  height:field('Высота дымки',5,1,18,.5,true),softness:field('Мягкость',1,.3,3,.1,true),edge:field('Туман у краёв леса',0,0,1.5),distant:field('Дальний слой',0,0,1.5),motion:field('Скорость дымки',1,0,3,.1,true),mountains:field('Влияние на горы',0,0,1,.05,true),trees:field('Влияние на дальние деревья',1,.5,1.5,.05,true),mist:field('Локальная дымка',.24,0,.8,.01,true)
+  enabled:field('Туман',true),density:field('Плотность',1,.2,2),near:field('Дальность начала тумана',14.7,14,120,1),far:field('Дальность полного скрытия',65.9,44,250,1),depth:field('Глубина тумана',1,.3,3,.05),distantDensity:field('Плотность дальнего слоя',1,.2,3,.05),color:field('Цвет тумана','#3b101b'),
+  height:field('Высота дымки',5,1,18,.5,true),softness:field('Мягкость перехода',1,.3,3,.1),edge:field('Туман у краёв леса',0,0,1.5),distant:field('Интенсивность дальней дымки',0,0,1.5),motion:field('Скорость дымки',1,0,3,.1,true),mountains:field('Влияние на горы / фон',0,0,1,.01),trees:field('Влияние на дальние деревья',1,.5,1.5,.05),mist:field('Локальная дымка',.24,0,.8,.01,true)
  },
  ash:{
   enabled:field('Воздушный пепел',true),amount:field('Количество',28,0,100,1),size:field('Размер',1,.3,3),opacity:field('Видимость',.18,0,.6),speed:field('Скорость частиц',1,0,3),direction:field('Направление, °',0,-180,180,1,true),color:field('Цвет пепла','#cfa79f'),distance:field('Дальность появления',125,50,200,1,true),depth:field('Распределение: ближе / дальше',0,-1,1,.1,true),runner:field('Зависимость от скорости Фионы',1,0,1.5,.05,true)
@@ -27,6 +27,6 @@ export function normalizeAtmosphere(input){
 }
 export const ATMOSPHERE_PRESETS={
  current:{label:'Текущая атмосфера',settings:normalizeAtmosphere()},
- forest:{label:'Туманный адский лес',settings:normalizeAtmosphere({fog:{near:30,far:115,color:'#49313a',density:1,edge:.8,distant:1,mountains:.55,height:7,softness:1.5,mist:.18}})},
+ forest:{label:'Туманный адский лес',settings:normalizeAtmosphere({fog:{near:30,far:105,depth:1.5,distantDensity:1.3,color:'#4b1e30',density:1,edge:.8,distant:1.2,mountains:.96,height:9,softness:1.8,mist:.18}})},
  storm:{label:'Пепельная буря',settings:normalizeAtmosphere({fog:{near:25,far:100,color:'#504047',edge:.6,distant:.85,mountains:.6,mist:.2},ash:{amount:65,opacity:.28,speed:1.35,color:'#bca9a5'},wind:{strength:60,gusts:45,particles:1.4}})}
 };
